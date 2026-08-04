@@ -5,15 +5,25 @@ This branch implements the tenant and access foundation described in `docs/archi
 ## Completed trust boundaries
 
 - OIDC Authorization Code with S256 PKCE for the institutional and control-plane browser applications.
-- Encrypted, HttpOnly BFF session cookies with bounded lifetimes.
-- Membership-derived tenant selection; tenant IDs are never accepted from the browser as authority.
-- Role and entitlement-aware workspace sessions and navigation.
-- Separate control-plane authentication and provisioning surface.
-- Same-origin enforcement for state-changing BFF routes.
+- Encrypted, HttpOnly BFF session cookies with bounded lifetimes and distinct application keys.
+- Membership-derived workspace selection through opaque membership identifiers; tenant IDs are never accepted from the browser as authority.
+- Active-role and mandatory-core-entitlement checks before a workspace can open.
+- Runtime validation and size bounds for identity, workspace and provisioning API responses.
+- Role- and entitlement-adaptive navigation with guarded destinations only.
+- Honest institutional readiness states that do not invent academic records before the academic core exists.
+- Separate control-plane authentication, shell and idempotent tenant-provisioning workflow.
+- Verified platform-operator bootstrap requires the configured MFA assurance and creates global audit evidence.
+- Same-origin, JSON-only and bounded-body enforcement for state-changing BFF routes.
 - Forced PostgreSQL RLS for tenant-owned data and separate migrator, application and control-plane identities.
+- Transactional audit and outbox evidence for tenant provisioning and invitation workflows.
 
 ## Verification gates
 
-- Source-level security and architecture tests.
-- Strict TypeScript compilation through the repository QA harness.
-- Cross-tenant database integration tests remain required once the CI runner and disposable PostgreSQL service are available.
+- 39 of 39 local source, contract, security, UX and executable authorisation tests pass.
+- Strict TypeScript compilation passes through the repository QA harness.
+- Source hygiene rejects fabricated live information, malformed markup, unresolved placeholder links and TODO/FIXME markers in implemented surfaces.
+- Cross-tenant PostgreSQL integration tests, browser visual regression and identity-provider end-to-end tests remain required when disposable infrastructure is available.
+
+## Next implementation gate
+
+PI-03 introduces institution structure and academic time: institutions, campuses, organisational units, academic periods, policy configuration and the activation checklist that moves a tenant from `provisioning` to `active`.
