@@ -26,6 +26,7 @@ import {
   CreateInstitutionDto,
   CreateOrganisationalUnitDto,
 } from "../application/institution-setup.dto.js";
+import { InstitutionQueryService } from "../application/institution-query.service.js";
 import { InstitutionStructureService } from "../application/institution-structure.service.js";
 import { TenantActivationService } from "../application/tenant-activation.service.js";
 
@@ -35,6 +36,7 @@ export class InstitutionSetupController {
   constructor(
     private readonly structure: InstitutionStructureService,
     private readonly activation: TenantActivationService,
+    private readonly query: InstitutionQueryService,
     private readonly authorization: TenantAuthorizationService,
   ) {}
 
@@ -57,6 +59,15 @@ export class InstitutionSetupController {
   @UseGuards(TenantPermissionGuard)
   createInstitution(@Body() input: CreateInstitutionDto) {
     return this.structure.createInstitution(input);
+  }
+
+  @Get("institutions/:institutionId")
+  institutionOverview(
+    @Req() request: AuthenticatedRequest,
+    @Param("institutionId", new ParseUUIDPipe()) institutionId: InstitutionId,
+  ) {
+    this.assertInstitutionPermission(request, permissions.institutionConfigure, institutionId);
+    return this.query.institutionOverview(institutionId);
   }
 
   @Post("institutions/:institutionId/campuses")
