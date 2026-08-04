@@ -85,7 +85,7 @@ export function WorkspaceSectionPage({ session, section }: { session: WorkspaceS
       <h1 id="section-state-title">{state.title}</h1>
       <p>{state.description}</p>
       <div className="section-state-evidence"><span aria-hidden="true">✓</span><div><strong>Verified workspace context</strong><small>{state.detail}</small></div></div>
-      <dl><div><dt>Institution</dt><dd>{session.tenant.displayName}</dd></div><div><dt>Membership</dt><dd>{session.membership.id.slice(0, 8)}</dd></div><div><dt>Status</dt><dd>{session.tenant.status}</dd></div></dl>
+      <dl><div><dt>Institution</dt><dd>{session.tenant.displayName}</dd></div><div><dt>Membership</dt><dd>{session.membership.id.slice(0, 8)}</dt></div><div><dt>Status</dt><dd>{session.tenant.status}</dd></div></dl>
     </div>
   </section>;
 }
