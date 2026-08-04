@@ -1,0 +1,24 @@
+{
+  "name": "veza-learning-cloud",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Multi-tenant education operating system for institutions.",
+  "packageManager": "pnpm@11.15.1",
+  "engines": { "node": ">=24.18.0", "pnpm": ">=11.15.1" },
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev --parallel",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
+    "test:ci": "turbo run lint typecheck test build",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.15",
+    "prettier": "^3.6.2",
+    "turbo": "^2.10.7",
+    "typescript": "^7.0.2"
+  }
+}
