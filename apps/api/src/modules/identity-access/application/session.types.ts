@@ -9,5 +9,5 @@ export interface ResolvedWorkspaceSession {
 }
 
 export interface PrincipalLookup {
-  findPrincipal(external: ExternalPrincipal): Promise<AuthenticatedPrincipal | undefined>;
+  findPrincipal(external: ExternalPrincipal, correlationId: string): Promise<AuthenticatedPrincipal | undefined>;
 }

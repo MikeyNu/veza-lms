@@ -151,14 +151,18 @@ export function evaluateAccess(
   const scopeMatches = permissionMatches.filter((assignment) => scopeContains(assignment, resource));
   if (scopeMatches.length === 0) return { allowed: false, reason: "scope-mismatch" };
 
-  if (scopeMatches.some((assignment) => assignment.effect === "deny")) {
+  const applicableAssignments = scopeMatches.filter((assignment) =>
+    conditionsPass(assignment.conditions, resource, context),
+  );
+  if (applicableAssignments.length === 0) return { allowed: false, reason: "condition-failed" };
+  if (applicableAssignments.some((assignment) => assignment.effect === "deny")) {
     return { allowed: false, reason: "explicit-deny" };
   }
 
-  const conditionMatches = scopeMatches.filter((assignment) => conditionsPass(assignment.conditions, resource, context));
-  if (conditionMatches.length === 0) return { allowed: false, reason: "condition-failed" };
-
-  return { allowed: conditionMatches.some((assignment) => assignment.effect === "allow"), reason: "allowed" };
+  return {
+    allowed: applicableAssignments.some((assignment) => assignment.effect === "allow"),
+    reason: "allowed",
+  };
 }
 
 export function assignmentsForRole(

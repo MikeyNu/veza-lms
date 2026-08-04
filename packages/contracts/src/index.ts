@@ -86,6 +86,13 @@ export interface EntitlementSummary {
   readonly validUntil?: string;
 }
 
+export interface WorkspaceOption {
+  readonly membershipId: MembershipId;
+  readonly tenant: Pick<TenantSummary, "id" | "slug" | "displayName" | "status" | "logoUrl">;
+  readonly roles: readonly BaselineRoleKey[];
+  readonly label: string;
+}
+
 export interface WorkspaceSession {
   readonly principal: Pick<AuthenticatedPrincipal, "userId" | "displayName" | "email">;
   readonly tenant: TenantSummary;
