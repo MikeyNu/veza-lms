@@ -34,3 +34,11 @@ Middleware establishes correlation and authentication first. When a membership i
 ## 5. Audit inspection
 
 Users with `audit.read` can list their tenant's evidence through deterministic cursor pagination. Filters are validated and bound as SQL parameters. Results are ordered by `(occurred_at DESC, id DESC)`, page size is capped at 100 and the endpoint has no control-plane query path.
+
+## 6. Browser authentication and workspace selection
+
+Both browser applications use Authorization Code with PKCE through server-side BFF routes. The browser receives only encrypted, HttpOnly, same-site session cookies. State, nonce and PKCE verifier values are stored in a short-lived authenticated-encryption transaction cookie and validated before token exchange.
+
+The institutional workspace calls `GET /v1/session/workspaces` after authentication. This endpoint derives choices from the authenticated internal user and returns opaque membership IDs with safe tenant summaries. The selection route rechecks the submitted membership against that authenticated list before setting the HttpOnly membership cookie. A tenant ID is never accepted from the browser as authority.
+
+The control plane uses a distinct OIDC client and encryption key. Its callback calls `GET /v1/session/principal`, which requires the verified `veza:platform-operator` claim and the configured authentication-method assurance, defaulting to MFA. Control-plane access does not require or create a tenant membership.

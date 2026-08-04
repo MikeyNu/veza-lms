@@ -4,16 +4,20 @@
   "private": true,
   "description": "Multi-tenant education operating system for institutions.",
   "packageManager": "pnpm@11.15.1",
-  "engines": { "node": ">=24.18.0", "pnpm": ">=11.15.1" },
+  "engines": {
+    "node": ">=24.18.0",
+    "pnpm": ">=11.15.1"
+  },
   "scripts": {
     "build": "turbo run build",
-    "dev": "turbo run dev --parallel",
+    "dev": "pnpm build:packages && turbo run dev --parallel",
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",
     "test:ci": "turbo run lint typecheck test build",
     "format": "prettier --write .",
-    "format:check": "prettier --check ."
+    "format:check": "prettier --check .",
+    "build:packages": "pnpm --filter './packages/*' build"
   },
   "devDependencies": {
     "@types/node": "^24.0.15",
