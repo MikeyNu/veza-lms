@@ -11,6 +11,7 @@ import type {
   TenantModuleKey,
   TenantStatus,
   UserId,
+  WorkspaceOption,
   WorkspaceSession,
 } from "@veza/contracts";
 import type { QueryResultRow } from "pg";
@@ -42,6 +43,17 @@ interface MembershipRow extends QueryResultRow {
   readonly logo_url: string | null;
 }
 
+
+interface WorkspaceOptionRow extends QueryResultRow {
+  readonly membership_id: string;
+  readonly tenant_id: string;
+  readonly tenant_slug: string;
+  readonly tenant_display_name: string;
+  readonly tenant_status: TenantStatus;
+  readonly logo_url: string | null;
+  readonly roles: BaselineRoleKey[];
+}
+
 interface RoleRow extends QueryResultRow {
   readonly role_key: BaselineRoleKey;
   readonly scope_type: PolicyAssignment["scopeType"];
@@ -60,13 +72,48 @@ interface EntitlementRow extends QueryResultRow {
 export class IdentitySessionRepository {
   constructor(private readonly database: DatabaseService) {}
 
-  async findPrincipal(external: ExternalPrincipal): Promise<AuthenticatedPrincipal | undefined> {
-    const result = await this.database.controlPlaneQuery<UserRow>(
-      `SELECT id, email, display_name, status
-       FROM users
-       WHERE identity_issuer = $1 AND identity_subject = $2`,
-      [external.issuer, external.subject],
-    );
+  async findPrincipal(
+    external: ExternalPrincipal,
+    correlationId: string,
+  ): Promise<AuthenticatedPrincipal | undefined> {
+    const platformOperator = external.platformRoles.includes("veza:platform-operator");
+    const result = platformOperator
+      ? await this.database.withControlPlaneTransaction(async (client) => {
+          const inserted = await client.query<UserRow>(
+            `INSERT INTO users (identity_issuer, identity_subject, email, display_name)
+             VALUES ($1,$2,$3,$4)
+             ON CONFLICT (identity_issuer, identity_subject) DO NOTHING
+             RETURNING id, email, display_name, status`,
+            [external.issuer, external.subject, external.email ?? null, external.displayName ?? null],
+          );
+          const created = inserted.rows[0];
+          if (created) {
+            await client.query(
+              `INSERT INTO platform_audit_events (
+                 event_type, actor_id, resource_type, resource_id, correlation_id, metadata
+               ) VALUES ('platform-operator.identity-created',$1,'user',$1,$2,$3)`,
+              [created.id, correlationId, { issuer: external.issuer, subject: external.subject }],
+            );
+            return inserted;
+          }
+          return client.query<UserRow>(
+            `UPDATE users
+             SET email = COALESCE($3, email),
+                 display_name = COALESCE($4, display_name),
+                 updated_at = now()
+             WHERE identity_issuer = $1
+               AND identity_subject = $2
+               AND status = 'active'
+             RETURNING id, email, display_name, status`,
+            [external.issuer, external.subject, external.email ?? null, external.displayName ?? null],
+          );
+        })
+      : await this.database.controlPlaneQuery<UserRow>(
+          `SELECT id, email, display_name, status
+           FROM users
+           WHERE identity_issuer = $1 AND identity_subject = $2`,
+          [external.issuer, external.subject],
+        );
     const user = result.rows[0];
     if (!user || user.status !== "active") return undefined;
 
@@ -81,6 +128,52 @@ export class IdentitySessionRepository {
       authenticationMethods: external.authenticationMethods,
       issuedAt: external.issuedAt,
     };
+  }
+
+  async listWorkspaces(principal: AuthenticatedPrincipal): Promise<readonly WorkspaceOption[]> {
+    const result = await this.database.controlPlaneQuery<WorkspaceOptionRow>(
+      `SELECT
+         m.id AS membership_id,
+         t.id AS tenant_id,
+         t.slug AS tenant_slug,
+         t.display_name AS tenant_display_name,
+         t.status AS tenant_status,
+         NULLIF(t.branding->>'logoUrl', '') AS logo_url,
+         COALESCE(array_agg(DISTINCT ra.role_key) FILTER (WHERE ra.role_key IS NOT NULL), '{}') AS roles
+       FROM memberships m
+       JOIN tenants t ON t.id = m.tenant_id
+       LEFT JOIN role_assignments ra
+         ON ra.tenant_id = m.tenant_id
+        AND ra.membership_id = m.id
+        AND ra.valid_from <= now()
+        AND (ra.valid_until IS NULL OR ra.valid_until > now())
+       WHERE m.user_id = $1
+         AND m.status = 'active'
+         AND m.valid_from <= now()
+         AND (m.valid_until IS NULL OR m.valid_until > now())
+         AND t.status IN ('provisioning', 'active')
+       GROUP BY m.id, t.id, t.slug, t.display_name, t.status, t.branding
+       HAVING count(ra.id) > 0
+       ORDER BY t.display_name ASC, m.id ASC`,
+      [principal.userId],
+    );
+
+    return result.rows.map((row) => ({
+      membershipId: row.membership_id as MembershipId,
+      tenant: {
+        id: row.tenant_id as TenantId,
+        slug: row.tenant_slug,
+        displayName: row.tenant_display_name,
+        status: row.tenant_status,
+        ...(row.logo_url ? { logoUrl: row.logo_url } : {}),
+      },
+      roles: row.roles,
+      label: row.roles.includes("learner") && row.roles.length === 1
+        ? "Learner workspace"
+        : row.roles.includes("instructor")
+          ? "Teaching workspace"
+          : "Institution workspace",
+    }));
   }
 
   async resolveWorkspace(principal: AuthenticatedPrincipal, membershipId: MembershipId): Promise<ResolvedWorkspaceSession> {
@@ -146,6 +239,10 @@ export class IdentitySessionRepository {
       limits: row.limits,
       ...(row.valid_until ? { validUntil: row.valid_until.toISOString() } : {}),
     }));
+    if (roles.length === 0) throw new ForbiddenException("The selected membership has no active role assignment");
+    if (!entitlements.some((entitlement) => entitlement.module === "core")) {
+      throw new ForbiddenException("The selected workspace does not have an active core entitlement");
+    }
 
     const workspace: WorkspaceSession = {
       principal: {

@@ -85,3 +85,28 @@ test("database identities separate migration, application and control-plane auth
   assert.match(migration, /GRANT SELECT, INSERT ON audit_events TO veza_control/);
   assert.doesNotMatch(migration, /ALTER DEFAULT PRIVILEGES[\s\S]*veza_app/);
 });
+
+test("workspace choices are resolved from the authenticated principal without tenant input", async () => {
+  const repository = await source("../src/modules/identity-access/infrastructure/identity-session.repository.ts");
+  const controller = await source("../src/modules/identity-access/http/principal-session.controller.ts");
+  assert.match(repository, /WHERE m\.user_id = \$1/);
+  assert.match(repository, /m\.status = 'active'/);
+  assert.match(controller, /session.*workspaces/s);
+  assert.doesNotMatch(controller, /tenantId/);
+});
+
+test("verified platform-operator claims can bootstrap only an active global operator identity", async () => {
+  const repository = await source("../src/modules/identity-access/infrastructure/identity-session.repository.ts");
+  assert.match(repository, /veza:platform-operator/);
+  assert.match(repository, /AND status = 'active'/);
+  assert.match(repository, /ON CONFLICT \(identity_issuer, identity_subject\)/);
+});
+
+test("platform-operator identity bootstrap creates global audit evidence", async () => {
+  const migration = await source("../database/migrations/0002_platform_operator_audit.sql");
+  const repository = await source("../src/modules/identity-access/infrastructure/identity-session.repository.ts");
+  assert.match(migration, /CREATE TABLE platform_audit_events/);
+  assert.match(migration, /GRANT SELECT, INSERT ON platform_audit_events TO veza_control/);
+  assert.match(repository, /platform-operator\.identity-created/);
+  assert.match(repository, /correlationId/);
+});
