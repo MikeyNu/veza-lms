@@ -3,14 +3,12 @@ name: runner-smoke
 on:
   pull_request:
 
-permissions:
-  contents: read
+permissions: {}
 
 jobs:
   smoke:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v4
       - run: node --version
       - run: echo "GitHub runner is operational"
