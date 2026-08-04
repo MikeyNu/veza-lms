@@ -1,0 +1,6 @@
+@import "@veza/ui/tokens.css";
+@import "tailwindcss";
+@import "../styles/shell.css";
+@import "../styles/provisioning.css";
+@import "../styles/auth.css";
+@import "../styles/responsive.css";

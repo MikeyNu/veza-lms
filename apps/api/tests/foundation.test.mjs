@@ -95,11 +95,17 @@ test("workspace choices are resolved from the authenticated principal without te
   assert.doesNotMatch(controller, /tenantId/);
 });
 
-test("verified platform-operator claims can bootstrap only an active global operator identity", async () => {
+test("platform operators require role and configured MFA assurance before bootstrap", async () => {
   const repository = await source("../src/modules/identity-access/infrastructure/identity-session.repository.ts");
-  assert.match(repository, /veza:platform-operator/);
+  const assurance = await source("../src/platform/authentication/platform-operator-assurance.ts");
+  const guard = await source("../src/platform/authentication/platform-operator.guard.ts");
+  assert.match(repository, /hasPlatformOperatorAssurance\(external\)/);
   assert.match(repository, /AND status = 'active'/);
   assert.match(repository, /ON CONFLICT \(identity_issuer, identity_subject\)/);
+  assert.match(assurance, /PLATFORM_OPERATOR_REQUIRED_AMR/);
+  assert.match(assurance, /platformRoles\.includes\(PLATFORM_OPERATOR_ROLE\)/);
+  assert.match(assurance, /authenticationMethods\.includes/);
+  assert.match(guard, /hasPlatformOperatorAssurance\(request\.principal\)/);
 });
 
 test("platform-operator identity bootstrap creates global audit evidence", async () => {

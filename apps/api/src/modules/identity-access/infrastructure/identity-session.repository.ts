@@ -17,6 +17,7 @@ import type {
 import type { QueryResultRow } from "pg";
 import { DatabaseService } from "../../../platform/database/database.service.js";
 import type { ExternalPrincipal } from "../../../platform/authentication/external-principal.js";
+import { hasPlatformOperatorAssurance } from "../../../platform/authentication/platform-operator-assurance.js";
 import type { ResolvedWorkspaceSession } from "../application/session.types.js";
 
 interface UserRow extends QueryResultRow {
@@ -75,7 +76,7 @@ export class IdentitySessionRepository {
     external: ExternalPrincipal,
     correlationId: string,
   ): Promise<AuthenticatedPrincipal | undefined> {
-    const platformOperator = external.platformRoles.includes("veza:platform-operator");
+    const platformOperator = hasPlatformOperatorAssurance(external);
     const result = platformOperator
       ? await this.database.withControlPlaneTransaction(async (client) => {
           const inserted = await client.query<UserRow>(
