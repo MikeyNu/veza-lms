@@ -116,3 +116,50 @@ test("platform-operator identity bootstrap creates global audit evidence", async
   assert.match(repository, /platform-operator\.identity-created/);
   assert.match(repository, /correlationId/);
 });
+
+test("institution structure tables are tenant-owned and forced through RLS", async () => {
+  const migration = await source("../database/migrations/0003_institution_structure_and_activation.sql");
+  for (const table of ["tenant_setup_profiles", "institutions", "campuses", "organisational_units", "academic_periods", "institutional_policies"]) {
+    assert.match(migration, new RegExp(`ALTER TABLE ${table} ENABLE ROW LEVEL SECURITY`));
+    assert.match(migration, new RegExp(`ALTER TABLE ${table} FORCE ROW LEVEL SECURITY`));
+    assert.match(migration, new RegExp(`${table}_isolation`));
+  }
+  assert.match(migration, /campuses_one_primary_active_idx/);
+  assert.match(migration, /protect_published_academic_period/);
+  assert.match(migration, /protect_approved_institutional_policy/);
+});
+
+test("institution setup preserves hierarchy and policy version invariants", async () => {
+  const service = await source("../src/modules/institution-structure/application/institution-structure.service.ts");
+  assert.match(service, /Child academic period must remain inside the parent period/);
+  assert.match(service, /Publish the parent academic period before publishing this child period/);
+  assert.match(service, /pg_advisory_xact_lock/);
+  assert.match(service, /const version = \(active\?\.version \?\? 0\) \+ 1/);
+  assert.match(service, /content_checksum/);
+  assert.match(service, /Replacement policy must take effect after the current approved version/);
+  assert.match(service, /this\.record/);
+});
+
+test("tenant activation is computed from durable institution facts", async () => {
+  const activation = await source("../src/modules/institution-structure/application/tenant-activation.service.ts");
+  assert.match(activation, /tenant_setup_profiles/);
+  assert.match(activation, /module_key = 'core'/);
+  assert.match(activation, /role_key = 'tenant-owner'/);
+  assert.match(activation, /c\.is_primary = true/);
+  assert.match(activation, /ap\.status = 'published'/);
+  assert.match(activation, /safeguarding/);
+  assert.match(activation, /WHERE id = \$1 AND status = 'provisioning'/);
+  assert.match(activation, /tenant\.activated/);
+});
+
+test("high-consequence institution actions require MFA and scoped permission", async () => {
+  const controller = await source("../src/modules/institution-structure/http/institution-setup.controller.ts");
+  const authz = await source("../../../packages/authz/src/index.ts");
+  assert.match(controller, /@Post\("institutions\/:institutionId\/academic-periods\/:periodId\/publish"\)\n  @UseGuards\(MfaGuard\)/);
+  assert.match(controller, /@Post\("institutions\/:institutionId\/policies\/approve"\)\n  @UseGuards\(MfaGuard\)/);
+  assert.match(controller, /@Post\("activate"\)[\s\S]*@UseGuards\(TenantPermissionGuard, MfaGuard\)/);
+  assert.match(controller, /type: "institution"/);
+  assert.match(controller, /ancestors: \[\{ type: "tenant", id: tenantId \}\]/);
+  assert.match(authz, /academicPeriodManage: "academic-period\.manage"/);
+  assert.match(authz, /institutionalPolicyApprove: "institutional-policy\.approve"/);
+});

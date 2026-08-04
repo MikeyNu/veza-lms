@@ -46,6 +46,8 @@ The OIDC examples in `.env.example` are placeholders. Set `VEZA_DEMO_MODE=true` 
 
 ## Current implementation boundary
 
-The implemented foundation now includes tenant provisioning, plans and module entitlements, secure first-owner invitations, verified OIDC principals, encrypted BFF sessions, safe workspace selection, membership-derived tenant context, scoped policy evaluation, forced RLS, audit inspection and transactional outbox records.
+The implemented foundation includes tenant provisioning, plans and module entitlements, secure first-owner invitations, verified OIDC principals, encrypted BFF sessions, safe workspace selection, membership-derived tenant context, scoped policy evaluation, forced RLS, audit inspection and transactional outbox records.
 
-Institution structures, people records and academic entities intentionally remain outside this increment. They depend on this trust boundary and are introduced in the next gated vertical slice.
+The institution foundation now also includes tenant operational profiles, institutions, campuses, organisational units, hierarchical academic periods, immutable approved policy versions and an evidence-based activation gate that moves a fully configured tenant from `provisioning` to `active`.
+
+People and relationship records, programme and course catalogues, enrolments, cohorts, classes, assessments and learning evidence intentionally remain outside the current boundary. They must reference the durable institution and academic-time identifiers established here and will be introduced through subsequent gated vertical slices.
