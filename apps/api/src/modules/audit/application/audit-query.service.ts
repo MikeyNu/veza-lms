@@ -72,7 +72,10 @@ function decodeCursor(value: string): AuditCursor {
   }
 }
 
-function optionalProperty<TKey extends string, TValue>(key: TKey, value: TValue | null): Record<TKey, TValue> | {} {
+function optionalProperty<TKey extends string, TValue>(
+  key: TKey,
+  value: TValue | null,
+): Partial<Record<TKey, TValue>> {
   return value === null ? {} : ({ [key]: value } as Record<TKey, TValue>);
 }
 
