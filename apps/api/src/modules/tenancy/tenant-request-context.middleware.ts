@@ -46,7 +46,7 @@ export class TenantRequestContextMiddleware implements NestMiddleware {
       }
       request.externalPrincipal = external;
 
-      const principal = await this.identities.findPrincipal(external);
+      const principal = await this.identities.findPrincipal(external, correlationId);
       if (!principal) {
         next();
         return;
