@@ -2,13 +2,15 @@ services:
   postgres:
     image: postgres:17-alpine
     environment:
-      POSTGRES_USER: veza
-      POSTGRES_PASSWORD: veza
+      POSTGRES_USER: veza_bootstrap
+      POSTGRES_PASSWORD: veza_bootstrap
       POSTGRES_DB: veza
     ports: ["5432:5432"]
-    volumes: ["veza-postgres:/var/lib/postgresql/data"]
+    volumes:
+      - veza-postgres:/var/lib/postgresql/data
+      - ./docker/postgres/init:/docker-entrypoint-initdb.d:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U veza"]
+      test: ["CMD-SHELL", "pg_isready -U veza_bootstrap -d veza"]
       interval: 5s
       timeout: 5s
       retries: 10

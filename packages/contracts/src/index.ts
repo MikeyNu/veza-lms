@@ -1,13 +1,96 @@
-export type TenantId = string & { readonly __tenantId: unique symbol };
-export type UserId = string & { readonly __userId: unique symbol };
+export type Brand<TValue, TBrand extends string> = TValue & { readonly __brand: TBrand };
+
+export type TenantId = Brand<string, "TenantId">;
+export type UserId = Brand<string, "UserId">;
+export type MembershipId = Brand<string, "MembershipId">;
+export type InstitutionId = Brand<string, "InstitutionId">;
+export type RoleAssignmentId = Brand<string, "RoleAssignmentId">;
+
+export type DeploymentTier = "shared" | "protected" | "sovereign";
+export type TenantStatus = "provisioning" | "active" | "suspended" | "offboarding" | "closed";
+export type MembershipStatus = "invited" | "active" | "suspended" | "expired" | "revoked";
+export type EntitlementState = "enabled" | "disabled" | "trial";
+export type ScopeType = "tenant" | "institution" | "campus" | "programme" | "course" | "cohort" | "self";
+
+export type TenantModuleKey =
+  | "core"
+  | "studio-pro"
+  | "exams"
+  | "commerce"
+  | "advanced-analytics"
+  | "credentials"
+  | "guardian-portal"
+  | "ai-assist"
+  | "integration-hub";
+
+export type BaselineRoleKey =
+  | "tenant-owner"
+  | "institution-admin"
+  | "registrar"
+  | "curriculum-manager"
+  | "course-manager"
+  | "instructor"
+  | "assessor"
+  | "moderator"
+  | "learner"
+  | "guardian-sponsor"
+  | "auditor"
+  | "support-agent";
+
+export interface AuthenticatedPrincipal {
+  readonly userId: UserId;
+  readonly subject: string;
+  readonly email?: string;
+  readonly displayName?: string;
+  readonly platformRoles: readonly string[];
+  readonly authenticationMethods: readonly string[];
+  readonly issuedAt: string;
+}
 
 export interface RequestContext {
   readonly tenantId: TenantId;
   readonly actorId: UserId;
   readonly correlationId: string;
-  readonly membershipId: string;
+  readonly membershipId: MembershipId;
   readonly locale: string;
   readonly timezone: string;
+  readonly authenticationMethods: readonly string[];
+}
+
+export interface TenantSummary {
+  readonly id: TenantId;
+  readonly slug: string;
+  readonly displayName: string;
+  readonly status: TenantStatus;
+  readonly deploymentTier: DeploymentTier;
+  readonly residencyRegion: string;
+  readonly planKey: string;
+  readonly locale: string;
+  readonly timezone: string;
+  readonly logoUrl?: string;
+}
+
+export interface MembershipSummary {
+  readonly id: MembershipId;
+  readonly status: MembershipStatus;
+  readonly roles: readonly BaselineRoleKey[];
+  readonly institutionIds: readonly InstitutionId[];
+  readonly locale: string;
+  readonly timezone: string;
+}
+
+export interface EntitlementSummary {
+  readonly module: TenantModuleKey;
+  readonly state: EntitlementState;
+  readonly limits: Readonly<Record<string, number | string | boolean>>;
+  readonly validUntil?: string;
+}
+
+export interface WorkspaceSession {
+  readonly principal: Pick<AuthenticatedPrincipal, "userId" | "displayName" | "email">;
+  readonly tenant: TenantSummary;
+  readonly membership: MembershipSummary;
+  readonly entitlements: readonly EntitlementSummary[];
 }
 
 export interface DomainEvent<TPayload extends Record<string, unknown> = Record<string, unknown>> {
