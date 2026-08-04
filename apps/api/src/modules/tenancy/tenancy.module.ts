@@ -1,6 +1,15 @@
-import { Global, Module } from "@nestjs/common";
-import { TenantContext } from "./tenant-context.js";
+import { MiddlewareConsumer, Module, RequestMethod, type NestModule } from "@nestjs/common";
+import { IdentityAccessModule } from "../identity-access/identity-access.module.js";
+import { TenantMembershipGuard } from "./tenant-membership.guard.js";
+import { TenantRequestContextMiddleware } from "./tenant-request-context.middleware.js";
 
-@Global()
-@Module({ providers: [TenantContext], exports: [TenantContext] })
-export class TenancyModule {}
+@Module({
+  imports: [IdentityAccessModule],
+  providers: [TenantRequestContextMiddleware, TenantMembershipGuard],
+  exports: [TenantMembershipGuard],
+})
+export class TenancyModule implements NestModule {
+  configure(consumer: MiddlewareConsumer): void {
+    consumer.apply(TenantRequestContextMiddleware).forRoutes({ path: "*", method: RequestMethod.ALL });
+  }
+}
