@@ -22,10 +22,10 @@ export function DashboardOverview({ session }: { session: WorkspaceSession }) {
   const clock = learnerClock(session);
   const firstName = session.principal.displayName?.trim().split(/\s+/)[0] ?? "Learner";
   return <div className="workspace">
-    <header className="page-intro">
-      <div><p className="eyebrow">{clock.date}</p><h1>{clock.greeting}, {firstName}.</h1><p>Continue from where you left off or see what needs attention today.</p></div>
-      <div className="weather"><span>24°</span><small>Johannesburg<br/>Clear skies</small></div>
-    </header>
+    <section className="welcome">
+      <div><p className="eyebrow">{clock.date}</p><h1>{clock.greeting}, {firstName}.</h1><p>Continue where you left off or prepare for what is coming next.</p></div>
+      <div className="streak"><span>✦</span><div><strong>12 day streak</strong><small>Your longest this term</small></div></div>
+    </section>
     <LearningOverview/>
     <CourseGrid/>
   </div>;
