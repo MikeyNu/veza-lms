@@ -13,5 +13,5 @@ test("dashboard exposes one primary heading and semantic navigation", async () =
 
 test("semantic status colours are declared as tokens", async () => {
   const css = await readFile(new URL("../app/globals.css", import.meta.url), "utf8");
-  for (const token of ["--amber", "--red", "--green", "--blue"]) assert.match(css, new RegExp(token));
+  for (const token of ["--amber", "--critical", "--success", "--blue"]) assert.match(css, new RegExp(token));
 });
