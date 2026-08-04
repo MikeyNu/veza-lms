@@ -1,0 +1,21 @@
+:root {
+  --veza-ink: #0b1220;
+  --veza-ink-soft: #344054;
+  --veza-muted: #667085;
+  --veza-canvas: #f5f7fb;
+  --veza-surface: #ffffff;
+  --veza-line: #e2e8f0;
+  --veza-line-strong: #cfd8e5;
+  --veza-brand: #2563eb;
+  --veza-learning: #0d9488;
+  --veza-violet: #7867f8;
+  --veza-warning: #f59e0b;
+  --veza-critical: #dc2626;
+  --veza-success: #16a34a;
+  --veza-sidebar: #101827;
+  --veza-radius-control: 10px;
+  --veza-radius-panel: 18px;
+  --veza-radius-overlay: 22px;
+  --veza-shadow-panel: 0 10px 30px rgba(16, 24, 40, 0.06);
+  --veza-focus: 0 0 0 3px rgba(37, 99, 235, 0.24);
+}
