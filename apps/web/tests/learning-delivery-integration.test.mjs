@@ -5,27 +5,32 @@ import { readFile } from "node:fs/promises";
 const source = (path) => readFile(new URL(path, import.meta.url), "utf8");
 
 test("course room mounts assignments, resumable evidence and learner gradebook", async () => {
-  const [page, panel, upload] = await Promise.all([
+  const [page, panel, finalization, upload] = await Promise.all([
     source("../app/courses/[enrolmentId]/page.tsx"),
     source("../src/features/learner/learner-assignment-panel.tsx"),
+    source("../src/features/learner/learner-upload-finalization.tsx"),
     source("../app/api/submission-upload/route.ts"),
   ]);
   assert.match(page, /LearnerAssignmentPanel/);
+  assert.match(page, /LearnerUploadFinalization/);
   assert.match(page, /loadLearnerGradebook/);
   assert.match(panel, /submission-start/);
   assert.match(panel, /submission-offset/);
   assert.match(panel, /receiptChecksum/);
   assert.match(panel, /resultReleasedAt/);
+  assert.match(finalization, /Finalise scanned attempt/);
+  assert.match(finalization, /submission-finalize/);
   assert.match(upload, /VEZA_OBJECT_STORAGE_INGEST_URL/);
   assert.match(upload, /isSameOriginRequest/);
 });
 
 test("Studio routes mount structured authoring and governed publication workflows", async () => {
-  const [home, lesson, workspace, bff] = await Promise.all([
+  const [home, lesson, workspace, bff, upload] = await Promise.all([
     source("../app/studio/page.tsx"),
     source("../app/studio/lessons/[lessonId]/page.tsx"),
     source("../src/features/studio/studio-complete-workspaces.tsx"),
     source("../app/api/studio/[operation]/route.ts"),
+    source("../app/api/studio-upload/route.ts"),
   ]);
   assert.match(home, /StudioHomeWorkspaceComplete/);
   assert.match(home, /loadStudioLibrary/);
@@ -34,28 +39,34 @@ test("Studio routes mount structured authoring and governed publication workflow
   assert.match(workspace, /COLLABORATIVE REVIEW/);
   assert.match(workspace, /Rollback and republish/);
   assert.match(workspace, /Analyse course import/);
+  assert.match(workspace, /Upload media or file/);
   assert.match(bff, /asset-register/);
   assert.match(bff, /review-decision/);
   assert.match(bff, /course-publish/);
+  assert.match(upload, /VEZA_OBJECT_STORAGE_INGEST_URL/);
 });
 
 test("staff workspaces expose rubric, group, feedback, result and credential governance", async () => {
-  const [assessment, evidence, controls, gradebook] = await Promise.all([
+  const [assessment, evidence, controls, guided, gradebook] = await Promise.all([
     source("../app/assessments/page.tsx"),
     source("../app/evidence/page.tsx"),
     source("../src/features/academic-evidence/academic-governance-completion.tsx"),
+    source("../src/features/academic-evidence/assessment-final-controls.tsx"),
     source("../src/features/academic-evidence/staff-gradebook-workspace.tsx"),
   ]);
   assert.match(assessment, /AssessmentGovernanceCompletion/);
+  assert.match(assessment, /AssessmentFinalControls/);
   assert.match(assessment, /StaffGradebookDirectory/);
   assert.match(evidence, /CredentialGovernanceCompletion/);
   assert.match(controls, /rubric-create/);
   assert.match(controls, /assignment-group-create/);
-  assert.match(controls, /marker-allocate/);
-  assert.match(controls, /mark-release/);
   assert.match(controls, /certificate-template-approve/);
   assert.match(controls, /award-evaluate/);
-  assert.match(gradebook, /mode: "staff"|STAFF GRADEBOOK/);
+  assert.match(guided, /assignment-group-members/);
+  assert.match(guided, /marker-allocate/);
+  assert.match(guided, /mark-record/);
+  assert.match(guided, /mark-release/);
+  assert.match(gradebook, /STAFF GRADEBOOK/);
 });
 
 test("academic BFF remains an explicit same-origin allowlist", async () => {
@@ -65,5 +76,6 @@ test("academic BFF remains an explicit same-origin allowlist", async () => {
   assert.match(route, /assignment-group-members/);
   assert.match(route, /mark-release/);
   assert.match(route, /certificate-template-approve/);
+  assert.match(route, /createCredentialDefinition/);
   assert.doesNotMatch(route, /\[\.\.\.path\]/);
 });
