@@ -17,6 +17,7 @@ import {
   CreateRunDto,
   TransferEnrolmentDto,
 } from "../application/catalogue.dto.js";
+import { CatalogueReferenceService } from "../application/catalogue-reference.service.js";
 import { CatalogueService } from "../application/catalogue.service.js";
 
 @Controller("institutions/:institutionId/catalogue")
@@ -24,6 +25,7 @@ import { CatalogueService } from "../application/catalogue.service.js";
 export class CatalogueController {
   constructor(
     private readonly catalogue: CatalogueService,
+    private readonly references: CatalogueReferenceService,
     private readonly authorization: TenantAuthorizationService,
   ) {}
 
@@ -34,6 +36,15 @@ export class CatalogueController {
   ) {
     this.assert(request, permissions.catalogueRead, institutionId);
     return this.catalogue.workspace(institutionId);
+  }
+
+  @Get("references")
+  referenceData(
+    @Req() request: AuthenticatedRequest,
+    @Param("institutionId", new ParseUUIDPipe()) institutionId: string,
+  ) {
+    this.assert(request, permissions.catalogueRead, institutionId);
+    return this.references.load(institutionId);
   }
 
   @Post("outcomes")
