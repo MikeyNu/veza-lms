@@ -12,11 +12,7 @@ export class PeopleInstitutionBoundaryService {
   async assertPersonInInstitution(personId: string, institutionId: string): Promise<void> {
     const context = this.context.require();
     await this.database.withTenantTransaction(context.tenantId, async (client) => {
-      const institution = await client.query(
-        "SELECT id FROM institutions WHERE id=$1 AND status='active'",
-        [institutionId],
-      );
-      if (!institution.rowCount) throw new NotFoundException("Active institution was not found");
+      await this.requireInstitution(client, institutionId);
       const person = await client.query(
         `SELECT person.id
          FROM people person
@@ -35,5 +31,25 @@ export class PeopleInstitutionBoundaryService {
         throw new ForbiddenException("Person is not associated with the authorised institution");
       }
     });
+  }
+
+  async assertImportInInstitution(importId: string, institutionId: string): Promise<void> {
+    const context = this.context.require();
+    await this.database.withTenantTransaction(context.tenantId, async (client) => {
+      await this.requireInstitution(client, institutionId);
+      const batch = await client.query(
+        "SELECT id FROM people_imports WHERE id=$1 AND institution_id=$2",
+        [importId, institutionId],
+      );
+      if (!batch.rowCount) throw new ForbiddenException("People import is not associated with the authorised institution");
+    });
+  }
+
+  private async requireInstitution(client: { query: (text: string, values?: readonly unknown[]) => Promise<{ rowCount: number | null }> }, institutionId: string): Promise<void> {
+    const institution = await client.query(
+      "SELECT id FROM institutions WHERE id=$1 AND status='active'",
+      [institutionId],
+    );
+    if (!institution.rowCount) throw new NotFoundException("Active institution was not found");
   }
 }
