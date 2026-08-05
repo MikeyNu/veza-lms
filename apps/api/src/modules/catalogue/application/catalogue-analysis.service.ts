@@ -18,6 +18,7 @@ import type {
 } from "./catalogue-analysis.dto.js";
 
 type CurriculumResourceType = "programme-version" | "course-blueprint-version";
+type CoverageLevel = "introduced" | "developed" | "mastered" | "assessed";
 
 interface VersionRow extends QueryResultRow {
   id: string;
@@ -29,33 +30,112 @@ interface VersionRow extends QueryResultRow {
 }
 
 interface ValidationIssue {
-  code: string;
-  severity: "error" | "warning";
-  field?: string;
-  message: string;
-  actual?: unknown;
-  expected?: unknown;
+  readonly code: string;
+  readonly severity: "error" | "warning";
+  readonly field?: string;
+  readonly message: string;
+  readonly actual?: unknown;
+  readonly expected?: unknown;
 }
 
 interface AnalysisResult {
-  resourceType: CurriculumResourceType;
-  resourceId: string;
-  resourceVersion: number;
-  validation: {
-    passed: boolean;
-    errors: readonly ValidationIssue[];
-    warnings: readonly ValidationIssue[];
-    policyVersionId?: string;
+  readonly resourceType: CurriculumResourceType;
+  readonly resourceId: string;
+  readonly resourceVersion: number;
+  readonly validation: {
+    readonly passed: boolean;
+    readonly errors: readonly ValidationIssue[];
+    readonly warnings: readonly ValidationIssue[];
+    readonly policyVersionId?: string;
   };
-  outcomeCoverage: Record<string, unknown>;
-  impact: Record<string, unknown>;
+  readonly outcomeCoverage: Record<string, unknown>;
+  readonly impact: Record<string, unknown>;
 }
 
-const coverageRank: Readonly<Record<string, number>> = {
+interface ValidationPolicyRow extends QueryResultRow {
+  id: string | null;
+  credit_required: boolean;
+  notional_hours_required: boolean;
+  duration_required: boolean;
+  hours_per_credit: string | null;
+  ratio_tolerance_percent: string;
+  minimum_credit: string | null;
+  maximum_credit: string | null;
+  minimum_notional_hours: number | null;
+  maximum_notional_hours: number | null;
+}
+
+interface BlueprintAnalysisRow extends QueryResultRow {
+  id: string;
+  institution_id: string;
+  course_definition_id: string;
+  version_number: number;
+  lifecycle: string;
+  title: string;
+  credit_value: string | null;
+  notional_hours: number | null;
+  delivery_modes: readonly string[];
+  version: number;
+  code: string;
+  definition_type: string;
+  parent_definition_id: string | null;
+}
+
+interface ProgrammeAnalysisRow extends QueryResultRow {
+  id: string;
+  institution_id: string;
+  programme_id: string;
+  version_number: number;
+  lifecycle: string;
+  title: string;
+  credit_value: string | null;
+  notional_hours: number | null;
+  duration_value: number | null;
+  duration_unit: string | null;
+  version: number;
+  code: string;
+  programme_type: string;
+}
+
+interface OutcomeMappingRow extends QueryResultRow {
+  learning_outcome_id: string;
+  coverage_level: CoverageLevel;
+  code: string;
+  title: string;
+  outcome_type: string;
+}
+
+interface ProgrammeRequirementRow extends QueryResultRow {
+  learning_outcome_id: string;
+  minimum_coverage_level: CoverageLevel;
+  code: string;
+  title: string;
+}
+
+interface ActualCoverageRow extends QueryResultRow {
+  learning_outcome_id: string;
+  rank: number;
+  coverage_level: CoverageLevel;
+}
+
+const coverageRank: Readonly<Record<CoverageLevel, number>> = Object.freeze({
   introduced: 1,
   developed: 2,
   mastered: 3,
   assessed: 4,
+});
+
+const defaultPolicy: ValidationPolicyRow = {
+  id: null,
+  credit_required: false,
+  notional_hours_required: true,
+  duration_required: false,
+  hours_per_credit: null,
+  ratio_tolerance_percent: "10",
+  minimum_credit: null,
+  maximum_credit: null,
+  minimum_notional_hours: null,
+  maximum_notional_hours: null,
 };
 
 @Injectable()
@@ -75,7 +155,12 @@ export class CatalogueAnalysisService {
     const context = this.context.require();
     return this.database.withTenantTransaction(context.tenantId, async (client) => {
       await this.requireInstitution(client, institutionId);
-      const analysis = await this.analyseWithin(client, institutionId, resourceType, resourceId);
+      const analysis = await this.analyseWithin(
+        client,
+        institutionId,
+        resourceType,
+        resourceId,
+      );
       const reviewId = await this.persistReview(client, institutionId, analysis);
       return { reviewId, ...analysis };
     });
@@ -103,6 +188,7 @@ export class CatalogueAnalysisService {
       if (current.lifecycle !== "draft" || current.version !== input.expectedVersion) {
         throw new ConflictException("Curriculum version changed or is no longer a draft");
       }
+
       const updated = await client.query<{ version: number } & QueryResultRow>(
         `UPDATE ${table}
          SET lifecycle='in_review',submitted_by=$4,submitted_at=now(),updated_by=$4,
@@ -111,24 +197,35 @@ export class CatalogueAnalysisService {
          RETURNING version`,
         [resourceId, institutionId, input.expectedVersion, context.actorId],
       );
-      const analysis = await this.analyseWithin(client, institutionId, resourceType, resourceId);
+      const updatedVersion = updated.rows[0]?.version;
+      if (!updatedVersion) throw new ConflictException("Curriculum changed during submission");
+
+      const analysis = await this.analyseWithin(
+        client,
+        institutionId,
+        resourceType,
+        resourceId,
+      );
       if (!analysis.validation.passed) {
         throw new ConflictException({
           message: "Curriculum validation failed",
           errors: analysis.validation.errors,
+          warnings: analysis.validation.warnings,
         });
       }
       const reviewId = await this.persistReview(client, institutionId, analysis);
-      await this.record(client, "catalogue.curriculum.submitted-for-review", resourceType, resourceId, {
-        institutionId,
-        reviewId,
-        version: updated.rows[0].version,
-      });
+      await this.record(
+        client,
+        "catalogue.curriculum.submitted-for-review",
+        resourceType,
+        resourceId,
+        { institutionId, reviewId, version: updatedVersion },
+      );
       return {
         id: resourceId,
         lifecycle: "in_review",
         reviewId,
-        version: updated.rows[0].version,
+        version: updatedVersion,
         validation: analysis.validation,
       };
     });
@@ -163,13 +260,19 @@ export class CatalogueAnalysisService {
         [input.learningOutcomeId, institutionId],
       );
       if (!outcome.rowCount) throw new NotFoundException("Active learning outcome was not found");
+
       await client.query(
         `INSERT INTO programme_outcome_requirements (
            tenant_id,programme_version_id,learning_outcome_id,minimum_coverage_level
          ) VALUES ($1,$2,$3,$4)
          ON CONFLICT (tenant_id,programme_version_id,learning_outcome_id)
          DO UPDATE SET minimum_coverage_level=EXCLUDED.minimum_coverage_level`,
-        [context.tenantId, programmeVersionId, input.learningOutcomeId, input.minimumCoverageLevel],
+        [
+          context.tenantId,
+          programmeVersionId,
+          input.learningOutcomeId,
+          input.minimumCoverageLevel,
+        ],
       );
       const version = await client.query<{ version: number } & QueryResultRow>(
         `UPDATE programme_versions
@@ -177,13 +280,21 @@ export class CatalogueAnalysisService {
          WHERE id=$1 RETURNING version`,
         [programmeVersionId, context.actorId],
       );
+      const nextVersion = version.rows[0]?.version;
+      if (!nextVersion) throw new ConflictException("Programme version could not be updated");
       await this.markReviewsStale(client, "programme-version", programmeVersionId);
-      await this.record(client, "catalogue.programme.outcome-required", "programme-version", programmeVersionId, {
-        learningOutcomeId: input.learningOutcomeId,
-        minimumCoverageLevel: input.minimumCoverageLevel,
-        version: version.rows[0].version,
-      });
-      return { id: programmeVersionId, version: version.rows[0].version };
+      await this.record(
+        client,
+        "catalogue.programme.outcome-required",
+        "programme-version",
+        programmeVersionId,
+        {
+          learningOutcomeId: input.learningOutcomeId,
+          minimumCoverageLevel: input.minimumCoverageLevel,
+          version: nextVersion,
+        },
+      );
+      return { id: programmeVersionId, version: nextVersion };
     });
   }
 
@@ -230,11 +341,13 @@ export class CatalogueAnalysisService {
           context.actorId,
         ],
       );
-      await this.record(client, "catalogue.validation-policy.created", "curriculum-validation-policy", id, {
-        institutionId,
-        versionNumber,
-        version: 1,
-      });
+      await this.record(
+        client,
+        "catalogue.validation-policy.created",
+        "curriculum-validation-policy",
+        id,
+        { institutionId, versionNumber, version: 1 },
+      );
       return { id, versionNumber, lifecycle: "draft", version: 1 };
     });
   }
@@ -265,11 +378,17 @@ export class CatalogueAnalysisService {
       );
       const policy = result.rows[0];
       if (!policy) throw new NotFoundException("Curriculum validation policy was not found");
-      if (policy.lifecycle !== "draft") throw new ConflictException("Only draft policies can be approved");
+      if (policy.lifecycle !== "draft") {
+        throw new ConflictException("Only draft policies can be approved");
+      }
       if (policy.created_by === context.actorId) {
         throw new ConflictException("Validation policy approval requires an independent reviewer");
       }
-      const previous = await client.query<{ id: string; effective_from: string } & QueryResultRow>(
+
+      const previous = await client.query<{
+        id: string;
+        effective_from: string;
+      } & QueryResultRow>(
         `SELECT id,effective_from FROM curriculum_validation_policies
          WHERE institution_id=$1 AND lifecycle='approved' AND effective_until IS NULL
          FOR UPDATE`,
@@ -289,15 +408,27 @@ export class CatalogueAnalysisService {
          SET lifecycle='approved',effective_from=$3,effective_until=$4,
              approved_by=$5,approved_at=now()
          WHERE id=$1 AND institution_id=$2`,
-        [policyId, institutionId, input.effectiveFrom, input.effectiveUntil ?? null, context.actorId],
+        [
+          policyId,
+          institutionId,
+          input.effectiveFrom,
+          input.effectiveUntil ?? null,
+          context.actorId,
+        ],
       );
-      await this.record(client, "catalogue.validation-policy.approved", "curriculum-validation-policy", policyId, {
-        institutionId,
-        effectiveFrom: input.effectiveFrom,
-        effectiveUntil: input.effectiveUntil,
-        reason: input.reason.trim(),
-        version: 1,
-      });
+      await this.record(
+        client,
+        "catalogue.validation-policy.approved",
+        "curriculum-validation-policy",
+        policyId,
+        {
+          institutionId,
+          effectiveFrom: input.effectiveFrom,
+          effectiveUntil: input.effectiveUntil,
+          reason: input.reason.trim(),
+          version: 1,
+        },
+      );
       return { id: policyId, lifecycle: "approved" };
     });
   }
@@ -311,13 +442,15 @@ export class CatalogueAnalysisService {
     return this.database.withTenantTransaction(context.tenantId, async (client) => {
       await this.requireInstitution(client, institutionId);
       const table = this.table(resourceType);
-      const aggregateColumn = resourceType === "programme-version" ? "programme_id" : "course_definition_id";
-      const current = await client.query(
+      const aggregateColumn =
+        resourceType === "programme-version" ? "programme_id" : "course_definition_id";
+      const current = await client.query<{ aggregate_id: string } & QueryResultRow>(
         `SELECT ${aggregateColumn} aggregate_id FROM ${table}
          WHERE id=$1 AND institution_id=$2`,
         [resourceId, institutionId],
       );
-      if (!current.rows[0]) throw new NotFoundException("Curriculum version was not found");
+      const aggregateId = current.rows[0]?.aggregate_id;
+      if (!aggregateId) throw new NotFoundException("Curriculum version was not found");
       const versions = await client.query(
         `SELECT id,version_number,lifecycle,title,credit_value,notional_hours,
                 effective_from,effective_until,created_by,created_at,submitted_by,submitted_at,
@@ -325,9 +458,9 @@ export class CatalogueAnalysisService {
          FROM ${table}
          WHERE ${aggregateColumn}=$1
          ORDER BY version_number DESC`,
-        [current.rows[0].aggregate_id],
+        [aggregateId],
       );
-      const ids = versions.rows.map((row) => row.id);
+      const ids = versions.rows.map((row) => row.id as string);
       const [reviews, audit] = await Promise.all([
         client.query(
           `SELECT id,resource_id,resource_version,compared_to_resource_id,status,
@@ -349,7 +482,7 @@ export class CatalogueAnalysisService {
       ]);
       return {
         resourceType,
-        aggregateId: current.rows[0].aggregate_id,
+        aggregateId,
         versions: versions.rows,
         reviews: reviews.rows,
         auditEvents: audit.rows,
@@ -373,32 +506,27 @@ export class CatalogueAnalysisService {
     institutionId: string,
     resourceId: string,
   ): Promise<AnalysisResult> {
-    const result = await client.query(
-      `SELECT version.*,definition.code,definition.definition_type,
-              definition.course_definition_id
-       FROM (
-         SELECT blueprint.*,blueprint.course_definition_id course_definition_id_alias
-         FROM course_blueprint_versions blueprint
-       ) version
-       JOIN LATERAL (
-         SELECT definition.code,definition.definition_type,
-                definition.id course_definition_id
-         FROM course_definitions definition
-         WHERE definition.id=version.course_definition_id_alias
-       ) definition ON true
-       WHERE version.id=$1 AND version.institution_id=$2`,
+    const result = await client.query<BlueprintAnalysisRow>(
+      `SELECT blueprint.id,blueprint.institution_id,blueprint.course_definition_id,
+              blueprint.version_number,blueprint.lifecycle,blueprint.title,
+              blueprint.credit_value,blueprint.notional_hours,blueprint.delivery_modes,
+              blueprint.version,definition.code,definition.definition_type,
+              definition.parent_definition_id
+       FROM course_blueprint_versions blueprint
+       JOIN course_definitions definition ON definition.id=blueprint.course_definition_id
+       WHERE blueprint.id=$1 AND blueprint.institution_id=$2`,
       [resourceId, institutionId],
     );
     const blueprint = result.rows[0];
     if (!blueprint) throw new NotFoundException("Course blueprint version was not found");
     const policy = await this.currentPolicy(client, institutionId);
     const issues = this.validateCreditsAndDuration(blueprint, policy, false);
-    const mappings = await client.query(
+    const mappings = await client.query<OutcomeMappingRow>(
       `SELECT mapping.learning_outcome_id,mapping.coverage_level,outcome.code,outcome.title,
               outcome.outcome_type
        FROM blueprint_outcome_mappings mapping
        JOIN learning_outcomes outcome ON outcome.id=mapping.learning_outcome_id
-       WHERE mapping.course_blueprint_version_id=$1
+       WHERE mapping.course_blueprint_version_id=$1 AND outcome.status='active'
        ORDER BY outcome.code`,
       [resourceId],
     );
@@ -410,7 +538,7 @@ export class CatalogueAnalysisService {
         message: "A course blueprint must map at least one active learning outcome.",
       });
     }
-    if (!Array.isArray(blueprint.delivery_modes) || blueprint.delivery_modes.length === 0) {
+    if (blueprint.delivery_modes.length === 0) {
       issues.push({
         code: "delivery-mode-empty",
         severity: "error",
@@ -418,20 +546,41 @@ export class CatalogueAnalysisService {
         message: "A course blueprint must permit at least one delivery mode.",
       });
     }
-    const previous = await client.query(
+    if (blueprint.definition_type === "unit" && !blueprint.parent_definition_id) {
+      issues.push({
+        code: "unit-parent-required",
+        severity: "error",
+        field: "parentDefinitionId",
+        message: "A unit must belong to a subject, module or course definition.",
+      });
+    }
+
+    const previous = await client.query<{
+      id: string;
+      title: string;
+      credit_value: string | null;
+      notional_hours: number | null;
+      delivery_modes: readonly string[];
+      version_number: number;
+    } & QueryResultRow>(
       `SELECT id,title,credit_value,notional_hours,delivery_modes,version_number
        FROM course_blueprint_versions
        WHERE course_definition_id=$1 AND lifecycle='approved' AND id <> $2
        ORDER BY version_number DESC LIMIT 1`,
-      [blueprint.course_definition_id_alias, resourceId],
+      [blueprint.course_definition_id, resourceId],
     );
-    const previousId = previous.rows[0]?.id as string | undefined;
+    const previousId = previous.rows[0]?.id;
     const previousOutcomes = previousId
-      ? await client.query(
-          "SELECT learning_outcome_id,coverage_level FROM blueprint_outcome_mappings WHERE course_blueprint_version_id=$1",
+      ? await client.query<{
+          learning_outcome_id: string;
+          coverage_level: CoverageLevel;
+        } & QueryResultRow>(
+          `SELECT learning_outcome_id,coverage_level
+           FROM blueprint_outcome_mappings
+           WHERE course_blueprint_version_id=$1`,
           [previousId],
         )
-      : { rows: [] };
+      : undefined;
     const dependencies = previousId
       ? await client.query<{ runs: string; enrolments: string } & QueryResultRow>(
           `SELECT count(DISTINCT run.id)::text runs,
@@ -442,11 +591,14 @@ export class CatalogueAnalysisService {
           [previousId],
         )
       : undefined;
-    const currentOutcomeMap = new Map(
+    const currentOutcomeMap = new Map<string, CoverageLevel>(
       mappings.rows.map((row) => [row.learning_outcome_id, row.coverage_level]),
     );
-    const previousOutcomeMap = new Map(
-      previousOutcomes.rows.map((row) => [row.learning_outcome_id, row.coverage_level]),
+    const previousOutcomeMap = new Map<string, CoverageLevel>(
+      (previousOutcomes?.rows ?? []).map((row) => [
+        row.learning_outcome_id,
+        row.coverage_level,
+      ]),
     );
     return this.buildAnalysis(
       "course-blueprint-version",
@@ -468,13 +620,22 @@ export class CatalogueAnalysisService {
         comparedToResourceId: previousId,
         changedFields: previous.rows[0]
           ? ["title", "credit_value", "notional_hours", "delivery_modes"].filter(
-              (field) => JSON.stringify(previous.rows[0][field]) !== JSON.stringify(blueprint[field]),
+              (field) =>
+                JSON.stringify(previous.rows[0]?.[field as keyof typeof previous.rows[0]]) !==
+                JSON.stringify(blueprint[field as keyof BlueprintAnalysisRow]),
             )
           : [],
-        outcomesAdded: [...currentOutcomeMap.keys()].filter((id) => !previousOutcomeMap.has(id)),
-        outcomesRemoved: [...previousOutcomeMap.keys()].filter((id) => !currentOutcomeMap.has(id)),
+        outcomesAdded: [...currentOutcomeMap.keys()].filter(
+          (id) => !previousOutcomeMap.has(id),
+        ),
+        outcomesRemoved: [...previousOutcomeMap.keys()].filter(
+          (id) => !currentOutcomeMap.has(id),
+        ),
         outcomeCoverageChanged: [...currentOutcomeMap.entries()]
-          .filter(([id, level]) => previousOutcomeMap.has(id) && previousOutcomeMap.get(id) !== level)
+          .filter(
+            ([id, level]) =>
+              previousOutcomeMap.has(id) && previousOutcomeMap.get(id) !== level,
+          )
           .map(([id]) => id),
         dependentRuns: Number(dependencies?.rows[0]?.runs ?? 0),
         dependentEnrolments: Number(dependencies?.rows[0]?.enrolments ?? 0),
@@ -487,8 +648,11 @@ export class CatalogueAnalysisService {
     institutionId: string,
     resourceId: string,
   ): Promise<AnalysisResult> {
-    const result = await client.query(
-      `SELECT version.*,programme.code,programme.programme_type
+    const result = await client.query<ProgrammeAnalysisRow>(
+      `SELECT version.id,version.institution_id,version.programme_id,
+              version.version_number,version.lifecycle,version.title,
+              version.credit_value,version.notional_hours,version.duration_value,
+              version.duration_unit,version.version,programme.code,programme.programme_type
        FROM programme_versions version
        JOIN programmes programme ON programme.id=version.programme_id
        WHERE version.id=$1 AND version.institution_id=$2`,
@@ -498,10 +662,19 @@ export class CatalogueAnalysisService {
     if (!programme) throw new NotFoundException("Programme version was not found");
     const policy = await this.currentPolicy(client, institutionId);
     const issues = this.validateCreditsAndDuration(programme, policy, true);
-    const composition = await client.query(
-      `SELECT link.course_blueprint_version_id,link.requirement_type,link.credit_contribution,
-              blueprint.credit_value,blueprint.notional_hours,blueprint.course_definition_id,
-              definition.code,definition.title
+    const composition = await client.query<{
+      course_blueprint_version_id: string;
+      requirement_type: string;
+      credit_contribution: string | null;
+      credit_value: string | null;
+      notional_hours: number | null;
+      course_definition_id: string;
+      code: string;
+      title: string;
+    } & QueryResultRow>(
+      `SELECT link.course_blueprint_version_id,link.requirement_type,
+              link.credit_contribution,blueprint.credit_value,blueprint.notional_hours,
+              blueprint.course_definition_id,definition.code,definition.title
        FROM programme_version_courses link
        JOIN course_blueprint_versions blueprint ON blueprint.id=link.course_blueprint_version_id
        JOIN course_definitions definition ON definition.id=blueprint.course_definition_id
@@ -540,28 +713,36 @@ export class CatalogueAnalysisService {
     }
     if (
       programme.notional_hours !== null &&
-      Number(programme.notional_hours) !== calculatedHours
+      programme.notional_hours !== calculatedHours
     ) {
       issues.push({
         code: "programme-hours-mismatch",
         severity: "error",
         field: "notionalHours",
         message: "Programme notional hours do not equal the approved course composition.",
-        actual: Number(programme.notional_hours),
+        actual: programme.notional_hours,
         expected: calculatedHours,
       });
     }
 
-    const requirements = await client.query(
+    const requirements = await client.query<ProgrammeRequirementRow>(
       `SELECT requirement.learning_outcome_id,requirement.minimum_coverage_level,
               outcome.code,outcome.title
        FROM programme_outcome_requirements requirement
        JOIN learning_outcomes outcome ON outcome.id=requirement.learning_outcome_id
-       WHERE requirement.programme_version_id=$1
+       WHERE requirement.programme_version_id=$1 AND outcome.status='active'
        ORDER BY outcome.code`,
       [resourceId],
     );
-    const actualCoverage = await client.query(
+    if (requirements.rowCount === 0) {
+      issues.push({
+        code: "programme-outcome-requirements-empty",
+        severity: "error",
+        field: "outcomes",
+        message: "A programme must define at least one required learning outcome.",
+      });
+    }
+    const actualCoverage = await client.query<ActualCoverageRow>(
       `SELECT mapping.learning_outcome_id,
               max(CASE mapping.coverage_level
                     WHEN 'introduced' THEN 1 WHEN 'developed' THEN 2
@@ -576,13 +757,14 @@ export class CatalogueAnalysisService {
        GROUP BY mapping.learning_outcome_id`,
       [resourceId],
     );
-    const actualByOutcome = new Map(
+    const actualByOutcome = new Map<string, ActualCoverageRow>(
       actualCoverage.rows.map((row) => [row.learning_outcome_id, row]),
     );
     const requirementCoverage = requirements.rows.map((requirement) => {
       const actual = actualByOutcome.get(requirement.learning_outcome_id);
       const passed = Boolean(
-        actual && Number(actual.rank) >= coverageRank[requirement.minimum_coverage_level],
+        actual &&
+          actual.rank >= coverageRank[requirement.minimum_coverage_level],
       );
       if (!passed) {
         issues.push({
@@ -595,29 +777,45 @@ export class CatalogueAnalysisService {
         });
       }
       return {
-        ...requirement,
+        learningOutcomeId: requirement.learning_outcome_id,
+        code: requirement.code,
+        title: requirement.title,
+        minimumCoverageLevel: requirement.minimum_coverage_level,
         actualCoverageLevel: actual?.coverage_level ?? null,
         passed,
       };
     });
 
-    const previous = await client.query(
+    const previous = await client.query<{
+      id: string;
+      title: string;
+      credit_value: string | null;
+      notional_hours: number | null;
+      duration_value: number | null;
+      duration_unit: string | null;
+      version_number: number;
+    } & QueryResultRow>(
       `SELECT id,title,credit_value,notional_hours,duration_value,duration_unit,version_number
        FROM programme_versions
        WHERE programme_id=$1 AND lifecycle='approved' AND id <> $2
        ORDER BY version_number DESC LIMIT 1`,
       [programme.programme_id, resourceId],
     );
-    const previousId = previous.rows[0]?.id as string | undefined;
+    const previousId = previous.rows[0]?.id;
     const previousComposition = previousId
-      ? await client.query(
-          "SELECT course_blueprint_version_id FROM programme_version_courses WHERE programme_version_id=$1",
+      ? await client.query<{ course_blueprint_version_id: string } & QueryResultRow>(
+          `SELECT course_blueprint_version_id
+           FROM programme_version_courses WHERE programme_version_id=$1`,
           [previousId],
         )
-      : { rows: [] };
-    const currentBlueprints = new Set(composition.rows.map((row) => row.course_blueprint_version_id));
+      : undefined;
+    const currentBlueprints = new Set(
+      composition.rows.map((row) => row.course_blueprint_version_id),
+    );
     const previousBlueprints = new Set(
-      previousComposition.rows.map((row) => row.course_blueprint_version_id),
+      (previousComposition?.rows ?? []).map(
+        (row) => row.course_blueprint_version_id,
+      ),
     );
     return this.buildAnalysis(
       "programme-version",
@@ -634,12 +832,24 @@ export class CatalogueAnalysisService {
       {
         comparedToResourceId: previousId,
         changedFields: previous.rows[0]
-          ? ["title", "credit_value", "notional_hours", "duration_value", "duration_unit"].filter(
-              (field) => JSON.stringify(previous.rows[0][field]) !== JSON.stringify(programme[field]),
+          ? [
+              "title",
+              "credit_value",
+              "notional_hours",
+              "duration_value",
+              "duration_unit",
+            ].filter(
+              (field) =>
+                JSON.stringify(previous.rows[0]?.[field as keyof typeof previous.rows[0]]) !==
+                JSON.stringify(programme[field as keyof ProgrammeAnalysisRow]),
             )
           : [],
-        blueprintVersionsAdded: [...currentBlueprints].filter((id) => !previousBlueprints.has(id)),
-        blueprintVersionsRemoved: [...previousBlueprints].filter((id) => !currentBlueprints.has(id)),
+        blueprintVersionsAdded: [...currentBlueprints].filter(
+          (id) => !previousBlueprints.has(id),
+        ),
+        blueprintVersionsRemoved: [...previousBlueprints].filter(
+          (id) => !currentBlueprints.has(id),
+        ),
         calculatedCredit,
         calculatedNotionalHours: calculatedHours,
       },
@@ -647,43 +857,130 @@ export class CatalogueAnalysisService {
   }
 
   private validateCreditsAndDuration(
-    row: Record<string, unknown>,
-    policy: Record<string, unknown>,
+    row: {
+      credit_value: string | null;
+      notional_hours: number | null;
+      duration_value?: number | null;
+      duration_unit?: string | null;
+    },
+    policy: ValidationPolicyRow,
     isProgramme: boolean,
   ): ValidationIssue[] {
     const issues: ValidationIssue[] = [];
     const credit = row.credit_value === null ? undefined : Number(row.credit_value);
-    const hours = row.notional_hours === null ? undefined : Number(row.notional_hours);
+    const hours = row.notional_hours === null ? undefined : row.notional_hours;
     if (policy.credit_required && credit === undefined) {
-      issues.push({ code: "credit-required", severity: "error", field: "creditValue", message: "Credit value is required by institution policy." });
+      issues.push({
+        code: "credit-required",
+        severity: "error",
+        field: "creditValue",
+        message: "Credit value is required by institution policy.",
+      });
     }
     if (policy.notional_hours_required && hours === undefined) {
-      issues.push({ code: "notional-hours-required", severity: "error", field: "notionalHours", message: "Notional hours are required by institution policy." });
+      issues.push({
+        code: "notional-hours-required",
+        severity: "error",
+        field: "notionalHours",
+        message: "Notional hours are required by institution policy.",
+      });
     }
-    if (isProgramme && policy.duration_required && (!row.duration_value || !row.duration_unit)) {
-      issues.push({ code: "duration-required", severity: "error", field: "duration", message: "Programme duration is required by institution policy." });
+    if (
+      isProgramme &&
+      policy.duration_required &&
+      (!row.duration_value || !row.duration_unit)
+    ) {
+      issues.push({
+        code: "duration-required",
+        severity: "error",
+        field: "duration",
+        message: "Programme duration is required by institution policy.",
+      });
     }
-    if (credit !== undefined && policy.minimum_credit !== null && credit < Number(policy.minimum_credit)) {
-      issues.push({ code: "credit-below-minimum", severity: "error", field: "creditValue", message: "Credit value is below the institution minimum.", actual: credit, expected: policy.minimum_credit });
+    if (
+      credit !== undefined &&
+      policy.minimum_credit !== null &&
+      credit < Number(policy.minimum_credit)
+    ) {
+      issues.push({
+        code: "credit-below-minimum",
+        severity: "error",
+        field: "creditValue",
+        message: "Credit value is below the institution minimum.",
+        actual: credit,
+        expected: Number(policy.minimum_credit),
+      });
     }
-    if (credit !== undefined && policy.maximum_credit !== null && credit > Number(policy.maximum_credit)) {
-      issues.push({ code: "credit-above-maximum", severity: "error", field: "creditValue", message: "Credit value exceeds the institution maximum.", actual: credit, expected: policy.maximum_credit });
+    if (
+      credit !== undefined &&
+      policy.maximum_credit !== null &&
+      credit > Number(policy.maximum_credit)
+    ) {
+      issues.push({
+        code: "credit-above-maximum",
+        severity: "error",
+        field: "creditValue",
+        message: "Credit value exceeds the institution maximum.",
+        actual: credit,
+        expected: Number(policy.maximum_credit),
+      });
     }
-    if (hours !== undefined && policy.minimum_notional_hours !== null && hours < Number(policy.minimum_notional_hours)) {
-      issues.push({ code: "hours-below-minimum", severity: "error", field: "notionalHours", message: "Notional hours are below the institution minimum.", actual: hours, expected: policy.minimum_notional_hours });
+    if (
+      hours !== undefined &&
+      policy.minimum_notional_hours !== null &&
+      hours < policy.minimum_notional_hours
+    ) {
+      issues.push({
+        code: "hours-below-minimum",
+        severity: "error",
+        field: "notionalHours",
+        message: "Notional hours are below the institution minimum.",
+        actual: hours,
+        expected: policy.minimum_notional_hours,
+      });
     }
-    if (hours !== undefined && policy.maximum_notional_hours !== null && hours > Number(policy.maximum_notional_hours)) {
-      issues.push({ code: "hours-above-maximum", severity: "error", field: "notionalHours", message: "Notional hours exceed the institution maximum.", actual: hours, expected: policy.maximum_notional_hours });
+    if (
+      hours !== undefined &&
+      policy.maximum_notional_hours !== null &&
+      hours > policy.maximum_notional_hours
+    ) {
+      issues.push({
+        code: "hours-above-maximum",
+        severity: "error",
+        field: "notionalHours",
+        message: "Notional hours exceed the institution maximum.",
+        actual: hours,
+        expected: policy.maximum_notional_hours,
+      });
     }
-    if (credit !== undefined && hours !== undefined && policy.hours_per_credit !== null) {
+    if (
+      credit !== undefined &&
+      hours !== undefined &&
+      policy.hours_per_credit !== null
+    ) {
       const expectedHours = credit * Number(policy.hours_per_credit);
-      const tolerance = expectedHours * (Number(policy.ratio_tolerance_percent) / 100);
+      const tolerance =
+        expectedHours * (Number(policy.ratio_tolerance_percent) / 100);
       if (Math.abs(hours - expectedHours) > tolerance) {
-        issues.push({ code: "credit-hours-ratio", severity: "error", field: "notionalHours", message: "Notional hours are outside the permitted credit-to-hours tolerance.", actual: hours, expected: expectedHours });
+        issues.push({
+          code: "credit-hours-ratio",
+          severity: "error",
+          field: "notionalHours",
+          message:
+            "Notional hours are outside the permitted credit-to-hours tolerance.",
+          actual: hours,
+          expected: expectedHours,
+        });
       }
     }
-    if (credit === 0 && hours && hours > 0) {
-      issues.push({ code: "zero-credit-learning", severity: "warning", field: "creditValue", message: "This curriculum carries no credit despite having notional learning hours." });
+    if (credit === 0 && hours !== undefined && hours > 0) {
+      issues.push({
+        code: "zero-credit-learning",
+        severity: "warning",
+        field: "creditValue",
+        message:
+          "This curriculum carries no credit despite having notional learning hours.",
+      });
     }
     return issues;
   }
@@ -692,7 +989,7 @@ export class CatalogueAnalysisService {
     resourceType: CurriculumResourceType,
     resourceId: string,
     resourceVersion: number,
-    policy: Record<string, unknown>,
+    policy: ValidationPolicyRow,
     issues: readonly ValidationIssue[],
     outcomeCoverage: Record<string, unknown>,
     impact: Record<string, unknown>,
@@ -707,33 +1004,28 @@ export class CatalogueAnalysisService {
         passed: errors.length === 0,
         errors,
         warnings,
-        policyVersionId: typeof policy.id === "string" ? policy.id : undefined,
+        policyVersionId: policy.id ?? undefined,
       },
       outcomeCoverage,
       impact,
     };
   }
 
-  private async currentPolicy(client: PoolClient, institutionId: string) {
-    const result = await client.query(
-      `SELECT * FROM curriculum_validation_policies
+  private async currentPolicy(
+    client: PoolClient,
+    institutionId: string,
+  ): Promise<ValidationPolicyRow> {
+    const result = await client.query<ValidationPolicyRow>(
+      `SELECT id,credit_required,notional_hours_required,duration_required,
+              hours_per_credit,ratio_tolerance_percent,minimum_credit,maximum_credit,
+              minimum_notional_hours,maximum_notional_hours
+       FROM curriculum_validation_policies
        WHERE institution_id=$1 AND lifecycle='approved' AND effective_from <= current_date
          AND (effective_until IS NULL OR effective_until > current_date)
        ORDER BY effective_from DESC,version_number DESC LIMIT 1`,
       [institutionId],
     );
-    return result.rows[0] ?? {
-      id: null,
-      credit_required: false,
-      notional_hours_required: true,
-      duration_required: false,
-      hours_per_credit: null,
-      ratio_tolerance_percent: 10,
-      minimum_credit: null,
-      maximum_credit: null,
-      minimum_notional_hours: null,
-      maximum_notional_hours: null,
-    };
+    return result.rows[0] ?? defaultPolicy;
   }
 
   private async persistReview(
@@ -757,20 +1049,28 @@ export class CatalogueAnalysisService {
         analysis.resourceType,
         analysis.resourceId,
         analysis.resourceVersion,
-        analysis.impact.comparedToResourceId ?? null,
+        typeof analysis.impact.comparedToResourceId === "string"
+          ? analysis.impact.comparedToResourceId
+          : null,
         analysis.impact,
         analysis.validation,
         analysis.outcomeCoverage,
         context.actorId,
       ],
     );
-    await this.record(client, "catalogue.curriculum.impact-reviewed", analysis.resourceType, analysis.resourceId, {
-      reviewId: id,
-      passed: analysis.validation.passed,
-      errorCount: analysis.validation.errors.length,
-      warningCount: analysis.validation.warnings.length,
-      version: analysis.resourceVersion,
-    });
+    await this.record(
+      client,
+      "catalogue.curriculum.impact-reviewed",
+      analysis.resourceType,
+      analysis.resourceId,
+      {
+        reviewId: id,
+        passed: analysis.validation.passed,
+        errorCount: analysis.validation.errors.length,
+        warningCount: analysis.validation.warnings.length,
+        version: analysis.resourceVersion,
+      },
+    );
     return id;
   }
 
@@ -792,7 +1092,9 @@ export class CatalogueAnalysisService {
       input.maximumCredit !== undefined &&
       input.maximumCredit < input.minimumCredit
     ) {
-      throw new BadRequestException("Maximum credit must not be lower than minimum credit");
+      throw new BadRequestException(
+        "Maximum credit must not be lower than minimum credit",
+      );
     }
     if (
       input.minimumNotionalHours !== undefined &&
@@ -803,15 +1105,28 @@ export class CatalogueAnalysisService {
         "Maximum notional hours must not be lower than minimum notional hours",
       );
     }
+    if (
+      input.hoursPerCredit !== undefined &&
+      (!input.creditRequired || !input.notionalHoursRequired)
+    ) {
+      throw new BadRequestException(
+        "Hours-per-credit validation requires both credit and notional hours",
+      );
+    }
   }
 
-  private table(resourceType: CurriculumResourceType): "programme_versions" | "course_blueprint_versions" {
+  private table(
+    resourceType: CurriculumResourceType,
+  ): "programme_versions" | "course_blueprint_versions" {
     return resourceType === "programme-version"
       ? "programme_versions"
       : "course_blueprint_versions";
   }
 
-  private async requireInstitution(client: PoolClient, institutionId: string): Promise<void> {
+  private async requireInstitution(
+    client: PoolClient,
+    institutionId: string,
+  ): Promise<void> {
     const result = await client.query(
       "SELECT id FROM institutions WHERE id=$1 AND status='active'",
       [institutionId],
