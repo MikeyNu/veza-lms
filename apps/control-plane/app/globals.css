@@ -5,6 +5,9 @@
 @import "../styles/tenant-fleet.css";
 @import "../styles/tenant-operations.css";
 @import "../styles/plan-catalogue.css";
+@import "../styles/commercial-governance.css";
+@import "../styles/release-management.css";
+@import "../styles/support-operations.css";
 @import "../styles/service-health.css";
 @import "../styles/platform-audit.css";
 @import "../styles/delivery-failures.css";
