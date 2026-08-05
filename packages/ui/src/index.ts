@@ -14,6 +14,7 @@ export const vezaTokens = Object.freeze({
   density: { comfortable: "44px", compact: "36px", reduced: "48px" },
 });
 
+export * from "./accent.js";
 export * from "./catalogue.js";
 export * from "./command-palette.js";
 export * from "./combobox.js";
