@@ -1,5 +1,6 @@
 import { Pool } from "pg";
 import { loadWorkerConfig } from "./config.js";
+import { sanitizeDeliveryError } from "./delivery-error.js";
 import { EventBridgePublisher, StdoutPublisher } from "./event-publisher.js";
 import { OutboxRepository } from "./outbox-repository.js";
 import type { ClaimedOutboxEvent, EventPublisher, PublishResult } from "./outbox.types.js";
@@ -18,9 +19,14 @@ function wait(milliseconds: number, signal: AbortSignal): Promise<void> {
   });
 }
 
-function publisher(transport: "eventbridge" | "stdout", eventBusName: string | undefined, source: string): EventPublisher {
-  return transport === "eventbridge"
-    ? new EventBridgePublisher(eventBusName ?? "", source)
+function publisher(config: ReturnType<typeof loadWorkerConfig>): EventPublisher {
+  return config.transport === "eventbridge"
+    ? new EventBridgePublisher(
+        config.eventBusName ?? "",
+        config.eventSource,
+        config.eventBridgeRequestTimeoutMs,
+        config.awsRegion ?? "",
+      )
     : new StdoutPublisher();
 }
 
@@ -40,7 +46,7 @@ async function acknowledge(
   }
 
   const deadLetter = event.attempts >= maximumAttempts;
-  const error = result?.error ?? "Publisher returned no result for the claimed event";
+  const error = sanitizeDeliveryError(result?.error ?? "Publisher returned no result for the claimed event");
   const delaySeconds = retryDelaySeconds(event.id, event.attempts, retryBaseSeconds, retryMaximumSeconds);
   const updated = await repository.markFailed(owner, event, error, nextAttemptAt(new Date(), delaySeconds), deadLetter);
   if (!updated) {
@@ -52,6 +58,7 @@ async function acknowledge(
       eventName: event.eventName,
       attempts: event.attempts,
       ...(deadLetter ? {} : { retryInSeconds: delaySeconds }),
+      error,
     });
   }
 }
@@ -66,9 +73,9 @@ async function main(): Promise<void> {
     connectionTimeoutMillis: 5_000,
     statement_timeout: 15_000,
   });
-  pool.on("error", (error) => log("error", "Unexpected PostgreSQL pool error", { error: error.message }));
+  pool.on("error", (error) => log("error", "Unexpected PostgreSQL pool error", { error: sanitizeDeliveryError(error) }));
   const repository = new OutboxRepository(pool);
-  const eventPublisher = publisher(config.transport, config.eventBusName, config.eventSource);
+  const eventPublisher = publisher(config);
   const shutdown = new AbortController();
   const stop = (signal: string) => {
     log("info", "Outbox worker shutdown requested", { signal });
@@ -108,7 +115,7 @@ async function main(): Promise<void> {
         const succeeded = published.filter((result) => result.success).length;
         log("info", "Outbox batch processed", { claimed: events.length, succeeded, failed: events.length - succeeded });
       } catch (error) {
-        log("error", "Outbox polling cycle failed", { error: error instanceof Error ? error.message : "Unknown worker error" });
+        log("error", "Outbox polling cycle failed", { error: sanitizeDeliveryError(error) });
         await wait(config.pollIntervalMs, shutdown.signal);
       }
     }
@@ -119,6 +126,6 @@ async function main(): Promise<void> {
 }
 
 void main().catch((error: unknown) => {
-  log("error", "Outbox worker failed to start", { error: error instanceof Error ? error.message : "Unknown startup error" });
+  log("error", "Outbox worker failed to start", { error: sanitizeDeliveryError(error) });
   process.exitCode = 1;
 });

@@ -10,14 +10,20 @@ Veza writes domain events to `outbox_events` in the same PostgreSQL transaction 
 
 Workers claim due events in deterministic order using `FOR UPDATE SKIP LOCKED`. A claim records an opaque worker instance ID, lease time and incremented attempt number. A worker may acknowledge only a row still leased to its own instance ID. Expired leases can be reclaimed after `OUTBOX_LEASE_SECONDS`.
 
-Successful delivery records `published_at` and the provider reference. Failed delivery clears the lease, records a bounded error message and schedules deterministic exponential backoff with jitter. Events reaching `OUTBOX_MAXIMUM_ATTEMPTS` are moved to dead-letter state and are not automatically retried.
+The worker claims no more than ten records at a time. This matches a single EventBridge `PutEvents` request and prevents a claimed batch from spanning multiple network calls under one lease. `EVENTBRIDGE_REQUEST_TIMEOUT_MS` must remain shorter than the lease duration.
+
+Successful delivery records `published_at` and the provider reference. Failed delivery clears the lease, records a bounded and credential-redacted error message, and schedules deterministic exponential backoff with jitter. Events reaching `OUTBOX_MAXIMUM_ATTEMPTS` are moved to dead-letter state and are not automatically retried.
 
 ## Transports
 
-- `eventbridge`: required in production. Events are delivered with the AWS SDK for JavaScript v3 in batches of at most ten and below a conservative request-size safety limit.
+- `eventbridge`: required in production. Events are delivered with the AWS SDK for JavaScript v3 in batches of at most ten. Each entry is rejected locally when its calculated size exceeds the conservative 240 KiB safety threshold below EventBridge's 256 KiB entry limit.
 - `stdout`: local-development transport only. Production startup fails closed when this transport is selected.
 
 The stdout transport logs event metadata but never logs the domain payload. The EventBridge detail contains the versioned envelope and domain payload required by downstream consumers.
+
+## Delivery semantics
+
+Delivery is at least once. A downstream consumer must deduplicate by the immutable `eventId`; provider references are delivery evidence, not domain identifiers. If publication succeeds but the worker terminates before acknowledgement, the lease expires and the event may be published again.
 
 ## Required production alarms
 

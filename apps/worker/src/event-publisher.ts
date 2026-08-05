@@ -1,8 +1,18 @@
-import { EventBridgeClient, PutEventsCommand, type PutEventsRequestEntry } from "@aws-sdk/client-eventbridge";
+import {
+  EventBridgeClient,
+  PutEventsCommand,
+  type PutEventsCommandOutput,
+  type PutEventsRequestEntry,
+} from "@aws-sdk/client-eventbridge";
+import { sanitizeDeliveryError } from "./delivery-error.js";
 import type { ClaimedOutboxEvent, EventPublisher, PublishResult } from "./outbox.types.js";
 
-const maximumRequestBytes = 900_000;
+const maximumEntryBytes = 240 * 1024;
 const maximumEntries = 10;
+
+interface EventBridgeClientLike {
+  send(command: PutEventsCommand, options?: { readonly abortSignal?: AbortSignal }): Promise<PutEventsCommandOutput>;
+}
 
 function detail(event: ClaimedOutboxEvent): string {
   return JSON.stringify({
@@ -27,6 +37,7 @@ function entrySize(entry: PutEventsRequestEntry): number {
   return Buffer.byteLength(entry.Source ?? "", "utf8")
     + Buffer.byteLength(entry.DetailType ?? "", "utf8")
     + Buffer.byteLength(entry.Detail ?? "", "utf8")
+    + (entry.Resources ?? []).reduce((total, resource) => total + Buffer.byteLength(resource, "utf8"), 0)
     + 14;
 }
 
@@ -49,45 +60,41 @@ function prepare(event: ClaimedOutboxEvent, eventBusName: string, source: string
 
 function batches(events: readonly PreparedEvent[]): readonly (readonly PreparedEvent[])[] {
   const groups: PreparedEvent[][] = [];
-  let current: PreparedEvent[] = [];
-  let currentBytes = 0;
-  for (const candidate of events) {
-    if (current.length === maximumEntries || currentBytes + candidate.size > maximumRequestBytes) {
-      if (current.length > 0) groups.push(current);
-      current = [];
-      currentBytes = 0;
-    }
-    current.push(candidate);
-    currentBytes += candidate.size;
+  for (let index = 0; index < events.length; index += maximumEntries) {
+    groups.push(events.slice(index, index + maximumEntries));
   }
-  if (current.length > 0) groups.push(current);
   return groups;
 }
 
 export class EventBridgePublisher implements EventPublisher {
-  private readonly client: EventBridgeClient;
+  private readonly client: EventBridgeClientLike;
 
   constructor(
     private readonly eventBusName: string,
     private readonly source: string,
-    client?: EventBridgeClient,
+    private readonly requestTimeoutMs: number,
+    region: string,
+    client?: EventBridgeClientLike,
   ) {
-    this.client = client ?? new EventBridgeClient({});
+    this.client = client ?? new EventBridgeClient({ region });
   }
 
   async publish(events: readonly ClaimedOutboxEvent[]): Promise<readonly PublishResult[]> {
     const prepared = events.map((event) => prepare(event, this.eventBusName, this.source));
-    const oversized = prepared.filter((item) => item.size > maximumRequestBytes);
-    const deliverable = prepared.filter((item) => item.size <= maximumRequestBytes);
+    const oversized = prepared.filter((item) => item.size > maximumEntryBytes);
+    const deliverable = prepared.filter((item) => item.size <= maximumEntryBytes);
     const results: PublishResult[] = oversized.map((item) => ({
       eventId: item.event.id,
       success: false,
-      error: "Event exceeds the configured EventBridge request-size safety limit",
+      error: "Event exceeds the configured EventBridge entry-size safety limit",
     }));
 
     for (const group of batches(deliverable)) {
       try {
-        const response = await this.client.send(new PutEventsCommand({ Entries: group.map((item) => item.entry) }));
+        const response = await this.client.send(
+          new PutEventsCommand({ Entries: group.map((item) => item.entry) }),
+          { abortSignal: AbortSignal.timeout(this.requestTimeoutMs) },
+        );
         const entries = response.Entries ?? [];
         group.forEach((item, index) => {
           const result = entries[index];
@@ -95,7 +102,7 @@ export class EventBridgePublisher implements EventPublisher {
             results.push({
               eventId: item.event.id,
               success: false,
-              error: `${result.ErrorCode}: ${result.ErrorMessage ?? "EventBridge rejected the event"}`,
+              error: sanitizeDeliveryError(`${result.ErrorCode}: ${result.ErrorMessage ?? "EventBridge rejected the event"}`),
             });
           } else if (result?.EventId) {
             results.push({ eventId: item.event.id, success: true, reference: result.EventId });
@@ -104,7 +111,7 @@ export class EventBridgePublisher implements EventPublisher {
           }
         });
       } catch (error) {
-        const message = error instanceof Error ? error.message : "EventBridge request failed";
+        const message = sanitizeDeliveryError(error);
         group.forEach((item) => results.push({ eventId: item.event.id, success: false, error: message }));
       }
     }
