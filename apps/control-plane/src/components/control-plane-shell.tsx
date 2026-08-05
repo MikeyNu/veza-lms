@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import type { AuthenticatedPrincipal } from "@veza/contracts";
 
 const navigation = [
-  { label: "Tenants", href: "/tenants", number: "01", available: false },
+  { label: "Tenants", href: "/tenants", number: "01", available: true },
   { label: "Provisioning", href: "/tenants/new", number: "02", available: true },
   { label: "Plans", href: "/plans", number: "03", available: false },
   { label: "Release rings", href: "/releases", number: "04", available: false },
