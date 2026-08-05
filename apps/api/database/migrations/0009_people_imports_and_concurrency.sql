@@ -1,5 +1,9 @@
 BEGIN;
 
+ALTER TABLE person_relationships ADD COLUMN version integer NOT NULL DEFAULT 1 CHECK (version > 0);
+ALTER TABLE staff_profiles ADD COLUMN employee_number text CHECK (employee_number IS NULL OR length(trim(employee_number)) BETWEEN 1 AND 80);
+CREATE UNIQUE INDEX staff_employee_number_active_uq ON staff_profiles (tenant_id, institution_id, lower(employee_number)) WHERE employee_number IS NOT NULL AND status NOT IN ('ended','archived');
+
 CREATE TABLE people_imports (
   id uuid PRIMARY KEY,
   tenant_id uuid NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
