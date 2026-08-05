@@ -1,4 +1,5 @@
 import { ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
+import type { PoolClient } from "pg";
 import { DatabaseService } from "../../../platform/database/database.service.js";
 import { TenantContext } from "../../../platform/request-context/tenant-context.js";
 
@@ -41,11 +42,13 @@ export class PeopleInstitutionBoundaryService {
         "SELECT id FROM people_imports WHERE id=$1 AND institution_id=$2",
         [importId, institutionId],
       );
-      if (!batch.rowCount) throw new ForbiddenException("People import is not associated with the authorised institution");
+      if (!batch.rowCount) {
+        throw new ForbiddenException("People import is not associated with the authorised institution");
+      }
     });
   }
 
-  private async requireInstitution(client: { query: (text: string, values?: readonly unknown[]) => Promise<{ rowCount: number | null }> }, institutionId: string): Promise<void> {
+  private async requireInstitution(client: PoolClient, institutionId: string): Promise<void> {
     const institution = await client.query(
       "SELECT id FROM institutions WHERE id=$1 AND status='active'",
       [institutionId],
