@@ -25,6 +25,7 @@ const relationshipTypes = [
   "sponsor",
   "employer",
   "advisor",
+  "emergency-contact",
   "authorised-contact",
 ] as const;
 
@@ -108,10 +109,6 @@ export class CreatePersonDto {
   @IsString()
   @Matches(/^[a-z]{2}(?:-[A-Z]{2})?$/)
   locale?: string;
-
-  @IsOptional()
-  @IsUUID()
-  userId?: string;
 
   @IsOptional()
   @IsIn(statuses)
