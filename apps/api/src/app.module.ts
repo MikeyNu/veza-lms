@@ -1,5 +1,6 @@
 import { Module } from "@nestjs/common";
 import { AuditModule } from "./modules/audit/audit.module.js";
+import { CatalogueModule } from "./modules/catalogue/catalogue.module.js";
 import { HealthModule } from "./modules/health/health.module.js";
 import { IdentityAccessModule } from "./modules/identity-access/identity-access.module.js";
 import { InstitutionStructureModule } from "./modules/institution-structure/institution-structure.module.js";
@@ -27,6 +28,7 @@ import { RequestContextModule } from "./platform/request-context/request-context
     IdentityAccessModule,
     InstitutionStructureModule,
     PeopleModule,
+    CatalogueModule,
     TenancyModule,
     TenantEntitlementsModule,
     HealthModule,

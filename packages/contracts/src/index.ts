@@ -1,4 +1,5 @@
 export * from "./people.js";
+export * from "./catalogue.js";
 
 export type Brand<TValue, TBrand extends string> = TValue & { readonly __brand: TBrand };
 export type TenantId = Brand<string, "TenantId">;
