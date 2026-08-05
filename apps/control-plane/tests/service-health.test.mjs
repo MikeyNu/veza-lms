@@ -15,6 +15,7 @@ test("service health remains operator guarded and runtime validated", async () =
   assert.match(api, /maximumResponseBytes/);
   assert.match(api, /response\.status !== 503/);
   assert.match(api, /pendingEvents/);
+  assert.match(api, /deadLetterEvents/);
   assert.match(shell, /href: "\/health"[\s\S]*available: true/);
 });
 
@@ -26,9 +27,10 @@ test("service health UI communicates dependency state without tenant data", asyn
   ]);
   assert.match(view, /PostgreSQL/);
   assert.match(view, /Outbox delivery/);
+  assert.match(view, /Dead letter/);
   assert.match(view, /Operational metadata only/);
   assert.doesNotMatch(view, /learnerName|courseTitle|submission/);
-  assert.match(css, /grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/);
+  assert.match(css, /grid-template-columns:repeat\(3,minmax\(0,1fr\)\)/);
   assert.match(css, /@media\(max-width:620px\)/);
   assert.match(globals, /service-health\.css/);
 });

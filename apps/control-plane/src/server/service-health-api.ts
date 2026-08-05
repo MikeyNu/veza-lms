@@ -15,6 +15,7 @@ export interface ServiceHealthSnapshot {
     readonly database: ComponentHealth & { readonly latencyMs: number };
     readonly eventDelivery: ComponentHealth & {
       readonly pendingEvents: number;
+      readonly deadLetterEvents: number;
       readonly oldestPendingSeconds: number;
     };
   };
@@ -43,7 +44,10 @@ function validate(value: unknown): ServiceHealthSnapshot {
   if (!componentStatuses.has(database.status as ComponentHealth["status"]) || !nonNegativeNumber(database.latencyMs)) {
     throw new Error("Database health did not match the API contract");
   }
-  if (!componentStatuses.has(eventDelivery.status as ComponentHealth["status"]) || !nonNegativeNumber(eventDelivery.pendingEvents) || !nonNegativeNumber(eventDelivery.oldestPendingSeconds)) {
+  if (!componentStatuses.has(eventDelivery.status as ComponentHealth["status"])
+    || !nonNegativeNumber(eventDelivery.pendingEvents)
+    || !nonNegativeNumber(eventDelivery.deadLetterEvents)
+    || !nonNegativeNumber(eventDelivery.oldestPendingSeconds)) {
     throw new Error("Event-delivery health did not match the API contract");
   }
   return {
@@ -56,6 +60,7 @@ function validate(value: unknown): ServiceHealthSnapshot {
       eventDelivery: {
         status: eventDelivery.status as ComponentHealth["status"],
         pendingEvents: eventDelivery.pendingEvents,
+        deadLetterEvents: eventDelivery.deadLetterEvents,
         oldestPendingSeconds: eventDelivery.oldestPendingSeconds,
       },
     },
