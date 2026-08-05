@@ -1,8 +1,8 @@
 "use client";
 
+import type { PersonDetail } from "@veza/contracts";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import type { PersonDetail } from "@veza/contracts";
 
 export function RelationshipLifecycle({ person }: { person: PersonDetail }) {
   const router = useRouter();
@@ -11,9 +11,16 @@ export function RelationshipLifecycle({ person }: { person: PersonDetail }) {
 
   async function transition(
     relationshipId: string,
+    institutionId: string | undefined,
     version: number,
     action: "verify" | "revoke",
   ) {
+    if (!institutionId) {
+      setMessage(
+        "This legacy relationship has no institution scope and cannot be changed until it is reconciled.",
+      );
+      return;
+    }
     const reason = window.prompt(
       action === "verify"
         ? "Record the verification evidence or process used."
@@ -31,7 +38,7 @@ export function RelationshipLifecycle({ person }: { person: PersonDetail }) {
       {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ expectedVersion: version, reason }),
+        body: JSON.stringify({ institutionId, expectedVersion: version, reason }),
       },
     );
     const body = (await response.json()) as { message?: string };
@@ -65,15 +72,21 @@ export function RelationshipLifecycle({ person }: { person: PersonDetail }) {
             <div>
               <strong>{relationship.type.replaceAll("-", " ")}</strong>
               <small>
-                Version {relationship.version} · {relationship.status}
+                Version {relationship.version} · {relationship.status} ·{" "}
+                {relationship.institutionId ?? "unscoped legacy record"}
               </small>
             </div>
             <div className="relationship-lifecycle-actions">
               {relationship.status === "pending" ? (
                 <button
-                  disabled={busy === relationship.id}
+                  disabled={busy === relationship.id || !relationship.institutionId}
                   onClick={() =>
-                    transition(relationship.id, relationship.version, "verify")
+                    transition(
+                      relationship.id,
+                      relationship.institutionId,
+                      relationship.version,
+                      "verify",
+                    )
                   }
                   type="button"
                 >
@@ -83,9 +96,14 @@ export function RelationshipLifecycle({ person }: { person: PersonDetail }) {
               {relationship.status !== "revoked" ? (
                 <button
                   className="danger"
-                  disabled={busy === relationship.id}
+                  disabled={busy === relationship.id || !relationship.institutionId}
                   onClick={() =>
-                    transition(relationship.id, relationship.version, "revoke")
+                    transition(
+                      relationship.id,
+                      relationship.institutionId,
+                      relationship.version,
+                      "revoke",
+                    )
                   }
                   type="button"
                 >
