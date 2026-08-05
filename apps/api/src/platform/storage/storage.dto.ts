@@ -4,6 +4,7 @@ import {
   IsIn,
   IsInt,
   IsISO8601,
+  IsNumber,
   IsObject,
   IsOptional,
   IsString,
@@ -76,6 +77,35 @@ export class CreateStoragePolicyDto {
 
   @IsObject()
   processingProfile!: Record<string, unknown>;
+}
+
+export class UpdateStorageQuotaDto {
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(9_007_199_254_740_991)
+  maximumStoredBytes!: number;
+
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(9_007_199_254_740_991)
+  maximumMonthlyEgressBytes!: number;
+
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  @Max(9_007_199_254_740_991)
+  maximumMonthlyTranscodeSeconds!: number;
+
+  @IsIn(["observe", "soft", "hard"])
+  enforcement!: "observe" | "soft" | "hard";
+
+  @Type(() => Number)
+  @IsNumber({ maxDecimalPlaces: 4 })
+  @Min(0.01)
+  @Max(1)
+  warningThreshold!: number;
 }
 
 export class CreateMediaUploadDto {
