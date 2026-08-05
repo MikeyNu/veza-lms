@@ -1,6 +1,7 @@
 export * from "./people.js";
 export * from "./people-operations.js";
 export * from "./catalogue.js";
+export * from "./delivery.js";
 export * from "./terminology.js";
 
 export type Brand<TValue, TBrand extends string> = TValue & { readonly __brand: TBrand };
