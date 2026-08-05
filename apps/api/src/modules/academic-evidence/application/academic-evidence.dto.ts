@@ -1,5 +1,24 @@
 import { Type } from "class-transformer";
-import { ArrayMaxSize, ArrayMinSize, IsArray, IsDateString, IsIn, IsInt, IsNumber, IsObject, IsOptional, IsString, IsUUID, Matches, Max, MaxLength, Min, MinLength } from "class-validator";
+import {
+  ArrayMaxSize,
+  ArrayMinSize,
+  IsArray,
+  IsBoolean,
+  IsDateString,
+  IsIn,
+  IsInt,
+  IsNumber,
+  IsObject,
+  IsOptional,
+  IsString,
+  IsUUID,
+  Matches,
+  Max,
+  MaxLength,
+  Min,
+  MinLength,
+  ValidateNested,
+} from "class-validator";
 
 export class CreateAssignmentDto {
   @IsUUID() courseRunId!: string;
@@ -29,6 +48,7 @@ export class StartSubmissionDto {
   @IsUUID() assignmentId!: string;
   @IsUUID() enrolmentId!: string;
   @IsOptional() @IsUUID() supersedesAttemptId?: string;
+  @IsOptional() @IsUUID() assignmentGroupId?: string;
 }
 
 export class RegisterSubmissionFileDto {
@@ -69,6 +89,52 @@ export class RecordMarkDto {
   @IsOptional() @IsUUID() supersedesMarkId?: string;
 }
 
+export class ReleaseMarkDto {
+  @Type(() => Number) @IsInt() @Min(1) expectedVersion!: number;
+  @IsString() @MinLength(10) @MaxLength(1000) reason!: string;
+}
+
+export class RubricCriterionDto {
+  @Type(() => Number) @IsInt() @Min(1) sequenceNumber!: number;
+  @IsString() @MinLength(2) @MaxLength(160) title!: string;
+  @IsOptional() @IsString() @MaxLength(2000) description?: string;
+  @Type(() => Number) @IsNumber() @Min(0.01) maximumScore!: number;
+  @IsArray() @ArrayMinSize(1) @ArrayMaxSize(20) @IsObject({ each: true }) levels!: Record<string, unknown>[];
+}
+
+export class CreateRubricDto {
+  @IsString() @MinLength(3) @MaxLength(160) title!: string;
+  @IsArray() @ArrayMinSize(1) @ArrayMaxSize(100)
+  @ValidateNested({ each: true }) @Type(() => RubricCriterionDto)
+  criteria!: RubricCriterionDto[];
+}
+
+export class SubmitRubricDto {
+  @Type(() => Number) @IsInt() @Min(1) expectedVersion!: number;
+  @IsString() @MinLength(10) @MaxLength(1000) reason!: string;
+}
+
+export class ApproveRubricDto {
+  @Type(() => Number) @IsInt() @Min(1) expectedVersion!: number;
+  @IsString() @MinLength(10) @MaxLength(2000) notes!: string;
+}
+
+export class AttachRubricDto {
+  @IsUUID() rubricId!: string;
+  @Type(() => Number) @IsInt() @Min(1) expectedAssignmentVersion!: number;
+}
+
+export class CreateAssignmentGroupDto {
+  @IsString() @MinLength(2) @MaxLength(160) name!: string;
+  @IsArray() @ArrayMinSize(1) @ArrayMaxSize(500) @IsUUID("4", { each: true }) learnerPersonIds!: string[];
+}
+
+export class UpdateAssignmentGroupMembersDto {
+  @IsOptional() @IsArray() @ArrayMaxSize(500) @IsUUID("4", { each: true }) addLearnerPersonIds?: string[];
+  @IsOptional() @IsArray() @ArrayMaxSize(500) @IsUUID("4", { each: true }) removeLearnerPersonIds?: string[];
+  @IsString() @MinLength(10) @MaxLength(1000) reason!: string;
+}
+
 export class CreateGradeCategoryDto {
   @IsUUID() courseRunId!: string;
   @IsString() @MinLength(2) @MaxLength(160) title!: string;
@@ -84,7 +150,8 @@ export class CreateGradeItemDto {
   @Type(() => Number) @IsNumber() @Min(0.01) maximumScore!: number;
   @IsOptional() @Type(() => Number) @IsNumber() @Min(0) @Max(1) weight?: number;
   @IsIn(["zero", "ignore", "incomplete"]) missingPolicy!: "zero" | "ignore" | "incomplete";
-  @IsIn(["half_up", "half_even", "floor", "ceiling", "truncate"]) roundingMode!: "half_up" | "half_even" | "floor" | "ceiling" | "truncate";
+  @IsIn(["half_up", "half_even", "floor", "ceiling", "truncate"])
+  roundingMode!: "half_up" | "half_even" | "floor" | "ceiling" | "truncate";
   @Type(() => Number) @IsInt() @Min(0) @Max(6) decimalPlaces!: number;
 }
 
@@ -114,6 +181,16 @@ export class CreateCertificateTemplateDto {
   @IsObject() documentSchema!: Record<string, unknown>;
 }
 
+export class SubmitCertificateTemplateDto {
+  @Type(() => Number) @IsInt() @Min(1) expectedVersion!: number;
+  @IsString() @MinLength(10) @MaxLength(1000) reason!: string;
+}
+
+export class ApproveCertificateTemplateDto {
+  @Type(() => Number) @IsInt() @Min(1) expectedVersion!: number;
+  @IsString() @MinLength(10) @MaxLength(2000) notes!: string;
+}
+
 export class CreateAwardRuleDto {
   @IsUUID() templateId!: string;
   @IsOptional() @IsUUID() programmeId?: string;
@@ -121,10 +198,17 @@ export class CreateAwardRuleDto {
   @IsObject() ruleSchema!: Record<string, unknown>;
 }
 
+export class EvaluateAwardRuleDto {
+  @IsUUID() learnerPersonId!: string;
+  @IsOptional() @IsUUID() enrolmentId?: string;
+  @IsBoolean() persistEvaluation!: boolean;
+}
+
 export class IssueCertificateDto {
   @IsUUID() learnerPersonId!: string;
   @IsOptional() @IsUUID() enrolmentId?: string;
   @IsUUID() awardRuleId!: string;
+  @IsOptional() @IsUUID() awardEvaluationId?: string;
 }
 
 export class RevokeCertificateDto {
