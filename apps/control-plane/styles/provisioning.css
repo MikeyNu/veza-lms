@@ -33,6 +33,7 @@
 .module-option strong { display: block; font-size: 12px; }
 .module-option p { margin: 5px 0 0; color: var(--veza-muted); font-size: 10px; line-height: 1.45; }
 .module-option em { padding: 5px 8px; color: #5e50d7; background: #ebe8ff; border-radius: 999px; font-size: 8px; font-style: normal; font-weight: 800; text-transform: uppercase; }
+.module-option:has(input:focus-visible) { box-shadow: var(--veza-focus); }
 .review-stack { display: grid; gap: 20px; padding: 28px 0; }
 .review-card { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 1px; overflow: hidden; background: var(--veza-line); border: 1px solid var(--veza-line); border-radius: 13px; }
 .review-card > div { min-width: 0; padding: 16px; background: #fbfcfd; }
@@ -48,6 +49,8 @@
 .button-primary { color: white; background: var(--veza-ink); border: 1px solid var(--veza-ink); }
 .button-secondary { color: var(--veza-ink); background: white; border: 1px solid var(--veza-line-strong); }
 .button-primary:disabled,.button-secondary:disabled { cursor: not-allowed; opacity: .5; }
+.button-primary:hover:not(:disabled) { background: #1d2939; }
+.button-secondary:hover:not(:disabled) { background: #f8fafc; }
 .form-message { margin: 0 0 14px; padding: 11px 13px; border-radius: 10px; font-size: 10px; }
 .form-message.error { color: #8e1e1e; background: #fff1f1; border: 1px solid #f4c9c9; }
 .form-message.success { color: #17653f; background: #eefbf4; border: 1px solid #c7ecd8; }

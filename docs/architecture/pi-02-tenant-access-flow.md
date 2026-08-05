@@ -42,3 +42,13 @@ Both browser applications use Authorization Code with PKCE through server-side B
 The institutional workspace calls `GET /v1/session/workspaces` after authentication. This endpoint derives choices from the authenticated internal user and returns opaque membership IDs with safe tenant summaries. The selection route rechecks the submitted membership against that authenticated list before setting the HttpOnly membership cookie. A tenant ID is never accepted from the browser as authority.
 
 The control plane uses a distinct OIDC client and encryption key. Its callback calls `GET /v1/session/principal`, which requires the verified `veza:platform-operator` claim and the configured authentication-method assurance, defaulting to MFA. Control-plane access does not require or create a tenant membership.
+
+## 7. Platform-operator assurance
+
+A platform-operator role claim alone is insufficient. Veza also verifies the configured authentication-method references, defaulting to `mfa`, before it creates or updates a global operator identity or permits control-plane access. Operator identity creation writes a global audit event. The control-plane browser uses a separate OIDC client and session-encryption key from the institutional application.
+
+## 8. Control-plane provisioning interface
+
+The browser posts same-origin JSON to the control-plane BFF with a strong idempotency key. The BFF keeps the operator access token server-side, bounds both request and response bodies, forwards a correlation identifier and validates the complete provisioning receipt before returning it. The interface exposes institution identity, deployment tier, residency, commercial plan, locale, timezone, enabled modules and first-owner accountability as explicit decisions.
+
+The control plane never presents tenant content. Later fleet views remain visibly unavailable until their APIs, permission rules, audit semantics and failure states are implemented.
