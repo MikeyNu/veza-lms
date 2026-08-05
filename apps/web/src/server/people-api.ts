@@ -191,13 +191,14 @@ export function createRelationship(
 }
 export function transitionRelationship(
   relationshipId: string,
+  institutionId: string,
   action: "verify" | "revoke",
   input: unknown,
 ) {
-  return request(`/v1/people/relationships/${relationshipId}/${action}`, {
-    method: "POST",
-    body: JSON.stringify(input),
-  });
+  return request(
+    `/v1/people/institutions/${institutionId}/relationships/${relationshipId}/${action}`,
+    { method: "POST", body: JSON.stringify(input) },
+  );
 }
 export function decideDuplicate(candidateId: string, input: unknown) {
   return request(`/v1/people/duplicates/${candidateId}/decision`, {
