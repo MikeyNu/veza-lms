@@ -32,13 +32,13 @@ export function LearningOverview() {
       <article className="next-card panel">
         <div className="section-heading">
           <div><p className="eyebrow">Up next</p><h2>Today&apos;s schedule</h2></div>
-          <Link href="/today">View day <Icon name="arrow" /></Link>
+          <Link href="/calendar">View day <Icon name="arrow" /></Link>
         </div>
         <div className="timeline">
           <div className="time active">
             <span>18:30</span><i />
             <div><small>Live session, 60 min</small><strong>Research methods workshop</strong><p>Dr N. Mthembu, Studio 2</p></div>
-            <Link className="join-action" href="/today">Join</Link>
+            <Link className="join-action" href="/calendar">Join</Link>
           </div>
           <div className="time">
             <span>20:00</span><i />
@@ -72,7 +72,7 @@ export function LearningOverview() {
         <p>Business Communication, Assignment 3</p>
         <div className="deadline-footer">
           <span>Estimated effort: 2 h 30 min</span>
-          <Link href="/assessments">Open task <Icon name="arrow" /></Link>
+          <Link href="/learning">Open task <Icon name="arrow" /></Link>
         </div>
       </article>
     </section>
