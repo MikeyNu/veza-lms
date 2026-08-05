@@ -9,7 +9,10 @@
   .vz-communications-page,
   .evidence-room,
   .people-workspace,
+  .person-record,
   .terminology-workspace,
+  .catalogue-workspace,
+  .storage-administration,
   .service-account-workspace,
   .institution-setup
 ) {
@@ -21,7 +24,10 @@
 
 :where(
   .people-heading,
+  .person-record-heading,
   .terminology-heading,
+  .catalogue-heading,
+  .storage-heading,
   .service-account-heading,
   .setup-heading,
   .evidence-heading,
@@ -33,7 +39,10 @@
 
 :where(
   .people-heading h1,
+  .person-record-heading h1,
   .terminology-heading h1,
+  .catalogue-heading h1,
+  .storage-heading h1,
   .service-account-heading h1,
   .setup-heading h1,
   .evidence-heading h1,
@@ -46,7 +55,10 @@
 
 :where(
   .people-metrics,
+  .person-overview,
   .terminology-metrics,
+  .catalogue-metrics,
+  .storage-summary,
   .service-account-summary,
   .vz-communications-summary
 ) {
@@ -57,13 +69,24 @@
   background: var(--surface);
 }
 
-:where(.people-metrics article, .terminology-metrics article) {
+:where(
+  .people-metrics article,
+  .person-overview article,
+  .terminology-metrics article,
+  .catalogue-metrics article
+) {
   border: 0;
   border-right: 1px solid var(--line);
   border-radius: 0;
+  background: transparent;
 }
 
-:where(.people-metrics article, .terminology-metrics article):last-child {
+:where(
+  .people-metrics article,
+  .person-overview article,
+  .terminology-metrics article,
+  .catalogue-metrics article
+):last-child {
   border-right: 0;
 }
 
@@ -71,10 +94,18 @@
   .people-table-panel,
   .people-filters,
   .people-import,
+  .person-panel,
   .terminology-resolved,
   .terminology-hierarchy,
   .terminology-versions,
   .terminology-create,
+  .catalogue-main-surface,
+  .catalogue-outcomes,
+  .catalogue-actions,
+  .storage-config-panel,
+  .storage-assets-panel,
+  .storage-asset-inspector,
+  .storage-governance-panel,
   .service-account-directory,
   .service-account-inspector,
   .service-account-create,
@@ -97,6 +128,14 @@
   .people-primary,
   .people-filters button,
   .people-import button,
+  .person-profile-form button,
+  .relationship-form button,
+  .catalogue-form > button,
+  .governance-card > button,
+  .storage-compact-form button,
+  .storage-consent-form button,
+  .storage-upload button,
+  .storage-accessibility-form button,
   .service-account-rotation button,
   .service-account-create > button,
   .evidence-filter-actions button,
@@ -114,11 +153,16 @@
 :where(
   .people-heading p,
   .people-import > div > p,
+  .person-record-heading p,
+  .person-panel header p,
   .terminology-heading p,
   .terminology-resolved > header p,
   .terminology-hierarchy > header p,
   .terminology-versions > header p,
   .terminology-create summary p,
+  .catalogue-heading p,
+  .catalogue-main-surface header p,
+  .catalogue-outcomes header p,
   .admin-eyebrow
 ) {
   color: var(--brand-strong);
@@ -127,6 +171,7 @@
 :where(
   .people-person > span,
   .terminology-hierarchy li > b,
+  .catalogue-code,
   .setup-card > summary > span
 ) {
   background: var(--veza-institution-accent-soft);
@@ -135,7 +180,9 @@
 
 :where(
   .service-account-table tbody tr.selected,
-  .service-account-table tbody tr:hover
+  .service-account-table tbody tr:hover,
+  .storage-asset-table tbody tr.selected,
+  .storage-asset-table tbody tr:hover
 ) {
   background: var(--surface-selected);
 }
@@ -182,6 +229,22 @@
   color: var(--information);
 }
 
+.storage-progress {
+  border-color: color-mix(in srgb, var(--brand) 24%, var(--line));
+  background: var(--surface-selected);
+  color: var(--brand-strong);
+}
+
+.storage-progress span {
+  border-color: color-mix(in srgb, var(--brand) 26%, var(--line));
+  border-top-color: var(--brand-strong);
+}
+
+.storage-status.hard {
+  background: var(--veza-critical-surface);
+  color: var(--critical);
+}
+
 :where(
   .vz-course-cards > a,
   .vz-gradebook-directory a,
@@ -194,6 +257,8 @@
 :where(
   .service-account-layout,
   .terminology-layout,
+  .catalogue-view-grid,
+  .storage-asset-layout,
   .vz-communications-grid,
   .evidence-layout
 ) {
@@ -203,11 +268,160 @@
 :where(
   .people-table-wrap,
   .service-account-table-wrap,
+  .storage-asset-table-wrap,
   .vz-communications-table,
   .vz-gradebook-matrix,
-  .terminology-edit-table
+  .terminology-edit-table,
+  .run-table,
+  .enrolment-table
 ) {
   scrollbar-gutter: stable;
+}
+
+.people-filters {
+  grid-template-columns: minmax(18rem, 1.4fr) repeat(2, minmax(9rem, 0.55fr)) repeat(3, auto);
+  border-radius: var(--radius);
+}
+
+.people-table-panel,
+.people-import {
+  border-radius: var(--radius);
+}
+
+.person-grid {
+  grid-template-columns: minmax(0, 1.18fr) minmax(20rem, 0.82fr);
+  align-items: start;
+}
+
+.relationship-list ul {
+  gap: 0;
+  border-top: 1px solid var(--line);
+}
+
+.relationship-list li {
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  border-radius: 0;
+  padding-inline: 0;
+}
+
+.relationship-list li:last-child {
+  border-bottom: 0;
+}
+
+.contact-grid {
+  gap: 0;
+  border-top: 1px solid var(--line);
+  border-left: 1px solid var(--line);
+}
+
+.contact-grid article {
+  border: 0;
+  border-right: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  border-radius: 0;
+}
+
+.catalogue-tabs {
+  border-radius: 0.75rem;
+  background: var(--surface-subtle);
+}
+
+.catalogue-tabs button.active {
+  background: var(--brand-strong);
+}
+
+.catalogue-view-grid {
+  grid-template-columns: minmax(0, 1fr) minmax(19rem, 22rem);
+}
+
+.catalogue-actions {
+  position: sticky;
+  top: 5.5rem;
+  max-height: calc(100vh - 6.5rem);
+  overflow-y: auto;
+}
+
+.catalogue-governance {
+  width: min(calc(100% - clamp(2rem, 5vw, 5rem)), var(--veza-content-max));
+  margin: 0 auto clamp(1.25rem, 2.5vw, 2.5rem);
+  border-radius: var(--radius);
+}
+
+.governance-card {
+  min-width: 0;
+}
+
+.storage-administration {
+  width: min(100%, var(--veza-content-max));
+  margin-inline: auto;
+}
+
+.storage-config-grid {
+  grid-template-columns: repeat(3, minmax(18rem, 1fr));
+}
+
+.storage-governance-grid {
+  grid-template-columns: repeat(3, minmax(18rem, 1fr));
+}
+
+.storage-record-list,
+.storage-governance-list {
+  scrollbar-gutter: stable;
+}
+
+.admin-section-navigation,
+.institution-admin-tools {
+  border-radius: 0.75rem;
+  background: var(--surface-subtle);
+  box-shadow: none;
+}
+
+.admin-section-navigation a.active,
+.institution-admin-tools a[aria-current="page"] {
+  background: var(--brand-strong);
+  color: white;
+  box-shadow: none;
+}
+
+@media (max-width: 1280px) {
+  .people-filters {
+    grid-template-columns: minmax(16rem, 1fr) repeat(2, minmax(9rem, 0.55fr)) auto;
+  }
+
+  .people-filters > :nth-last-child(-n + 2) {
+    grid-row: 2;
+  }
+
+  .storage-config-grid,
+  .storage-governance-grid {
+    grid-template-columns: repeat(2, minmax(18rem, 1fr));
+  }
+
+  .storage-config-grid > :last-child,
+  .storage-governance-grid > :last-child {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 1040px) {
+  .person-grid,
+  .catalogue-view-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .catalogue-actions {
+    position: static;
+    max-height: none;
+  }
+
+  .people-filters {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .people-filters > * {
+    grid-row: auto;
+  }
 }
 
 @media (max-width: 760px) {
@@ -216,27 +430,72 @@
     .vz-communications-page,
     .evidence-room,
     .people-workspace,
+    .person-record,
     .terminology-workspace,
+    .catalogue-workspace,
+    .storage-administration,
     .service-account-workspace,
     .institution-setup
   ) {
     padding-inline: 1rem;
   }
 
-  :where(.people-metrics, .terminology-metrics, .service-account-summary, .vz-communications-summary) {
+  :where(
+    .people-metrics,
+    .person-overview,
+    .terminology-metrics,
+    .catalogue-metrics,
+    .storage-summary,
+    .service-account-summary,
+    .vz-communications-summary
+  ) {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  :where(.people-metrics article, .terminology-metrics article) {
+  :where(
+    .people-metrics article,
+    .person-overview article,
+    .terminology-metrics article,
+    .catalogue-metrics article
+  ) {
     border-right: 1px solid var(--line);
     border-bottom: 1px solid var(--line);
   }
 
-  :where(.people-metrics article, .terminology-metrics article):nth-child(2n) {
+  :where(
+    .people-metrics article,
+    .person-overview article,
+    .terminology-metrics article,
+    .catalogue-metrics article
+  ):nth-child(2n) {
     border-right: 0;
   }
 
-  :where(.people-metrics article, .terminology-metrics article):nth-last-child(-n + 2) {
+  :where(
+    .people-metrics article,
+    .person-overview article,
+    .terminology-metrics article,
+    .catalogue-metrics article
+  ):nth-last-child(-n + 2) {
     border-bottom: 0;
+  }
+
+  .people-filters,
+  .storage-config-grid,
+  .storage-governance-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .storage-config-grid > :last-child,
+  .storage-governance-grid > :last-child {
+    grid-column: auto;
+  }
+
+  .contact-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .catalogue-governance {
+    width: calc(100% - 2rem);
   }
 }
