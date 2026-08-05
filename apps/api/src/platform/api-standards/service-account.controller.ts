@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Get,
   Headers,
   Param,
   ParseUUIDPipe,
@@ -46,6 +47,12 @@ export class ServiceAccountController {
     private readonly authorization: TenantAuthorizationService,
   ) {}
 
+  @Get()
+  list(@Req() request: AuthenticatedRequest) {
+    this.read(request);
+    return this.serviceAccounts.list();
+  }
+
   @Post()
   @UseGuards(MfaGuard)
   create(
@@ -76,6 +83,14 @@ export class ServiceAccountController {
   ) {
     this.manage(request);
     return this.serviceAccounts.updateStatus(accountId, input);
+  }
+
+  private read(request: AuthenticatedRequest): void {
+    this.authorization.assertPermission(
+      request,
+      permissions.tenantRead,
+      this.authorization.buildTenantResource(),
+    );
   }
 
   private manage(request: AuthenticatedRequest): void {
