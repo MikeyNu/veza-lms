@@ -85,6 +85,9 @@ export class PeopleIdentityLinkService {
          ) VALUES ($1,$2,$3,$4,'linked',$5,now(),$6)`,
         [linkRequestId, context.tenantId, personId, institutionId, input.userId, context.actorId],
       );
+      await client.query(
+        "SELECT set_config('app.allow_person_identity_link','true',true)",
+      );
       const updated = await client.query<{ version: number } & QueryResultRow>(
         `UPDATE people
          SET linked_user_id=$3,updated_by=$4,updated_at=now(),version=version+1
