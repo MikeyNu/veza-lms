@@ -14,6 +14,7 @@
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",
+    "test:integration": "pnpm --filter @veza/api test:integration",
     "test:ci": "turbo run lint typecheck test build",
     "format": "prettier --write .",
     "format:check": "prettier --check .",

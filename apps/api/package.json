@@ -9,6 +9,8 @@
     "lint": "tsc --noEmit",
     "typecheck": "tsc --noEmit",
     "test": "node --test tests/*.test.mjs",
+    "test:integration": "node --test tests/integration/*.test.mjs",
+    "db:bootstrap:test": "node scripts/bootstrap-test-database.mjs",
     "db:migrate": "node scripts/migrate.mjs"
   },
   "dependencies": {
