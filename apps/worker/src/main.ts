@@ -2,11 +2,16 @@ import { Pool } from "pg";
 import { loadWorkerConfig } from "./config.js";
 import { sanitizeDeliveryError } from "./delivery-error.js";
 import { EventBridgePublisher, StdoutPublisher } from "./event-publisher.js";
+import { CoreMetricRefresher } from "./metric-refresh.js";
 import { OutboxRepository } from "./outbox-repository.js";
 import type { ClaimedOutboxEvent, EventPublisher, PublishResult } from "./outbox.types.js";
 import { nextAttemptAt, retryDelaySeconds } from "./retry.js";
 
-function log(level: "info" | "warn" | "error", message: string, metadata: Readonly<Record<string, unknown>> = {}): void {
+function log(
+  level: "info" | "warn" | "error",
+  message: string,
+  metadata: Readonly<Record<string, unknown>> = {},
+): void {
   const output = JSON.stringify({ level, message, timestamp: new Date().toISOString(), ...metadata });
   (level === "error" ? process.stderr : process.stdout).write(`${output}\n`);
 }
@@ -15,7 +20,14 @@ function wait(milliseconds: number, signal: AbortSignal): Promise<void> {
   if (signal.aborted) return Promise.resolve();
   return new Promise((resolve) => {
     const timer = setTimeout(resolve, milliseconds);
-    signal.addEventListener("abort", () => { clearTimeout(timer); resolve(); }, { once: true });
+    signal.addEventListener(
+      "abort",
+      () => {
+        clearTimeout(timer);
+        resolve();
+      },
+      { once: true },
+    );
   });
 }
 
@@ -46,21 +58,67 @@ async function acknowledge(
   }
 
   const deadLetter = event.attempts >= maximumAttempts;
-  const error = sanitizeDeliveryError(result?.error ?? "Publisher returned no result for the claimed event");
-  const delaySeconds = retryDelaySeconds(event.id, event.attempts, retryBaseSeconds, retryMaximumSeconds);
-  const updated = await repository.markFailed(owner, event, error, nextAttemptAt(new Date(), delaySeconds), deadLetter);
+  const error = sanitizeDeliveryError(
+    result?.error ?? "Publisher returned no result for the claimed event",
+  );
+  const delaySeconds = retryDelaySeconds(
+    event.id,
+    event.attempts,
+    retryBaseSeconds,
+    retryMaximumSeconds,
+  );
+  const updated = await repository.markFailed(
+    owner,
+    event,
+    error,
+    nextAttemptAt(new Date(), delaySeconds),
+    deadLetter,
+  );
   if (!updated) {
     log("warn", "Outbox failure acknowledgement lost its lease", { eventId: event.id });
   } else {
-    log(deadLetter ? "error" : "warn", deadLetter ? "Outbox event moved to dead letter" : "Outbox delivery scheduled for retry", {
-      eventId: event.id,
-      tenantId: event.tenantId,
-      eventName: event.eventName,
-      attempts: event.attempts,
-      ...(deadLetter ? {} : { retryInSeconds: delaySeconds }),
-      error,
-    });
+    log(
+      deadLetter ? "error" : "warn",
+      deadLetter ? "Outbox event moved to dead letter" : "Outbox delivery scheduled for retry",
+      {
+        eventId: event.id,
+        tenantId: event.tenantId,
+        eventName: event.eventName,
+        attempts: event.attempts,
+        ...(deadLetter ? {} : { retryInSeconds: delaySeconds }),
+        error,
+      },
+    );
   }
+}
+
+async function processOutbox(
+  repository: OutboxRepository,
+  eventPublisher: EventPublisher,
+  config: ReturnType<typeof loadWorkerConfig>,
+): Promise<number> {
+  const events = await repository.claim(config.workerId, config.batchSize, config.leaseSeconds);
+  if (events.length === 0) return 0;
+  const published = await eventPublisher.publish(events);
+  const byEventId = new Map(published.map((result) => [result.eventId, result]));
+  for (const event of events) {
+    await acknowledge(
+      repository,
+      config.workerId,
+      event,
+      byEventId.get(event.id),
+      config.maximumAttempts,
+      config.retryBaseSeconds,
+      config.retryMaximumSeconds,
+    );
+  }
+  const succeeded = published.filter((result) => result.success).length;
+  log("info", "Outbox batch processed", {
+    claimed: events.length,
+    succeeded,
+    failed: events.length - succeeded,
+  });
+  return events.length;
 }
 
 async function main(): Promise<void> {
@@ -71,61 +129,58 @@ async function main(): Promise<void> {
     max: 4,
     idleTimeoutMillis: 30_000,
     connectionTimeoutMillis: 5_000,
-    statement_timeout: 15_000,
+    statement_timeout: 30_000,
   });
-  pool.on("error", (error) => log("error", "Unexpected PostgreSQL pool error", { error: sanitizeDeliveryError(error) }));
+  pool.on("error", (error) =>
+    log("error", "Unexpected PostgreSQL pool error", { error: sanitizeDeliveryError(error) }),
+  );
   const repository = new OutboxRepository(pool);
   const eventPublisher = publisher(config);
+  const metricRefresher = new CoreMetricRefresher(
+    pool,
+    config.workerId,
+    config.metricRefreshBatchSize,
+  );
   const shutdown = new AbortController();
   const stop = (signal: string) => {
-    log("info", "Outbox worker shutdown requested", { signal });
+    log("info", "Worker shutdown requested", { signal });
     shutdown.abort();
   };
   process.once("SIGTERM", () => stop("SIGTERM"));
   process.once("SIGINT", () => stop("SIGINT"));
 
-  log("info", "Outbox worker started", {
+  let nextMetricRefreshAt = 0;
+  log("info", "Worker started", {
     workerId: config.workerId,
     transport: config.transport,
     batchSize: config.batchSize,
     leaseSeconds: config.leaseSeconds,
+    metricRefreshIntervalMs: config.metricRefreshIntervalMs,
   });
 
   try {
     while (!shutdown.signal.aborted) {
       try {
-        const events = await repository.claim(config.workerId, config.batchSize, config.leaseSeconds);
-        if (events.length === 0) {
-          await wait(config.pollIntervalMs, shutdown.signal);
-          continue;
+        const now = Date.now();
+        if (now >= nextMetricRefreshAt) {
+          const refreshed = await metricRefresher.refreshDue();
+          log("info", "Core metric refresh cycle completed", { refreshed });
+          nextMetricRefreshAt = now + config.metricRefreshIntervalMs;
         }
-        const published = await eventPublisher.publish(events);
-        const byEventId = new Map(published.map((result) => [result.eventId, result]));
-        for (const event of events) {
-          await acknowledge(
-            repository,
-            config.workerId,
-            event,
-            byEventId.get(event.id),
-            config.maximumAttempts,
-            config.retryBaseSeconds,
-            config.retryMaximumSeconds,
-          );
-        }
-        const succeeded = published.filter((result) => result.success).length;
-        log("info", "Outbox batch processed", { claimed: events.length, succeeded, failed: events.length - succeeded });
+        const claimed = await processOutbox(repository, eventPublisher, config);
+        if (claimed === 0) await wait(config.pollIntervalMs, shutdown.signal);
       } catch (error) {
-        log("error", "Outbox polling cycle failed", { error: sanitizeDeliveryError(error) });
+        log("error", "Worker polling cycle failed", { error: sanitizeDeliveryError(error) });
         await wait(config.pollIntervalMs, shutdown.signal);
       }
     }
   } finally {
     await pool.end();
-    log("info", "Outbox worker stopped");
+    log("info", "Worker stopped");
   }
 }
 
 void main().catch((error: unknown) => {
-  log("error", "Outbox worker failed to start", { error: sanitizeDeliveryError(error) });
+  log("error", "Worker failed to start", { error: sanitizeDeliveryError(error) });
   process.exitCode = 1;
 });
