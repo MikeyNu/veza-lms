@@ -11,6 +11,7 @@ const navigation = [
   { label: "Audit", href: "/audit", number: "06", available: true },
   { label: "Delivery recovery", href: "/delivery-failures", number: "07", available: true },
   { label: "Event platform", href: "/events", number: "08", available: true },
+  { label: "Observability", href: "/observability", number: "09", available: true },
 ] as const;
 
 function initials(name: string | undefined): string {
