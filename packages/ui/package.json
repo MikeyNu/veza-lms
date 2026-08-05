@@ -25,9 +25,9 @@
     "build": "tsc -p tsconfig.json",
     "lint": "tsc --noEmit",
     "typecheck": "tsc --noEmit",
-    "test": "node --test tests/*.test.mjs",
-    "test:a11y": "node --test tests/accessibility-contracts.test.mjs",
-    "test:visual": "node tests/visual-regression.test.mjs",
+    "test": "node --test tests/component-contracts.test.mjs tests/accessibility-contracts.test.mjs tests/i18n-long-text.test.mjs tests/accent-contracts.test.mjs",
+    "test:a11y": "node --test tests/accessibility-contracts.test.mjs tests/i18n-long-text.test.mjs tests/accent-contracts.test.mjs",
+    "test:visual": "python tests/visual_regression.py",
     "dev": "tsc -p tsconfig.json --watch --preserveWatchOutput"
   },
   "peerDependencies": {
