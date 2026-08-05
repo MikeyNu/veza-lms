@@ -3,6 +3,7 @@ import {
   IsBoolean,
   IsIn,
   IsInt,
+  IsISO8601,
   IsOptional,
   IsString,
   Matches,
@@ -101,6 +102,16 @@ export class AssignTenantReleaseRingDto {
   @Matches(/^[a-z0-9]+(?:-[a-z0-9]+)*$/)
   @MaxLength(80)
   ringKey!: string;
+
+  @IsBoolean()
+  isCanary!: boolean;
+
+  @IsISO8601()
+  effectiveFrom!: string;
+
+  @IsOptional()
+  @IsISO8601()
+  effectiveUntil?: string;
 
   @Type(() => Number)
   @IsInt()
