@@ -32,7 +32,10 @@ BEGIN
   INTO period_record
   FROM academic_periods
   WHERE tenant_id=NEW.tenant_id AND id=NEW.academic_period_id;
-  IF period_record IS NULL OR period_record.institution_id <> NEW.institution_id OR period_record.status <> 'published' THEN
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'course run requires an existing academic period';
+  END IF;
+  IF period_record.institution_id <> NEW.institution_id OR period_record.status <> 'published' THEN
     RAISE EXCEPTION 'course run requires a published academic period in the same institution';
   END IF;
   IF NEW.starts_on < period_record.starts_on OR NEW.ends_on > period_record.ends_on OR NEW.ends_on < NEW.starts_on THEN
@@ -43,7 +46,10 @@ BEGIN
   INTO blueprint_record
   FROM course_blueprint_versions
   WHERE tenant_id=NEW.tenant_id AND id=NEW.course_blueprint_version_id;
-  IF blueprint_record IS NULL OR blueprint_record.institution_id <> NEW.institution_id OR blueprint_record.lifecycle <> 'approved' THEN
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'course run requires an existing blueprint version';
+  END IF;
+  IF blueprint_record.institution_id <> NEW.institution_id OR blueprint_record.lifecycle <> 'approved' THEN
     RAISE EXCEPTION 'course run requires an approved blueprint in the same institution';
   END IF;
   IF blueprint_record.effective_from > NEW.starts_on OR (blueprint_record.effective_until IS NOT NULL AND blueprint_record.effective_until <= NEW.starts_on) THEN
@@ -70,13 +76,13 @@ DECLARE cohort_institution uuid;
 BEGIN
   SELECT institution_id INTO run_institution
   FROM course_runs WHERE tenant_id=NEW.tenant_id AND id=NEW.course_run_id;
-  IF run_institution IS NULL OR run_institution <> NEW.institution_id THEN
+  IF NOT FOUND OR run_institution <> NEW.institution_id THEN
     RAISE EXCEPTION 'class section must belong to the same institution as its course run';
   END IF;
   IF NEW.cohort_id IS NOT NULL THEN
     SELECT institution_id INTO cohort_institution
     FROM cohorts WHERE tenant_id=NEW.tenant_id AND id=NEW.cohort_id;
-    IF cohort_institution IS NULL OR cohort_institution <> NEW.institution_id THEN
+    IF NOT FOUND OR cohort_institution <> NEW.institution_id THEN
       RAISE EXCEPTION 'class section cohort must belong to the same institution';
     END IF;
   END IF;
@@ -101,20 +107,20 @@ DECLARE cohort_institution uuid;
 BEGIN
   SELECT institution_id INTO learner_institution
   FROM learner_profiles WHERE tenant_id=NEW.tenant_id AND person_id=NEW.learner_person_id;
-  IF learner_institution IS NULL OR learner_institution <> NEW.institution_id THEN
+  IF NOT FOUND OR learner_institution <> NEW.institution_id THEN
     RAISE EXCEPTION 'enrolment learner profile must belong to the same institution';
   END IF;
 
   SELECT institution_id INTO run_institution
   FROM course_runs WHERE tenant_id=NEW.tenant_id AND id=NEW.course_run_id;
-  IF run_institution IS NULL OR run_institution <> NEW.institution_id THEN
+  IF NOT FOUND OR run_institution <> NEW.institution_id THEN
     RAISE EXCEPTION 'enrolment course run must belong to the same institution';
   END IF;
 
   IF NEW.class_section_id IS NOT NULL THEN
     SELECT course_run_id,institution_id INTO section_run,section_institution
     FROM class_sections WHERE tenant_id=NEW.tenant_id AND id=NEW.class_section_id;
-    IF section_run IS NULL OR section_run <> NEW.course_run_id OR section_institution <> NEW.institution_id THEN
+    IF NOT FOUND OR section_run <> NEW.course_run_id OR section_institution <> NEW.institution_id THEN
       RAISE EXCEPTION 'enrolment class section must belong to the selected course run and institution';
     END IF;
   END IF;
@@ -122,7 +128,7 @@ BEGIN
   IF NEW.cohort_id IS NOT NULL THEN
     SELECT institution_id INTO cohort_institution
     FROM cohorts WHERE tenant_id=NEW.tenant_id AND id=NEW.cohort_id;
-    IF cohort_institution IS NULL OR cohort_institution <> NEW.institution_id THEN
+    IF NOT FOUND OR cohort_institution <> NEW.institution_id THEN
       RAISE EXCEPTION 'enrolment cohort must belong to the same institution';
     END IF;
   END IF;
