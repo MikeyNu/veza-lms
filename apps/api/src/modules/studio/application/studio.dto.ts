@@ -8,6 +8,7 @@ import {
   IsOptional,
   IsString,
   IsUUID,
+  Matches,
   Max,
   MaxLength,
   Min,
@@ -110,6 +111,28 @@ export class CreateReusableBlockDto {
   @IsObject() content!: Record<string, unknown>;
 }
 
+export class RegisterStudioAssetDto {
+  @IsOptional() @IsUUID() courseSpaceId?: string;
+  @IsIn(["image", "video", "audio", "document", "archive", "other"])
+  assetKind!: "image" | "video" | "audio" | "document" | "archive" | "other";
+  @IsString() @MinLength(3) @MaxLength(1024) objectKey!: string;
+  @IsString() @MinLength(1) @MaxLength(255) originalFilename!: string;
+  @IsString() @MinLength(3) @MaxLength(160) mediaType!: string;
+  @Type(() => Number) @IsInt() @Min(1) sizeBytes!: number;
+  @Matches(/^[a-f0-9]{64}$/) checksumSha256!: string;
+  @IsOptional() @IsString() @MinLength(1) @MaxLength(1000) altText?: string;
+  @IsOptional() @IsString() @MinLength(1) @MaxLength(10000) captionText?: string;
+  @IsOptional() @IsString() @MinLength(1) @MaxLength(1048576) transcriptText?: string;
+  @IsOptional() @Type(() => Number) @IsInt() @Min(0) durationSeconds?: number;
+  @IsOptional() @IsObject() metadata?: Record<string, unknown>;
+}
+
+export class RecordStudioAssetScanDto {
+  @IsIn(["clean", "infected", "failed"])
+  malwareStatus!: "clean" | "infected" | "failed";
+  @IsObject() scanEvidence!: Record<string, unknown>;
+}
+
 export class CreateStudioCommentDto {
   @IsUUID() revisionId!: string;
   @IsOptional() @IsString() @MinLength(1) @MaxLength(160) blockId?: string;
@@ -144,7 +167,7 @@ export class PublishCourseSpaceDto {
 export class AnalyseCourseImportDto {
   @IsIn(["common-cartridge", "canvas", "moodle", "scorm", "veza-json"])
   sourceFormat!: "common-cartridge" | "canvas" | "moodle" | "scorm" | "veza-json";
-  @IsString() @MinLength(64) @MaxLength(64) sourceChecksum!: string;
+  @IsString() @Matches(/^[a-f0-9]{64}$/) sourceChecksum!: string;
   @IsObject() manifest!: Record<string, unknown>;
   @IsOptional() @IsUUID() courseSpaceId?: string;
 }

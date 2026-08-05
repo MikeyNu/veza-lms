@@ -1,9 +1,11 @@
 import { Module } from "@nestjs/common";
+import { AcademicEvidenceModule } from "./modules/academic-evidence/academic-evidence.module.js";
 import { AuditModule } from "./modules/audit/audit.module.js";
 import { CatalogueModule } from "./modules/catalogue/catalogue.module.js";
 import { HealthModule } from "./modules/health/health.module.js";
 import { IdentityAccessModule } from "./modules/identity-access/identity-access.module.js";
 import { InstitutionStructureModule } from "./modules/institution-structure/institution-structure.module.js";
+import { LearnerCourseModule } from "./modules/learner-course/learner-course.module.js";
 import { PeopleModule } from "./modules/people/people.module.js";
 import { PlatformOperationsModule } from "./modules/platform-operations/platform-operations.module.js";
 import { StudioModule } from "./modules/studio/studio.module.js";
@@ -33,6 +35,8 @@ import { RequestContextModule } from "./platform/request-context/request-context
     TerminologyModule,
     CatalogueModule,
     StudioModule,
+    LearnerCourseModule,
+    AcademicEvidenceModule,
     TenancyModule,
     TenantEntitlementsModule,
     HealthModule,

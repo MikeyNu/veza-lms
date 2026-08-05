@@ -25,10 +25,13 @@ import {
   CreateStudioModuleDto,
   DecideStudioReviewDto,
   PublishCourseSpaceDto,
+  RecordStudioAssetScanDto,
+  RegisterStudioAssetDto,
   RequestStudioReviewDto,
   ResolveStudioCommentDto,
   SaveStudioRevisionDto,
 } from "../application/studio.dto.js";
+import { StudioLibraryService } from "../application/studio-library.service.js";
 import { StudioService } from "../application/studio.service.js";
 
 @Controller("institutions/:institutionId/studio")
@@ -36,6 +39,7 @@ import { StudioService } from "../application/studio.service.js";
 export class StudioController {
   constructor(
     private readonly studio: StudioService,
+    private readonly library: StudioLibraryService,
     private readonly authorization: TenantAuthorizationService,
   ) {}
 
@@ -46,6 +50,15 @@ export class StudioController {
   ) {
     this.assert(request, permissions.studioRead, institutionId);
     return this.studio.workspace(institutionId);
+  }
+
+  @Get("library")
+  studioLibrary(
+    @Req() request: AuthenticatedRequest,
+    @Param("institutionId", new ParseUUIDPipe()) institutionId: string,
+  ) {
+    this.assert(request, permissions.studioRead, institutionId);
+    return this.library.library(institutionId);
   }
 
   @Get("lessons/:lessonId")
@@ -107,6 +120,27 @@ export class StudioController {
   ) {
     this.assert(request, permissions.studioManage, institutionId);
     return this.studio.createReusableBlock(institutionId, input);
+  }
+
+  @Post("assets")
+  registerAsset(
+    @Req() request: AuthenticatedRequest,
+    @Param("institutionId", new ParseUUIDPipe()) institutionId: string,
+    @Body() input: RegisterStudioAssetDto,
+  ) {
+    this.assert(request, permissions.studioManage, institutionId);
+    return this.library.registerAsset(institutionId, input);
+  }
+
+  @Post("assets/:assetId/scan")
+  recordAssetScan(
+    @Req() request: AuthenticatedRequest,
+    @Param("institutionId", new ParseUUIDPipe()) institutionId: string,
+    @Param("assetId", new ParseUUIDPipe()) assetId: string,
+    @Body() input: RecordStudioAssetScanDto,
+  ) {
+    this.assert(request, permissions.studioManage, institutionId);
+    return this.library.recordScan(institutionId, assetId, input);
   }
 
   @Post("lessons/:lessonId/comments")

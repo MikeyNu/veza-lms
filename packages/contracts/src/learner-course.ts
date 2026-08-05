@@ -71,3 +71,5 @@ export interface LearnerHome {
   readonly courses: readonly LearnerCourseCard[];
   readonly generatedAt: string;
 }
+
+export type LearnerToday = LearnerHome;
