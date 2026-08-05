@@ -14,7 +14,7 @@ import type { AuthenticatedRequest } from "../../../platform/authentication/auth
 import { AuthenticationGuard } from "../../../platform/authentication/authentication.guard.js";
 import { MfaGuard } from "../../../platform/authentication/mfa.guard.js";
 import { PlatformOperatorGuard } from "../../../platform/authentication/platform-operator.guard.js";
-import type { CommercialGovernanceService } from "../application/commercial-governance.service.js";
+import { CommercialGovernanceService } from "../application/commercial-governance.service.js";
 import {
   AssignTenantPlanDto,
   CreatePlanPolicyDto,
@@ -29,7 +29,7 @@ import {
   UpdateTenantMigrationDto,
   UpsertModuleCatalogueDto,
 } from "../application/commercial-release-governance.dto.js";
-import type { ReleaseCompletionService } from "../application/release-completion.service.js";
+import { ReleaseCompletionService } from "../application/release-completion.service.js";
 
 @Controller("control-plane/commercial-governance")
 @UseGuards(AuthenticationGuard, PlatformOperatorGuard)
