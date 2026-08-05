@@ -1,3 +1,7 @@
+data "aws_ec2_managed_prefix_list" "cloudfront_origin" {
+  name = "com.amazonaws.global.cloudfront.origin-facing"
+}
+
 resource "aws_vpc" "main" {
   cidr_block           = var.vpc_cidr
   enable_dns_support   = true
@@ -100,10 +104,12 @@ resource "aws_subnet" "data" {
 
 resource "aws_route_table" "public" {
   vpc_id = aws_vpc.main.id
+
   route {
     cidr_block = "0.0.0.0/0"
     gateway_id = aws_internet_gateway.main.id
   }
+
   tags = merge(local.common_tags, { Name = "${local.name}-public" })
 }
 
@@ -135,12 +141,14 @@ resource "aws_route_table" "private" {
   for_each = aws_subnet.private
 
   vpc_id = aws_vpc.main.id
+
   route {
     cidr_block = "0.0.0.0/0"
     nat_gateway_id = var.enable_nat_per_az
       ? aws_nat_gateway.main[each.key].id
       : aws_nat_gateway.main[local.azs[0]].id
   }
+
   tags = merge(local.common_tags, { Name = "${local.name}-private-${each.key}" })
 }
 
@@ -178,23 +186,15 @@ resource "aws_vpc_endpoint" "s3" {
 
 resource "aws_security_group" "alb" {
   name        = "${local.name}-alb"
-  description = "Internet ingress to Veza application endpoints"
+  description = "CloudFront origin ingress to Veza application endpoints"
   vpc_id      = aws_vpc.main.id
 
   ingress {
-    description = "HTTP"
-    from_port   = 80
-    to_port     = 80
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  ingress {
-    description = "HTTPS"
-    from_port   = 443
-    to_port     = 443
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
+    description     = "CloudFront origin HTTP"
+    from_port       = 80
+    to_port         = 80
+    protocol        = "tcp"
+    prefix_list_ids = [data.aws_ec2_managed_prefix_list.cloudfront_origin.id]
   }
 
   egress {
