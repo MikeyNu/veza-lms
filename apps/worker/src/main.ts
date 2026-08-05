@@ -5,6 +5,10 @@ import { ConsumerRuntime } from "./consumer-runtime.js";
 import { sanitizeDeliveryError } from "./delivery-error.js";
 import { EventBridgePublisher, StdoutPublisher } from "./event-publisher.js";
 import { CoreMetricRefresher } from "./metric-refresh.js";
+import { NotificationDispatcher } from "./notification-dispatcher.js";
+import { NotificationProviderRegistry } from "./notification-provider.js";
+import { NotificationRouter } from "./notification-router.js";
+import { NotificationDigestPreparationHandler } from "./notification-scheduler.js";
 import { OutboxRepository } from "./outbox-repository.js";
 import type { ClaimedOutboxEvent, EventPublisher, PublishResult } from "./outbox.types.js";
 import { nextAttemptAt, retryDelaySeconds } from "./retry.js";
@@ -151,7 +155,7 @@ async function main(): Promise<void> {
   const pool = new Pool({
     connectionString: config.databaseUrl,
     application_name: "veza-platform-worker",
-    max: 8,
+    max: 12,
     idleTimeoutMillis: 30_000,
     connectionTimeoutMillis: 5_000,
     statement_timeout: 30_000,
@@ -169,10 +173,25 @@ async function main(): Promise<void> {
     config.retryBaseSeconds,
     config.retryMaximumSeconds,
   );
+  consumerRuntime.register("communications.notification-router", new NotificationRouter(pool));
+
   const scheduler = new WorkerScheduler(
     pool,
     config.workerId,
     config.schedulerBatchSize,
+    config.retryBaseSeconds,
+    config.retryMaximumSeconds,
+  );
+  scheduler.register(
+    "communications.digest-preparation",
+    new NotificationDigestPreparationHandler(pool),
+  );
+  const notificationDispatcher = new NotificationDispatcher(
+    pool,
+    new NotificationProviderRegistry(),
+    config.workerId,
+    config.consumerBatchSize,
+    config.maximumAttempts,
     config.retryBaseSeconds,
     config.retryMaximumSeconds,
   );
@@ -216,12 +235,26 @@ async function main(): Promise<void> {
           nextSchedulerAt = now + config.schedulerIntervalMs;
         }
 
-        const [outboxClaimed, consumers] = await Promise.all([
+        const [outboxClaimed, consumers, notifications] = await Promise.all([
           processOutbox(outboxRepository, eventPublisher, config),
           consumerRuntime.processDue(),
+          notificationDispatcher.processDue(),
         ]);
         if (consumers.claimed > 0) log("info", "Event consumers processed", consumers);
-        if (outboxClaimed === 0 && consumers.claimed === 0) {
+        if (
+          notifications.intentsPrepared > 0 ||
+          notifications.deliveriesProcessed > 0 ||
+          notifications.digestsProcessed > 0
+        ) {
+          log("info", "Notification delivery cycle completed", notifications);
+        }
+        if (
+          outboxClaimed === 0 &&
+          consumers.claimed === 0 &&
+          notifications.intentsPrepared === 0 &&
+          notifications.deliveriesProcessed === 0 &&
+          notifications.digestsProcessed === 0
+        ) {
           await wait(config.pollIntervalMs, shutdown.signal);
         }
       } catch (error) {
