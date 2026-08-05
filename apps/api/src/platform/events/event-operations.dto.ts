@@ -5,14 +5,17 @@ import {
   IsArray,
   IsIn,
   IsInt,
+  IsISO8601,
   IsObject,
   IsOptional,
   IsString,
+  IsUUID,
   Matches,
   Max,
   MaxLength,
   Min,
   MinLength,
+  ValidateNested,
 } from "class-validator";
 
 const eventNamePattern = /^[a-z][a-z0-9.-]{2,159}$/;
@@ -61,6 +64,23 @@ export class ApproveEventSchemaDto extends SubmitEventSchemaDto {
   reason!: string;
 }
 
+export class EventSubscriptionInput {
+  @Matches(/^[a-z*][a-z0-9.*-]{0,159}$/)
+  eventPattern!: string;
+
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(99)
+  minimumMajorVersion!: number;
+
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(99)
+  maximumMajorVersion!: number;
+}
+
 export class CreateEventConsumerDto {
   @Matches(keyPattern)
   consumerKey!: string;
@@ -91,24 +111,9 @@ export class CreateEventConsumerDto {
   @IsArray()
   @ArrayMinSize(1)
   @ArrayMaxSize(100)
+  @ValidateNested({ each: true })
+  @Type(() => EventSubscriptionInput)
   subscriptions!: EventSubscriptionInput[];
-}
-
-export class EventSubscriptionInput {
-  @Matches(/^[a-z*][a-z0-9.*-]{0,159}$/)
-  eventPattern!: string;
-
-  @Type(() => Number)
-  @IsInt()
-  @Min(1)
-  @Max(99)
-  minimumMajorVersion!: number;
-
-  @Type(() => Number)
-  @IsInt()
-  @Min(1)
-  @Max(99)
-  maximumMajorVersion!: number;
 }
 
 export class UpdateConsumerStatusDto {
@@ -134,7 +139,7 @@ export class ReplayEventDto {
 
 export class CreateScheduledJobDto {
   @IsOptional()
-  @Matches(/^[0-9a-f]{8}-[0-9a-f-]{27,35}$/i)
+  @IsUUID()
   tenantId?: string;
 
   @Matches(keyPattern)
@@ -153,8 +158,6 @@ export class CreateScheduledJobDto {
   @Max(2_592_000)
   intervalSeconds?: number;
 
-  @IsString()
-  @MinLength(20)
-  @MaxLength(40)
+  @IsISO8601({ strict: true })
   nextRunAt!: string;
 }
