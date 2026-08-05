@@ -24,9 +24,9 @@ resource "aws_iam_role" "ecs_execution" {
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
     Statement = [{
-      Effect = "Allow"
+      Effect    = "Allow"
       Principal = { Service = "ecs-tasks.amazonaws.com" }
-      Action = "sts:AssumeRole"
+      Action    = "sts:AssumeRole"
     }]
   })
   tags = local.common_tags
@@ -58,9 +58,9 @@ resource "aws_iam_role" "ecs_task" {
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
     Statement = [{
-      Effect = "Allow"
+      Effect    = "Allow"
       Principal = { Service = "ecs-tasks.amazonaws.com" }
-      Action = "sts:AssumeRole"
+      Action    = "sts:AssumeRole"
     }]
   })
   tags = local.common_tags
@@ -131,11 +131,11 @@ resource "aws_cloudwatch_log_group" "service" {
 }
 
 resource "aws_lb" "main" {
-  name               = substr("${local.name}-alb", 0, 32)
-  internal           = false
-  load_balancer_type = "application"
-  security_groups    = [aws_security_group.alb.id]
-  subnets            = [for subnet in aws_subnet.public : subnet.id]
+  name                       = substr("${local.name}-alb", 0, 32)
+  internal                   = false
+  load_balancer_type         = "application"
+  security_groups            = [aws_security_group.alb.id]
+  subnets                    = [for subnet in aws_subnet.public : subnet.id]
   enable_deletion_protection = var.enable_deletion_protection
   drop_invalid_header_fields = true
   tags                       = local.common_tags
@@ -170,47 +170,13 @@ resource "aws_lb_listener" "http" {
   protocol          = "HTTP"
 
   default_action {
-    type = var.cloudfront_certificate_arn == null ? "forward" : "redirect"
-
-    dynamic "forward" {
-      for_each = var.cloudfront_certificate_arn == null ? [1] : []
-      content { target_group { arn = aws_lb_target_group.service["web"].arn } }
-    }
-
-    dynamic "redirect" {
-      for_each = var.cloudfront_certificate_arn == null ? [] : [1]
-      content {
-        port        = "443"
-        protocol    = "HTTPS"
-        status_code = "HTTP_301"
-      }
-    }
-  }
-}
-
-resource "aws_lb_listener" "https" {
-  count = var.cloudfront_certificate_arn == null ? 0 : 1
-
-  load_balancer_arn = aws_lb.main.arn
-  port              = 443
-  protocol          = "HTTPS"
-  ssl_policy        = "ELBSecurityPolicy-TLS13-1-2-2021-06"
-  certificate_arn   = var.cloudfront_certificate_arn
-
-  default_action {
     type             = "forward"
     target_group_arn = aws_lb_target_group.service["web"].arn
   }
 }
 
-locals {
-  application_listener_arn = var.cloudfront_certificate_arn == null
-    ? aws_lb_listener.http.arn
-    : aws_lb_listener.https[0].arn
-}
-
 resource "aws_lb_listener_rule" "api" {
-  listener_arn = local.application_listener_arn
+  listener_arn = aws_lb_listener.http.arn
   priority     = 10
 
   action {
@@ -218,11 +184,13 @@ resource "aws_lb_listener_rule" "api" {
     target_group_arn = aws_lb_target_group.service["api"].arn
   }
 
-  condition { path_pattern { values = ["/v1/*"] } }
+  condition {
+    path_pattern { values = ["/v1/*"] }
+  }
 }
 
 resource "aws_lb_listener_rule" "control_plane" {
-  listener_arn = local.application_listener_arn
+  listener_arn = aws_lb_listener.http.arn
   priority     = 20
 
   action {
@@ -245,6 +213,7 @@ resource "aws_ecs_task_definition" "service" {
   memory                   = tostring(var.task_memory[each.key])
   execution_role_arn       = aws_iam_role.ecs_execution.arn
   task_role_arn            = aws_iam_role.ecs_task.arn
+
   runtime_platform {
     operating_system_family = "LINUX"
     cpu_architecture        = "ARM64"
@@ -282,13 +251,6 @@ resource "aws_ecs_task_definition" "service" {
     linuxParameters = {
       initProcessEnabled = true
     }
-    healthCheck = each.value.port > 0 ? {
-      command     = ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:${each.value.port}${each.value.health_path} || exit 1"]
-      interval    = 30
-      timeout     = 5
-      retries     = 3
-      startPeriod = 30
-    } : null
   }])
 
   tags = local.common_tags
@@ -323,7 +285,9 @@ resource "aws_ecs_service" "service" {
     }
   }
 
-  lifecycle { ignore_changes = [desired_count] }
+  lifecycle {
+    ignore_changes = [desired_count]
+  }
 
   depends_on = [
     aws_lb_listener.http,
@@ -356,6 +320,7 @@ resource "aws_appautoscaling_policy" "cpu" {
     target_value       = 60
     scale_in_cooldown  = 120
     scale_out_cooldown = 60
+
     predefined_metric_specification {
       predefined_metric_type = "ECSServiceAverageCPUUtilization"
     }
