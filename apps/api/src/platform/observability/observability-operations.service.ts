@@ -1,5 +1,5 @@
 import { ConflictException, Injectable, NotFoundException } from "@nestjs/common";
-import type { QueryResultRow } from "pg";
+import type { PoolClient } from "pg";
 import { DatabaseService } from "../database/database.service.js";
 import type {
   CreateAlertRuleDto,
@@ -271,7 +271,7 @@ export class ObservabilityOperationsService {
   }
 
   private async audit(
-    client: { query: (text: string, values?: readonly unknown[]) => Promise<unknown> },
+    client: PoolClient,
     actor: ActorEvidence,
     eventType: string,
     resourceType: string,
