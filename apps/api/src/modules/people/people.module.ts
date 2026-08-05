@@ -6,6 +6,7 @@ import { PeopleInstitutionBoundaryService } from "./application/people-instituti
 import { PeopleIntegrityService } from "./application/people-integrity.service.js";
 import { PeopleOperationsService } from "./application/people-operations.service.js";
 import { PeopleQueryService } from "./application/people-query.service.js";
+import { PeopleReferenceService } from "./application/people-reference.service.js";
 import { PeopleService } from "./application/people.service.js";
 import { PeopleOperationsController } from "./http/people-operations.controller.js";
 import { PeopleController } from "./http/people.controller.js";
@@ -20,14 +21,13 @@ import { PeopleController } from "./http/people.controller.js";
     PeopleOperationsService,
     PeopleIdentityLinkService,
     PeopleInstitutionBoundaryService,
+    PeopleReferenceService,
     InstitutionRelationshipService,
   ],
   exports: [
     PeopleService,
     PeopleIntegrityService,
     PeopleQueryService,
-    PeopleOperationsService,
-    PeopleIdentityLinkService,
     InstitutionRelationshipService,
   ],
 })
