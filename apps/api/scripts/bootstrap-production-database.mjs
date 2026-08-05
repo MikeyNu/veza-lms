@@ -26,7 +26,6 @@ const client = new Client({
   connectionString: bootstrapUrl,
   statement_timeout: 30_000,
   application_name: "veza-production-role-bootstrap",
-  ssl: { rejectUnauthorized: true },
 });
 
 try {
@@ -92,18 +91,13 @@ try {
         'GRANT CONNECT ON DATABASE %I TO veza_migrator, veza_app, veza_control, veza_worker',
         current_database()
       );
+      EXECUTE format(
+        'GRANT CREATE ON DATABASE %I TO veza_migrator',
+        current_database()
+      );
     END
     $roles$;
   `);
-  await client.query("GRANT CREATE ON DATABASE CURRENT_DATABASE TO veza_migrator").catch(async () => {
-    await client.query(`
-      DO $grant$
-      BEGIN
-        EXECUTE format('GRANT CREATE ON DATABASE %I TO veza_migrator', current_database());
-      END
-      $grant$;
-    `);
-  });
   await client.query("GRANT USAGE, CREATE ON SCHEMA public TO veza_migrator");
   await client.query("REVOKE CREATE ON SCHEMA public FROM PUBLIC");
   await client.query("COMMIT");
