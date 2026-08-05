@@ -1,6 +1,7 @@
 import { Module } from "@nestjs/common";
 import { CommercialGovernanceService } from "./application/commercial-governance.service.js";
 import { ControlPlaneCompletionService } from "./application/control-plane-completion.service.js";
+import { ControlPlaneEvidenceService } from "./application/control-plane-evidence.service.js";
 import { CreateFeatureFlagService } from "./application/create-feature-flag.service.js";
 import { DeadLetterOperationsService } from "./application/dead-letter-operations.service.js";
 import { FeatureFlagLifecycleService } from "./application/feature-flag-lifecycle.service.js";
@@ -22,6 +23,7 @@ import {
 } from "./http/control-plane-commercial-release.controller.js";
 import { ControlPlaneCompletionController } from "./http/control-plane-completion.controller.js";
 import { ControlPlaneDeadLettersController } from "./http/control-plane-dead-letters.controller.js";
+import { ControlPlaneEvidenceController } from "./http/control-plane-evidence.controller.js";
 import { ControlPlanePlansController } from "./http/control-plane-plans.controller.js";
 import { ControlPlaneReleaseGovernanceController } from "./http/control-plane-release-governance.controller.js";
 import { PlatformAuditController } from "./http/platform-audit.controller.js";
@@ -33,6 +35,7 @@ import { PlatformAuditController } from "./http/platform-audit.controller.js";
     ControlPlaneDeadLettersController,
     ControlPlaneReleaseGovernanceController,
     ControlPlaneCompletionController,
+    ControlPlaneEvidenceController,
     ControlPlaneCommercialGovernanceController,
     ControlPlaneReleaseCompletionController,
   ],
@@ -52,6 +55,7 @@ import { PlatformAuditController } from "./http/platform-audit.controller.js";
     TenantReleaseMutationsService,
     ReleaseGovernanceMutationsService,
     ControlPlaneCompletionService,
+    ControlPlaneEvidenceService,
     CommercialGovernanceService,
     ReleaseCompletionService,
   ],
