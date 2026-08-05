@@ -39,6 +39,10 @@ function institutionPath(institutionId: string): string {
   return `/v1/institutions/${institutionId}/catalogue`;
 }
 
+function requireResourceId(resourceId: string): void {
+  if (!uuid.test(resourceId)) throw new Error("Academic resource identifier is invalid");
+}
+
 export function loadCatalogue(institutionId: string): Promise<CatalogueWorkspace> {
   return request<CatalogueWorkspace>(institutionPath(institutionId));
 }
@@ -48,15 +52,7 @@ export function loadCatalogueReferences(institutionId: string): Promise<Catalogu
 }
 
 export function mutateCatalogue(institutionId: string, operation: string, input: unknown): Promise<unknown> {
-  const allowlist = new Set([
-    "outcomes",
-    "programmes",
-    "blueprints",
-    "runs",
-    "cohorts",
-    "classes",
-    "enrolments",
-  ]);
+  const allowlist = new Set(["outcomes", "programmes", "blueprints", "runs", "cohorts", "classes", "enrolments"]);
   if (!allowlist.has(operation)) throw new Error("Catalogue operation is not allowed");
   return request(`${institutionPath(institutionId)}/${operation}`, {
     method: "POST",
@@ -70,7 +66,7 @@ export function approveCurriculum(
   versionId: string,
   input: unknown,
 ): Promise<unknown> {
-  if (!uuid.test(versionId)) throw new Error("Curriculum version identifier is invalid");
+  requireResourceId(versionId);
   return request(`${institutionPath(institutionId)}/${kind}/versions/${versionId}/approve`, {
     method: "POST",
     body: JSON.stringify(input),
@@ -82,8 +78,31 @@ export function transferEnrolment(
   enrolmentId: string,
   input: unknown,
 ): Promise<unknown> {
-  if (!uuid.test(enrolmentId)) throw new Error("Enrolment identifier is invalid");
+  requireResourceId(enrolmentId);
   return request(`${institutionPath(institutionId)}/enrolments/${enrolmentId}/transfer`, {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+export function governCatalogue(
+  institutionId: string,
+  resource: "programme-versions" | "blueprint-versions" | "runs" | "enrolments" | "classes",
+  resourceId: string,
+  action: "courses" | "requisites" | "lifecycle" | "status" | "staff",
+  input: unknown,
+): Promise<unknown> {
+  requireResourceId(resourceId);
+  const routes: Readonly<Record<string, string>> = {
+    "programme-versions:courses": `programmes/versions/${resourceId}/courses`,
+    "blueprint-versions:requisites": `blueprints/versions/${resourceId}/requisites`,
+    "runs:lifecycle": `runs/${resourceId}/lifecycle`,
+    "enrolments:status": `enrolments/${resourceId}/status`,
+    "classes:staff": `classes/${resourceId}/staff`,
+  };
+  const route = routes[`${resource}:${action}`];
+  if (!route) throw new Error("Catalogue governance operation is not allowed");
+  return request(`${institutionPath(institutionId)}/${route}`, {
     method: "POST",
     body: JSON.stringify(input),
   });
