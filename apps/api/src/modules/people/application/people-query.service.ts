@@ -36,13 +36,33 @@ export class PeopleQueryService {
       const person = result.rows[0];
       if (!person) throw new NotFoundException("Person was not found");
 
-      const [contacts, learner, staff, relationships, identifiers] = await Promise.all([
+      const [
+        contacts,
+        addresses,
+        learner,
+        staff,
+        engagements,
+        relationships,
+        identifiers,
+        assignments,
+        consents,
+        restrictions,
+        identityLinks,
+        dataSubjectRequests,
+      ] = await Promise.all([
         client.query(
-          `SELECT id, kind, value, label, is_primary, is_verified,
-                  verification_recorded_at
+          `SELECT id,version,kind,value,label,is_primary,is_verified,
+                  verification_recorded_at,valid_from,valid_until
            FROM person_contact_points
-           WHERE person_id = $1 AND valid_until IS NULL
-           ORDER BY is_primary DESC, kind`,
+           WHERE person_id = $1
+           ORDER BY valid_until NULLS FIRST,is_primary DESC,kind,created_at`,
+          [personId],
+        ),
+        client.query(
+          `SELECT id,version,address_type,address,is_primary,valid_from,valid_until
+           FROM person_addresses
+           WHERE person_id=$1
+           ORDER BY valid_until NULLS FIRST,is_primary DESC,address_type,created_at`,
           [personId],
         ),
         client.query(
@@ -59,6 +79,14 @@ export class PeopleQueryService {
           [personId],
         ),
         client.query(
+          `SELECT id,version,institution_id,organisational_unit_id,engagement_type,
+                  employee_number,title,status,started_on,ended_on
+           FROM staff_engagements
+           WHERE person_id=$1
+           ORDER BY started_on DESC,created_at DESC`,
+          [personId],
+        ),
+        client.query(
           `SELECT id, version, institution_id, related_person_id,
                   relationship_type, authority, valid_from, valid_until,
                   verified_at, revoked_at
@@ -68,10 +96,51 @@ export class PeopleQueryService {
           [personId],
         ),
         client.query(
-          `SELECT identifier_value
+          `SELECT id,version,institution_id,identifier_type,identifier_value,
+                  issuing_authority,valid_from,valid_until
            FROM person_identifiers
-           WHERE person_id = $1 AND valid_until IS NULL
-           ORDER BY identifier_type`,
+           WHERE person_id=$1
+           ORDER BY valid_until NULLS FIRST,identifier_type,created_at`,
+          [personId],
+        ),
+        client.query(
+          `SELECT id,version,institution_id,organisational_unit_id,assignment_type,
+                  title,is_primary,valid_from,valid_until
+           FROM person_organisational_assignments
+           WHERE person_id=$1
+           ORDER BY valid_until NULLS FIRST,is_primary DESC,valid_from DESC`,
+          [personId],
+        ),
+        client.query(
+          `SELECT id,version,relationship_id,purpose_code,status,evidence,
+                  granted_at,expires_at,withdrawn_at
+           FROM person_consents
+           WHERE person_id=$1
+           ORDER BY created_at DESC`,
+          [personId],
+        ),
+        client.query(
+          `SELECT id,version,restriction_code,reason,applies_to_relationship_types,
+                  effective_from,effective_until,lifted_at
+           FROM person_disclosure_restrictions
+           WHERE person_id=$1
+           ORDER BY effective_from DESC,created_at DESC`,
+          [personId],
+        ),
+        client.query(
+          `SELECT id,institution_id,membership_invitation_id,requested_email,
+                  requested_role_key,status,linked_user_id,expires_at,completed_at,version
+           FROM person_identity_link_requests
+           WHERE person_id=$1
+           ORDER BY created_at DESC`,
+          [personId],
+        ),
+        client.query(
+          `SELECT id,person_id,request_type,status,reason,export_format,export_checksum,
+                  requested_at,ready_at,delivered_at,version
+           FROM person_data_subject_requests
+           WHERE person_id=$1
+           ORDER BY requested_at DESC`,
           [personId],
         ),
       ]);
@@ -79,10 +148,17 @@ export class PeopleQueryService {
       return {
         ...person,
         contacts: contacts.rows,
+        addresses: addresses.rows,
         learner: learner.rows[0] ?? null,
         staff: staff.rows[0] ?? null,
+        staff_engagements: engagements.rows,
         relationships: relationships.rows,
-        identifiers: identifiers.rows.map((row) => row.identifier_value),
+        identifiers: identifiers.rows,
+        organisational_assignments: assignments.rows,
+        consents: consents.rows,
+        disclosure_restrictions: restrictions.rows,
+        identity_link_requests: identityLinks.rows,
+        data_subject_requests: dataSubjectRequests.rows,
       };
     });
   }
