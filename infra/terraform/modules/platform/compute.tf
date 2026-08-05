@@ -42,14 +42,24 @@ resource "aws_iam_role_policy" "ecs_execution_secrets" {
   role = aws_iam_role.ecs_execution.id
   policy = jsonencode({
     Version = "2012-10-17"
-    Statement = [{
-      Effect = "Allow"
-      Action = ["secretsmanager:GetSecretValue", "kms:Decrypt"]
-      Resource = [
-        aws_secretsmanager_secret.database.arn,
-        aws_kms_key.platform.arn
-      ]
-    }]
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "secretsmanager:GetSecretValue",
+          "ssm:GetParameters"
+        ]
+        Resource = concat(
+          [for secret in aws_secretsmanager_secret.database_url : secret.arn],
+          flatten([for service in values(var.service_secrets) : values(service)])
+        )
+      },
+      {
+        Effect   = "Allow"
+        Action   = ["kms:Decrypt"]
+        Resource = [aws_kms_key.platform.arn]
+      }
+    ]
   })
 }
 
@@ -101,11 +111,6 @@ resource "aws_iam_role_policy" "ecs_task" {
         Effect   = "Allow"
         Action   = ["events:PutEvents"]
         Resource = [aws_cloudwatch_event_bus.platform.arn]
-      },
-      {
-        Effect   = "Allow"
-        Action   = ["secretsmanager:GetSecretValue"]
-        Resource = [aws_secretsmanager_secret.database.arn]
       },
       {
         Effect   = "Allow"
@@ -228,17 +233,40 @@ resource "aws_ecs_task_definition" "service" {
       hostPort      = each.value.port
       protocol      = "tcp"
     }] : []
-    environment = [
-      { name = "NODE_ENV", value = "production" },
-      { name = "VEZA_ENVIRONMENT", value = var.environment },
-      { name = "AWS_REGION", value = var.aws_region },
-      { name = "DATABASE_SECRET_ARN", value = aws_secretsmanager_secret.database.arn },
-      { name = "REDIS_URL", value = "rediss://${aws_elasticache_replication_group.main.primary_endpoint_address}:6379" },
-      { name = "OBJECT_STORAGE_BUCKET", value = aws_s3_bucket.media.id },
-      { name = "OBJECT_STORAGE_REGION", value = var.aws_region },
-      { name = "EVENTBRIDGE_EVENT_BUS_NAME", value = aws_cloudwatch_event_bus.platform.name },
-      { name = "OPENSEARCH_ENDPOINT", value = "https://${aws_opensearch_domain.main.endpoint}" }
-    ]
+    environment = concat(
+      [
+        { name = "NODE_ENV", value = "production" },
+        { name = "VEZA_ENVIRONMENT", value = var.environment },
+        { name = "AWS_REGION", value = var.aws_region },
+        { name = "REDIS_URL", value = "rediss://${aws_elasticache_replication_group.main.primary_endpoint_address}:6379" },
+        { name = "OBJECT_STORAGE_ENDPOINT", value = "https://s3.${var.aws_region}.amazonaws.com" },
+        { name = "OBJECT_STORAGE_BUCKET", value = aws_s3_bucket.media.id },
+        { name = "OBJECT_STORAGE_REGION", value = var.aws_region },
+        { name = "EVENTBRIDGE_EVENT_BUS_NAME", value = aws_cloudwatch_event_bus.platform.name },
+        { name = "OPENSEARCH_ENDPOINT", value = "https://${aws_opensearch_domain.main.endpoint}" }
+      ],
+      contains(["web", "control-plane"], each.key) ? [{
+        name  = "VEZA_API_BASE_URL"
+        value = "http://api.${aws_service_discovery_private_dns_namespace.main.name}:${local.services.api.port}"
+      }] : [],
+      [for name, setting in lookup(var.service_environment, each.key, {}) : {
+        name  = name
+        value = setting
+      }]
+    )
+    secrets = concat(
+      each.key == "api" ? [
+        { name = "DATABASE_URL", valueFrom = aws_secretsmanager_secret.database_url["application"].arn },
+        { name = "CONTROL_PLANE_DATABASE_URL", valueFrom = aws_secretsmanager_secret.database_url["control"].arn }
+      ] : [],
+      each.key == "worker" ? [
+        { name = "WORKER_DATABASE_URL", valueFrom = aws_secretsmanager_secret.database_url["worker"].arn }
+      ] : [],
+      [for name, secret_arn in lookup(var.service_secrets, each.key, {}) : {
+        name      = name
+        valueFrom = secret_arn
+      }]
+    )
     logConfiguration = {
       logDriver = "awslogs"
       options = {
@@ -282,6 +310,14 @@ resource "aws_ecs_service" "service" {
       target_group_arn = aws_lb_target_group.service[each.key].arn
       container_name   = each.key
       container_port   = each.value.port
+    }
+  }
+
+  dynamic "service_registries" {
+    for_each = each.key == "api" ? [1] : []
+    content {
+      registry_arn = aws_service_discovery_service.api.arn
+      port         = local.services.api.port
     }
   }
 
