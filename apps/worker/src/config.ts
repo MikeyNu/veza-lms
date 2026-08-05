@@ -13,6 +13,9 @@ export interface WorkerConfig {
   readonly maximumAttempts: number;
   readonly retryBaseSeconds: number;
   readonly retryMaximumSeconds: number;
+  readonly consumerBatchSize: number;
+  readonly schedulerBatchSize: number;
+  readonly schedulerIntervalMs: number;
   readonly metricRefreshIntervalMs: number;
   readonly metricRefreshBatchSize: number;
   readonly workerId: string;
@@ -24,7 +27,12 @@ function required(name: string): string {
   return value;
 }
 
-function boundedInteger(name: string, fallback: number, minimum: number, maximum: number): number {
+function boundedInteger(
+  name: string,
+  fallback: number,
+  minimum: number,
+  maximum: number,
+): number {
   const raw = process.env[name];
   const value = raw === undefined ? fallback : Number(raw);
   if (!Number.isInteger(value) || value < minimum || value > maximum) {
@@ -55,8 +63,11 @@ export function loadWorkerConfig(): WorkerConfig {
   }
 
   const eventSource = process.env.EVENTBRIDGE_EVENT_SOURCE?.trim() || "veza.learning-cloud";
-  if (eventSource.length > 256) throw new Error("EVENTBRIDGE_EVENT_SOURCE must not exceed 256 characters");
-  const workerId = process.env.WORKER_INSTANCE_ID?.trim() || `${process.env.HOSTNAME ?? "local"}-${process.pid}`;
+  if (eventSource.length > 256) {
+    throw new Error("EVENTBRIDGE_EVENT_SOURCE must not exceed 256 characters");
+  }
+  const workerId =
+    process.env.WORKER_INSTANCE_ID?.trim() || `${process.env.HOSTNAME ?? "local"}-${process.pid}`;
   if (!/^[A-Za-z0-9._:-]{3,160}$/.test(workerId)) {
     throw new Error("WORKER_INSTANCE_ID contains unsupported characters");
   }
@@ -85,6 +96,9 @@ export function loadWorkerConfig(): WorkerConfig {
     maximumAttempts: boundedInteger("OUTBOX_MAXIMUM_ATTEMPTS", 12, 1, 100),
     retryBaseSeconds: boundedInteger("OUTBOX_RETRY_BASE_SECONDS", 5, 1, 3_600),
     retryMaximumSeconds: boundedInteger("OUTBOX_RETRY_MAXIMUM_SECONDS", 3_600, 1, 86_400),
+    consumerBatchSize: boundedInteger("EVENT_CONSUMER_BATCH_SIZE", 25, 1, 250),
+    schedulerBatchSize: boundedInteger("SCHEDULER_BATCH_SIZE", 10, 1, 100),
+    schedulerIntervalMs: boundedInteger("SCHEDULER_INTERVAL_MS", 10_000, 1_000, 300_000),
     metricRefreshIntervalMs: boundedInteger(
       "METRIC_REFRESH_INTERVAL_MS",
       300_000,

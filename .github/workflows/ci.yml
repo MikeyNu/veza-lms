@@ -73,3 +73,25 @@ jobs:
       - run: pnpm --filter @veza/api db:migrate
       - run: pnpm --filter @veza/worker test:integration
       - run: pnpm --filter @veza/api test:integration
+
+  terraform:
+    name: Terraform formatting and environment validation
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.10.5
+      - name: Check Terraform formatting
+        run: terraform fmt -check -recursive infra/terraform
+      - name: Validate state bootstrap
+        run: |
+          terraform -chdir=infra/terraform/bootstrap init -backend=false -input=false
+          terraform -chdir=infra/terraform/bootstrap validate -no-color
+      - name: Validate isolated environments
+        run: |
+          for environment in preview development staging production disaster-recovery; do
+            terraform -chdir="infra/terraform/environments/${environment}" init -backend=false -input=false
+            terraform -chdir="infra/terraform/environments/${environment}" validate -no-color
+          done
