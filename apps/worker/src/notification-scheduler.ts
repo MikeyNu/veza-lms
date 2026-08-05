@@ -18,3 +18,14 @@ export class NotificationDigestPreparationHandler implements ScheduledJobHandler
     return { prepared: Number(result.rows[0]?.prepared ?? 0), batchSize };
   }
 }
+
+export class NotificationDeliveryReconciliationHandler implements ScheduledJobHandler {
+  constructor(private readonly pool: Pool) {}
+
+  async execute(): Promise<Readonly<Record<string, unknown>>> {
+    const result = await this.pool.query<{ reconciled: number }>(
+      "SELECT app.reconcile_notification_delivery_state() reconciled",
+    );
+    return { reconciled: Number(result.rows[0]?.reconciled ?? 0) };
+  }
+}
