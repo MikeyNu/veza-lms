@@ -5,7 +5,7 @@ import type { AuthenticatedPrincipal } from "@veza/contracts";
 const navigation = [
   { label: "Tenants", href: "/tenants", number: "01", available: true },
   { label: "Provisioning", href: "/tenants/new", number: "02", available: true },
-  { label: "Plans", href: "/plans", number: "03", available: false },
+  { label: "Plans", href: "/plans", number: "03", available: true },
   { label: "Release rings", href: "/releases", number: "04", available: false },
   { label: "Service health", href: "/health", number: "05", available: true },
   { label: "Audit", href: "/audit", number: "06", available: true },
