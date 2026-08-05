@@ -11,6 +11,8 @@ const institutionRoles: readonly BaselineRoleKey[] = [
   "instructor",
   "assessor",
   "moderator",
+  "learner",
+  "guardian-sponsor",
   "auditor",
 ];
 const institutionAdministratorRoles: readonly BaselineRoleKey[] = [
@@ -20,8 +22,11 @@ const institutionAdministratorRoles: readonly BaselineRoleKey[] = [
   "instructor",
   "assessor",
   "moderator",
+  "learner",
+  "guardian-sponsor",
   "auditor",
 ];
+const registrarRoles: readonly BaselineRoleKey[] = ["learner", "guardian-sponsor"];
 
 export function canDelegateRole(
   actingRoles: readonly BaselineRoleKey[],
@@ -34,6 +39,9 @@ export function canDelegateRole(
   }
   if (acting.has("institution-admin") && scopeType === "institution") {
     return institutionAdministratorRoles.includes(targetRole);
+  }
+  if (acting.has("registrar") && scopeType === "institution") {
+    return registrarRoles.includes(targetRole);
   }
   return false;
 }
