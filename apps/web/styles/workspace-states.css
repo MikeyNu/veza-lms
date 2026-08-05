@@ -1,0 +1,216 @@
+.section-state {
+  display: grid;
+  min-height: calc(100vh - 4.5rem);
+  align-items: center;
+}
+
+.section-state-panel {
+  width: min(100%, 64rem);
+  padding: clamp(1.6rem, 4vw, 3.5rem);
+  border-top: 1px solid var(--line-strong);
+  border-bottom: 1px solid var(--line-strong);
+  background: transparent;
+}
+
+.section-state-panel h1,
+.form-workspace h1 {
+  max-width: 52rem;
+  margin: 0;
+  font-size: clamp(2rem, 5vw, 3.6rem);
+  line-height: 1.04;
+  letter-spacing: -0.05em;
+}
+
+.section-state-panel > p:not(.eyebrow),
+.form-workspace header > p:last-child {
+  max-width: 47rem;
+  margin: 1rem 0 0;
+  color: var(--muted);
+  line-height: 1.7;
+}
+
+.section-state-evidence {
+  display: grid;
+  grid-template-columns: 2.2rem minmax(0, 1fr);
+  align-items: start;
+  gap: 0.8rem;
+  max-width: 48rem;
+  margin-top: 1.8rem;
+  padding: 1rem;
+  border-left: 3px solid var(--success);
+  background: var(--veza-success-surface);
+  color: #264639;
+}
+
+.section-state-evidence > span {
+  display: grid;
+  width: 2rem;
+  height: 2rem;
+  place-items: center;
+  border-radius: 0.55rem;
+  background: var(--success);
+  color: white;
+  font-weight: 900;
+}
+
+.section-state-evidence strong,
+.section-state-evidence small {
+  display: block;
+}
+
+.section-state-evidence small {
+  margin-top: 0.35rem;
+  color: #5b766b;
+  line-height: 1.5;
+}
+
+.section-state-panel dl {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  max-width: 52rem;
+  margin: 1.75rem 0 0;
+  border-top: 1px solid var(--line);
+  border-left: 1px solid var(--line);
+}
+
+.section-state-panel dl > div {
+  padding: 0.95rem;
+  border-right: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  background: var(--surface);
+}
+
+.section-state-panel dt {
+  color: var(--muted);
+  font-size: 0.62rem;
+  font-weight: 750;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.section-state-panel dd {
+  margin: 0.4rem 0 0;
+  overflow-wrap: anywhere;
+  font-size: 0.72rem;
+  font-weight: 750;
+  text-transform: capitalize;
+}
+
+.form-workspace {
+  display: grid;
+  gap: 1.75rem;
+}
+
+.form-workspace > header {
+  padding-bottom: 1.4rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.form-card {
+  display: grid;
+  grid-template-columns: minmax(15rem, 0.65fr) minmax(0, 1.35fr);
+  gap: clamp(1.5rem, 4vw, 3rem);
+  padding: clamp(1.25rem, 3vw, 2rem) 0;
+  border-top: 1px solid var(--line-strong);
+  border-bottom: 1px solid var(--line-strong);
+}
+
+.form-card h2 {
+  margin: 0.55rem 0 0;
+  font-size: 1.45rem;
+  letter-spacing: -0.03em;
+}
+
+.form-card > div > p:last-child {
+  color: var(--muted);
+}
+
+.foundation-form {
+  display: grid;
+  gap: 1rem;
+}
+
+.foundation-form label {
+  display: grid;
+  gap: 0.45rem;
+  color: var(--ink-soft);
+  font-size: 0.7rem;
+  font-weight: 750;
+}
+
+.foundation-form input,
+.foundation-form select {
+  width: 100%;
+  min-height: 2.75rem;
+  padding: 0 0.75rem;
+  border: 1px solid var(--line-strong);
+  border-radius: 0.625rem;
+  background: var(--surface);
+  color: var(--ink);
+}
+
+.foundation-form input:focus,
+.foundation-form select:focus {
+  border-color: var(--brand);
+  box-shadow: var(--veza-focus);
+}
+
+.foundation-form > p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.68rem;
+  line-height: 1.6;
+}
+
+.foundation-form button {
+  min-height: 2.75rem;
+  border: 0;
+  border-radius: 0.625rem;
+  background: var(--brand-strong);
+  color: white;
+  cursor: pointer;
+  font-weight: 760;
+}
+
+.foundation-form button:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
+.form-status {
+  padding: 0.75rem 0.85rem;
+  border-radius: 0.625rem;
+  font-size: 0.68rem;
+  line-height: 1.5;
+}
+
+.form-status.success {
+  border: 1px solid color-mix(in srgb, var(--success) 28%, var(--line));
+  background: var(--veza-success-surface);
+  color: #17653f;
+}
+
+.form-status.error {
+  border: 1px solid color-mix(in srgb, var(--critical) 28%, var(--line));
+  background: var(--veza-critical-surface);
+  color: #8d2c35;
+}
+
+@media (max-width: 720px) {
+  .section-state {
+    min-height: auto;
+  }
+
+  .section-state-panel {
+    padding-inline: 0;
+  }
+
+  .section-state-panel dl,
+  .form-card {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .form-card {
+    gap: 1.35rem;
+  }
+}
