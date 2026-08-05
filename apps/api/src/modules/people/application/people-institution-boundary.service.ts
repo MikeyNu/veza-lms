@@ -48,6 +48,23 @@ export class PeopleInstitutionBoundaryService {
     });
   }
 
+  async assertStaffEngagementInInstitution(
+    engagementId: string,
+    institutionId: string,
+  ): Promise<void> {
+    const context = this.context.require();
+    await this.database.withTenantTransaction(context.tenantId, async (client) => {
+      await this.requireInstitution(client, institutionId);
+      const engagement = await client.query(
+        "SELECT id FROM staff_engagements WHERE id=$1 AND institution_id=$2",
+        [engagementId, institutionId],
+      );
+      if (!engagement.rowCount) {
+        throw new ForbiddenException("Staff engagement is not associated with the authorised institution");
+      }
+    });
+  }
+
   private async requireInstitution(client: PoolClient, institutionId: string): Promise<void> {
     const institution = await client.query(
       "SELECT id FROM institutions WHERE id=$1 AND status='active'",
