@@ -14,6 +14,7 @@ import { TenancyModule } from "./modules/tenancy/tenancy.module.js";
 import { TerminologyModule } from "./modules/terminology/terminology.module.js";
 import { AuthenticationModule } from "./platform/authentication/authentication.module.js";
 import { AuthorizationModule } from "./platform/authorization/authorization.module.js";
+import { CommunicationsModule } from "./platform/communications/communications.module.js";
 import { DatabaseModule } from "./platform/database/database.module.js";
 import { EventsModule } from "./platform/events/events.module.js";
 import { FeatureFlagsModule } from "./platform/feature-flags/feature-flags.module.js";
@@ -27,6 +28,7 @@ import { RequestContextModule } from "./platform/request-context/request-context
     RequestContextModule,
     AuditModule,
     EventsModule,
+    CommunicationsModule,
     FeatureFlagsModule,
     PlatformOperationsModule,
     IdentityAccessModule,
