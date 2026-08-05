@@ -8,10 +8,12 @@ export interface PersonContactPointRecord {
   readonly id: string;
   readonly version: number;
   readonly kind: ContactPointKind;
+  readonly type: "email" | "phone";
   readonly value: string;
   readonly label?: string;
   readonly isPrimary: boolean;
   readonly isVerified: boolean;
+  readonly verifiedAt?: string;
   readonly validFrom: string;
   readonly validUntil?: string;
 }
