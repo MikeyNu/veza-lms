@@ -79,7 +79,7 @@ export function mutateControlPlaneOperations(
   input: Readonly<Record<string, unknown>>,
   idempotencyKey: string,
 ): Promise<Readonly<Record<string, unknown>>> {
-  const tenant = operation.match(/^tenant:([0-9a-f-]{36}):(profile|lifecycle|export|hold|deletion|entitlement|threshold|billing)$/i);
+  const tenant = operation.match(/^tenant:([0-9a-f-]{36}):(profile|health|lifecycle|export|hold|deletion|entitlement|threshold|billing)$/i);
   const exportComplete = operation.match(/^export:([0-9a-f-]{36}):([0-9a-f-]{36}):complete$/i);
   const holdRelease = operation.match(/^hold:([0-9a-f-]{36}):([0-9a-f-]{36}):release$/i);
   const deletionCancel = operation.match(/^deletion:([0-9a-f-]{36}):([0-9a-f-]{36}):cancel$/i);
@@ -87,12 +87,14 @@ export function mutateControlPlaneOperations(
   const elevation = operation.match(/^support:([0-9a-f-]{36}):elevation$/i);
   const resolve = operation.match(/^support:([0-9a-f-]{36}):resolve$/i);
   const terminate = operation.match(/^session:([0-9a-f-]{36}):terminate$/i);
+  const incidentTransition = operation.match(/^incident:([0-9a-f-]{36}):transition$/i);
 
   let path: string | undefined;
   let method = "POST";
   if (tenant) {
     const [, tenantId, action] = tenant;
     const suffix = action === "profile" ? "profile"
+      : action === "health" ? "health"
       : action === "lifecycle" ? "lifecycle"
       : action === "export" ? "exports"
       : action === "hold" ? "retention-holds"
@@ -100,7 +102,7 @@ export function mutateControlPlaneOperations(
       : action === "entitlement" ? "entitlement-overrides"
       : action === "threshold" ? "usage-thresholds" : "billing-link";
     path = `/v1/control-plane/operations/tenants/${tenantId}/${suffix}`;
-    if (["profile", "entitlement", "threshold", "billing"].includes(action)) method = "PUT";
+    if (["profile", "health", "entitlement", "threshold", "billing"].includes(action)) method = "PUT";
   } else if (exportComplete) {
     path = `/v1/control-plane/operations/tenants/${exportComplete[1]}/exports/${exportComplete[2]}/complete`;
   } else if (holdRelease) {
@@ -119,6 +121,8 @@ export function mutateControlPlaneOperations(
     path = `/v1/control-plane/operations/support/sessions/${terminate[1]}/terminate`;
   } else if (operation === "incident:create") {
     path = "/v1/control-plane/operations/security-incidents";
+  } else if (incidentTransition) {
+    path = `/v1/control-plane/operations/security-incidents/${incidentTransition[1]}/transition`;
   }
   if (!path) throw new Error("Control-plane operation is invalid");
   return request(accessToken, path, {
