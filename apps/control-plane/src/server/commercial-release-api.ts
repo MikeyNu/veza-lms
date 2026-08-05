@@ -94,6 +94,10 @@ export function mutateReleaseCompletion(
 ): Promise<Readonly<Record<string, unknown>>> {
   const versionTransition = operation.match(/^version:([0-9]+\.[0-9]+\.[0-9]+(?:-[a-z0-9.-]+)?):transition$/);
   const targetTransition = operation.match(/^target:([0-9a-f-]{36}):transition$/i);
+  const flagLifecycle = operation.match(/^flag:([a-z0-9]+(?:[.-][a-z0-9]+)*):lifecycle$/);
+  const ringFlag = operation.match(/^ring:([a-z0-9]+(?:-[a-z0-9]+)*):flag:([a-z0-9]+(?:[.-][a-z0-9]+)*)$/);
+  const tenantRing = operation.match(/^tenant:([0-9a-f-]{36}):ring$/i);
+  const tenantFlag = operation.match(/^tenant:([0-9a-f-]{36}):flag:([a-z0-9]+(?:[.-][a-z0-9]+)*)$/i);
   let path: string | undefined;
   let method = "POST";
   if (operation === "version:create") path = "/v1/control-plane/release-completion/versions";
@@ -108,6 +112,18 @@ export function mutateReleaseCompletion(
     path = "/v1/control-plane/release-completion/migration";
     method = "PUT";
   } else if (operation === "rollback:create") path = "/v1/control-plane/release-completion/rollbacks";
+  else if (operation === "flag:create") path = "/v1/control-plane/release-governance/feature-flags";
+  else if (flagLifecycle) path = `/v1/control-plane/release-governance/feature-flags/${flagLifecycle[1]}/lifecycle`;
+  else if (ringFlag) {
+    path = `/v1/control-plane/release-governance/release-rings/${ringFlag[1]}/feature-flags/${ringFlag[2]}`;
+    method = "PUT";
+  } else if (tenantRing) {
+    path = `/v1/control-plane/release-governance/tenants/${tenantRing[1]}/release-ring`;
+    method = "PUT";
+  } else if (tenantFlag) {
+    path = `/v1/control-plane/release-governance/tenants/${tenantFlag[1]}/feature-flags/${tenantFlag[2]}`;
+    method = "PUT";
+  }
   if (!path) throw new Error("Release governance operation is invalid");
   return request(accessToken, path, {
     method,
