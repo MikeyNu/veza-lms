@@ -75,6 +75,39 @@ export interface StudioRevisionRecord {
   readonly createdAt: string;
 }
 
+export interface StudioCommentRecord {
+  readonly id: string;
+  readonly revisionId: string;
+  readonly blockId?: string;
+  readonly parentCommentId?: string;
+  readonly body: string;
+  readonly status: "open" | "resolved" | "deleted";
+  readonly version: number;
+  readonly createdBy: string;
+  readonly resolvedBy?: string;
+  readonly resolvedAt?: string;
+  readonly createdAt: string;
+  readonly updatedAt: string;
+}
+
+export interface StudioReviewRecord {
+  readonly id: string;
+  readonly revisionId: string;
+  readonly status: "requested" | "approved" | "changes_requested" | "cancelled";
+  readonly requestedBy: string;
+  readonly requestedAt: string;
+  readonly reviewedBy?: string;
+  readonly reviewedAt?: string;
+  readonly decisionNotes?: string;
+  readonly version: number;
+}
+
+export interface StudioLessonDetail extends StudioLessonRecord {
+  readonly revisions: readonly StudioRevisionRecord[];
+  readonly comments: readonly StudioCommentRecord[];
+  readonly reviews: readonly StudioReviewRecord[];
+}
+
 export interface StudioWorkspace {
   readonly institutionId: string;
   readonly spaces: readonly StudioCourseSpaceSummary[];
