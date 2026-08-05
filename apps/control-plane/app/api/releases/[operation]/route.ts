@@ -14,6 +14,11 @@ const allowed = [
   /^compatibility:record$/,
   /^migration:update$/,
   /^rollback:create$/,
+  /^flag:create$/,
+  /^flag:[a-z0-9]+(?:[.-][a-z0-9]+)*:lifecycle$/,
+  /^ring:[a-z0-9]+(?:-[a-z0-9]+)*:flag:[a-z0-9]+(?:[.-][a-z0-9]+)*$/,
+  /^tenant:[0-9a-f-]{36}:ring$/i,
+  /^tenant:[0-9a-f-]{36}:flag:[a-z0-9]+(?:[.-][a-z0-9]+)*$/i,
 ];
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ operation: string }> }) {
