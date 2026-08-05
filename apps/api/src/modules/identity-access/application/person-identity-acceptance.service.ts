@@ -57,6 +57,7 @@ export class PersonIdentityAcceptanceService {
       throw new ConflictException("Invited person record is linked to another identity");
     }
 
+    await client.query("SELECT set_config('app.allow_person_identity_link','true',true)");
     const updated = await client.query<{ version: number } & QueryResultRow>(
       `UPDATE people
        SET linked_user_id=$3,updated_by=$3,updated_at=now(),version=version+1
