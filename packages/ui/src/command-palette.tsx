@@ -130,6 +130,9 @@ export function CommandPalette({
               } else if (event.key === "Enter") {
                 event.preventDefault();
                 run(filtered[activeIndex]);
+              } else if (event.key === "Escape") {
+                event.preventDefault();
+                setOpen(false);
               }
             }}
           />
