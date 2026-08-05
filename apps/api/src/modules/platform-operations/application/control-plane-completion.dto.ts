@@ -5,7 +5,7 @@ import {
   IsArray,
   IsBoolean,
   IsEmail,
-  IsEnum,
+  IsIn,
   IsInt,
   IsISO8601,
   IsNumber,
@@ -40,25 +40,34 @@ export class SupportContactDto {
 
 export class UpdateTenantOperationsDto {
   @IsInt() @Min(1) expectedVersion!: number;
-  @IsOptional() @IsEnum(deploymentTiers) deploymentTier?: typeof deploymentTiers[number];
+  @IsOptional() @IsIn(deploymentTiers) deploymentTier?: typeof deploymentTiers[number];
   @IsOptional() @IsString() @Matches(/^[a-z]{2}(?:-[a-z]+)?-[0-9]$/) residencyRegion?: string;
   @IsOptional() @IsString() @Matches(/^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,}$/) customDomain?: string;
-  @IsOptional() @IsEnum(brandingStatuses) brandingStatus?: typeof brandingStatuses[number];
-  @IsOptional() @IsEnum(identityStatuses) identityProviderStatus?: typeof identityStatuses[number];
+  @IsOptional() @IsIn(brandingStatuses) brandingStatus?: typeof brandingStatuses[number];
+  @IsOptional() @IsIn(identityStatuses) identityProviderStatus?: typeof identityStatuses[number];
   @IsOptional() @IsObject() quotaPolicy?: Record<string, unknown>;
   @IsOptional() @IsArray() @ValidateNested({ each: true }) @Type(() => SupportContactDto)
   @ArrayMaxSize(20) supportContacts?: SupportContactDto[];
   @IsString() @MinLength(10) @MaxLength(2000) reason!: string;
 }
 
+export class UpdateTenantHealthDto {
+  @IsIn(["unknown", "healthy", "degraded", "critical", "maintenance"] as const)
+  healthStatus!: "unknown" | "healthy" | "degraded" | "critical" | "maintenance";
+  @IsOptional() @IsString() @MaxLength(1000) healthSummary?: string;
+  @IsOptional() @IsObject() usageSummary?: Record<string, unknown>;
+  @IsInt() @Min(1) expectedProfileVersion!: number;
+  @IsString() @MinLength(10) @MaxLength(2000) reason!: string;
+}
+
 export class ChangeTenantLifecycleDto {
-  @IsEnum(lifecycleActions) action!: typeof lifecycleActions[number];
+  @IsIn(lifecycleActions) action!: typeof lifecycleActions[number];
   @IsInt() @Min(1) expectedVersion!: number;
   @IsString() @MinLength(10) @MaxLength(2000) reason!: string;
 }
 
 export class RequestTenantExportDto {
-  @IsEnum(["full-tenant", "audit", "identity", "learning-records", "media-manifest"] as const)
+  @IsIn(["full-tenant", "audit", "identity", "learning-records", "media-manifest"] as const)
   exportType!: "full-tenant" | "audit" | "identity" | "learning-records" | "media-manifest";
   @IsOptional() @IsISO8601() expiresAt?: string;
   @IsString() @MinLength(10) @MaxLength(1000) reason!: string;
@@ -71,7 +80,7 @@ export class CompleteTenantExportDto {
 }
 
 export class CreateRetentionHoldDto {
-  @IsEnum(["legal", "security", "customer-request", "regulatory", "billing-dispute"] as const)
+  @IsIn(["legal", "security", "customer-request", "regulatory", "billing-dispute"] as const)
   holdType!: "legal" | "security" | "customer-request" | "regulatory" | "billing-dispute";
   @IsString() @MinLength(10) @MaxLength(2000) reason!: string;
   @IsOptional() @IsString() @MaxLength(300) reference?: string;
@@ -94,7 +103,7 @@ export class CancelTenantDeletionDto {
 
 export class SetEntitlementOverrideDto {
   @IsString() @Matches(/^[a-z][a-z0-9-]{2,79}$/) moduleKey!: string;
-  @IsEnum(entitlementStates) state!: typeof entitlementStates[number];
+  @IsIn(entitlementStates) state!: typeof entitlementStates[number];
   @IsOptional() @IsObject() limits?: Record<string, unknown>;
   @IsISO8601() effectiveFrom!: string;
   @IsOptional() @IsISO8601() effectiveUntil?: string;
@@ -106,7 +115,7 @@ export class SetUsageThresholdDto {
   @IsString() @Matches(/^[a-z][a-z0-9.-]{2,119}$/) metricKey!: string;
   @IsNumber() @Min(0) warningValue!: number;
   @IsNumber() @Min(0) criticalValue!: number;
-  @IsEnum(enforcementModes) enforcement!: typeof enforcementModes[number];
+  @IsIn(enforcementModes) enforcement!: typeof enforcementModes[number];
   @IsISO8601() effectiveFrom!: string;
   @IsOptional() @IsISO8601() effectiveUntil?: string;
   @IsString() @MinLength(10) @MaxLength(1000) reason!: string;
@@ -116,7 +125,7 @@ export class SetBillingLinkDto {
   @IsString() @Matches(/^[a-z][a-z0-9.-]{2,79}$/) providerKey!: string;
   @IsString() @MinLength(2) @MaxLength(300) externalCustomerReference!: string;
   @IsOptional() @IsString() @MaxLength(300) externalSubscriptionReference?: string;
-  @IsEnum(["linked", "trial", "past-due", "suspended", "cancelled"] as const)
+  @IsIn(["linked", "trial", "past-due", "suspended", "cancelled"] as const)
   billingState!: "linked" | "trial" | "past-due" | "suspended" | "cancelled";
   @IsISO8601() effectiveFrom!: string;
   @IsOptional() @IsISO8601() effectiveUntil?: string;
@@ -129,12 +138,12 @@ export class CreateSupportCaseDto {
   @IsString() @MinLength(5) @MaxLength(200) title!: string;
   @IsString() @MinLength(10) @MaxLength(2000) purpose!: string;
   @IsArray() @ArrayMinSize(1) @ArrayMaxSize(30) @IsString({ each: true }) requestedScope!: string[];
-  @IsEnum(supportSeverities) severity!: typeof supportSeverities[number];
+  @IsIn(supportSeverities) severity!: typeof supportSeverities[number];
   @IsObject() customerContact!: Record<string, unknown>;
 }
 
 export class RecordCustomerApprovalDto {
-  @IsEnum(["approved", "rejected", "revoked"] as const) decision!: "approved" | "rejected" | "revoked";
+  @IsIn(["approved", "rejected", "revoked"] as const) decision!: "approved" | "rejected" | "revoked";
   @IsString() @MinLength(2) @MaxLength(160) customerApproverName!: string;
   @IsEmail() customerApproverEmail!: string;
   @IsString() @MinLength(3) @MaxLength(300) approvalReference!: string;
@@ -161,8 +170,16 @@ export class ResolveSupportCaseDto {
 export class RecordSecurityIncidentDto {
   @IsOptional() @IsUUID() tenantId?: string;
   @IsOptional() @IsUUID() supportCaseId?: string;
-  @IsEnum(incidentSeverities) severity!: typeof incidentSeverities[number];
+  @IsIn(incidentSeverities) severity!: typeof incidentSeverities[number];
   @IsString() @MinLength(3) @MaxLength(120) category!: string;
   @IsString() @MinLength(10) @MaxLength(2000) summary!: string;
+  @IsOptional() @IsObject() evidence?: Record<string, unknown>;
+}
+
+export class TransitionSecurityIncidentDto {
+  @IsIn(["contained", "resolved", "closed"] as const)
+  state!: "contained" | "resolved" | "closed";
+  @IsString() @MinLength(10) @MaxLength(2000) reason!: string;
+  @IsOptional() @IsUUID() assignedTo?: string;
   @IsOptional() @IsObject() evidence?: Record<string, unknown>;
 }
