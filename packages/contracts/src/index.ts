@@ -4,6 +4,10 @@ export type TenantId = Brand<string, "TenantId">;
 export type UserId = Brand<string, "UserId">;
 export type MembershipId = Brand<string, "MembershipId">;
 export type InstitutionId = Brand<string, "InstitutionId">;
+export type CampusId = Brand<string, "CampusId">;
+export type OrganisationalUnitId = Brand<string, "OrganisationalUnitId">;
+export type AcademicPeriodId = Brand<string, "AcademicPeriodId">;
+export type InstitutionalPolicyId = Brand<string, "InstitutionalPolicyId">;
 export type RoleAssignmentId = Brand<string, "RoleAssignmentId">;
 
 export type DeploymentTier = "shared" | "protected" | "sovereign";
@@ -111,4 +115,31 @@ export interface DomainEvent<TPayload extends Record<string, unknown> = Record<s
   readonly actorId: UserId;
   readonly correlationId: string;
   readonly payload: Readonly<TPayload>;
+}
+
+export type InstitutionType = "school" | "college" | "university" | "training-provider" | "corporate-academy" | "other";
+export type InstitutionStatus = "draft" | "active" | "archived";
+export type CampusDeliveryMode = "physical" | "virtual" | "hybrid";
+export type CampusStatus = "draft" | "active" | "archived";
+export type OrganisationalUnitType = "faculty" | "school" | "department" | "division" | "centre" | "programme-office" | "other";
+export type AcademicPeriodType = "academic-year" | "semester" | "trimester" | "term" | "quarter" | "block" | "custom";
+export type AcademicPeriodStatus = "draft" | "published" | "closed" | "archived";
+export type InstitutionalPolicyKey = "privacy" | "data-retention" | "acceptable-use" | "academic-integrity" | "assessment" | "attendance" | "safeguarding" | "support-escalation" | "communications";
+export type InstitutionalPolicyStatus = "draft" | "approved" | "retired";
+
+export interface ActivationCheck {
+  readonly key: string;
+  readonly label: string;
+  readonly passed: boolean;
+  readonly blocking: boolean;
+  readonly detail: string;
+  readonly institutionId?: InstitutionId;
+}
+
+export interface TenantActivationReadiness {
+  readonly tenantId: TenantId;
+  readonly tenantStatus: TenantStatus;
+  readonly ready: boolean;
+  readonly checks: readonly ActivationCheck[];
+  readonly evaluatedAt: string;
 }

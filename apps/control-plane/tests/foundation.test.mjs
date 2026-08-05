@@ -61,3 +61,24 @@ test("operator entry requires MFA assurance and avoids a redundant sign-in loop"
   assert.match(signIn, /getOperatorSession/);
   assert.match(signIn, /redirect\("\/tenants\/new"\)/);
 });
+
+test("control-plane provisioning has an explicit responsive decision hierarchy", async () => {
+  const [shellCss, provisioningCss, responsiveCss] = await Promise.all([
+    readFile(new URL("../styles/shell.css", import.meta.url), "utf8"),
+    readFile(new URL("../styles/provisioning.css", import.meta.url), "utf8"),
+    readFile(new URL("../styles/responsive.css", import.meta.url), "utf8"),
+  ]);
+  assert.match(shellCss, /grid-template-columns: 238px minmax\(0, 1fr\)/);
+  assert.match(shellCss, /cp-nav-item\.disabled/);
+  assert.match(provisioningCss, /grid-template-columns: minmax\(230px,.72fr\) minmax\(520px,1.55fr\) minmax\(250px,.75fr\)/);
+  assert.match(provisioningCss, /module-option:has\(input:focus-visible\)/);
+  assert.match(responsiveCss, /@media \(max-width: 620px\)/);
+  assert.match(responsiveCss, /prefers-reduced-motion/);
+});
+
+test("operator session cookies use strict same-site policy", async () => {
+  const callback = await readFile(new URL("../app/api/auth/callback/route.ts", import.meta.url), "utf8");
+  assert.match(callback, /sameSite: "strict"/);
+  assert.match(callback, /httpOnly: true/);
+  assert.match(callback, /secure: secureCookie\(\)/);
+});

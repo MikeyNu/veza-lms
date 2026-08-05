@@ -23,11 +23,12 @@ a { color: inherit; text-decoration: none; }
 .cp-boundary { margin: 18px 2px; padding: 13px; background: #161f2f; border: 1px solid #273248; border-radius: 13px; }
 .cp-boundary strong { color: #f5f7fb; font-size: 11px; }
 .cp-boundary p { margin: 7px 0 0; color: #7f8ba0; font-size: 9px; line-height: 1.55; }
-.cp-user { display: grid; grid-template-columns: 34px 1fr; align-items: center; gap: 10px; padding: 14px 7px 2px; border-top: 1px solid #273248; }
+.cp-user { display: grid; grid-template-columns: 34px 1fr auto; align-items: center; gap: 10px; padding: 14px 7px 2px; border-top: 1px solid #273248; }
 .cp-user > span { display: grid; place-items: center; width: 34px; height: 34px; color: #614833; background: #d9ccbc; border-radius: 50%; font-size: 10px; font-weight: 800; }
 .cp-user strong,.cp-user small { display: block; }
 .cp-user strong { color: white; font-size: 11px; }
 .cp-user small { margin-top: 3px; color: #7f8ba0; font-size: 9px; }
+.cp-user form button { color: #7f8ba0; background: transparent; border: 0; cursor: pointer; }
 .cp-main { min-width: 0; }
 .cp-topbar { position: sticky; top: 0; z-index: 20; display: flex; align-items: center; gap: 18px; height: 70px; padding: 0 30px; background: rgba(255,255,255,.95); border-bottom: 1px solid var(--veza-line); backdrop-filter: blur(16px); }
 .cp-topbar > div small,.cp-topbar > div strong { display: block; }
@@ -44,4 +45,6 @@ a { color: inherit; text-decoration: none; }
 .cp-nav-item.disabled em { padding: 3px 5px; color: #8b95a6; background: #1b2638; border-radius: 999px; font-size: 7px; font-style: normal; font-weight: 800; letter-spacing: .35px; text-transform: uppercase; }
 .cp-trust-state { display: grid; grid-template-columns: 30px 1fr; align-items: center; gap: 10px; margin-left: auto; padding: 7px 11px; color: #264639; background: #f1faf5; border: 1px solid #cdebd9; border-radius: 11px; }
 .cp-trust-state > span { display: grid; place-items: center; width: 27px; height: 27px; color: white; background: var(--veza-success); border-radius: 8px; font-size: 10px; font-weight: 900; }
-.cp-trust-state strong,.cp-trust-state small { display: block; }.cp-trust-state strong { font-size: 10px; }.cp-trust-state small { margin-top: 3px; color: #5b766b; font-size: 8px; }
+.cp-trust-state strong,.cp-trust-state small { display: block; }
+.cp-trust-state strong { font-size: 10px; }
+.cp-trust-state small { margin-top: 3px; color: #5b766b; font-size: 8px; }
