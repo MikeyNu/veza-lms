@@ -45,7 +45,7 @@ export class AcademicEvidenceQueryController {
   ) {
     this.authorization.assertPermission(
       request,
-      permissions.gradebookRead,
+      permissions.learnerProgressRead,
       this.authorization.buildTenantResource(),
     );
     return this.query.learnerGradebook(courseRunId);
