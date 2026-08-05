@@ -5,6 +5,7 @@ import {
   Param,
   ParseUUIDPipe,
   Post,
+  Put,
   Query,
   Req,
   UseGuards,
@@ -16,6 +17,7 @@ import { MfaGuard } from "../authentication/mfa.guard.js";
 import { TenantAuthorizationService } from "../authorization/tenant-authorization.service.js";
 import { TenantPermissionGuard } from "../authorization/tenant-permission.guard.js";
 import { TenantMembershipGuard } from "../../modules/tenancy/tenant-membership.guard.js";
+import { StorageAdministrationService } from "./storage-administration.service.js";
 import {
   ApproveMediaDeletionDto,
   CompleteMediaUploadDto,
@@ -25,6 +27,7 @@ import {
   CreateStoragePolicyDto,
   RecordMediaAccessibilityDto,
   RequestMediaDeletionDto,
+  UpdateStorageQuotaDto,
   WithdrawRecordingConsentDto,
 } from "./storage.dto.js";
 import { StorageService } from "./storage.service.js";
@@ -34,6 +37,7 @@ import { StorageService } from "./storage.service.js";
 export class StorageController {
   constructor(
     private readonly storage: StorageService,
+    private readonly administration: StorageAdministrationService,
     private readonly authorization: TenantAuthorizationService,
   ) {}
 
@@ -41,6 +45,21 @@ export class StorageController {
   workspace(@Req() request: AuthenticatedRequest) {
     this.read(request);
     return this.storage.workspace();
+  }
+
+  @Get("deletion-requests")
+  deletionRequests(@Req() request: AuthenticatedRequest) {
+    this.read(request);
+    return this.administration.deletionRequests();
+  }
+
+  @Put("quota")
+  updateQuota(
+    @Req() request: AuthenticatedRequest,
+    @Body() input: UpdateStorageQuotaDto,
+  ) {
+    this.manage(request);
+    return this.administration.updateQuota(input);
   }
 
   @Post("namespaces")
