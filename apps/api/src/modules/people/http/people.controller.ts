@@ -90,7 +90,6 @@ export class PeopleController {
   }
 
   @Put(":personId/institutions/:institutionId/learner-profile")
-  @RequiresTenantPermission(permissions.learnerManage)
   learner(
     @Req() request: AuthenticatedRequest,
     @Param("personId", new ParseUUIDPipe()) personId: string,
@@ -102,7 +101,6 @@ export class PeopleController {
   }
 
   @Put(":personId/institutions/:institutionId/staff-profile")
-  @RequiresTenantPermission(permissions.staffManage)
   staff(
     @Req() request: AuthenticatedRequest,
     @Param("personId", new ParseUUIDPipe()) personId: string,
@@ -114,7 +112,6 @@ export class PeopleController {
   }
 
   @Post(":personId/institutions/:institutionId/relationships")
-  @RequiresTenantPermission(permissions.relationshipManage)
   relationship(
     @Req() request: AuthenticatedRequest,
     @Param("personId", new ParseUUIDPipe()) personId: string,
@@ -126,7 +123,6 @@ export class PeopleController {
   }
 
   @Post("institutions/:institutionId/relationships/:relationshipId/verify")
-  @RequiresTenantPermission(permissions.relationshipManage)
   verify(
     @Req() request: AuthenticatedRequest,
     @Param("institutionId", new ParseUUIDPipe()) institutionId: string,
@@ -138,7 +134,6 @@ export class PeopleController {
   }
 
   @Post("institutions/:institutionId/relationships/:relationshipId/revoke")
-  @RequiresTenantPermission(permissions.relationshipManage)
   revoke(
     @Req() request: AuthenticatedRequest,
     @Param("institutionId", new ParseUUIDPipe()) institutionId: string,
