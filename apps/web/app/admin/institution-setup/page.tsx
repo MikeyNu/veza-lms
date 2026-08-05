@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import type { InstitutionId } from "@veza/contracts";
 import { AppShell } from "../../../src/components/app-shell";
+import { AdminSectionNavigation } from "../../../src/features/admin/admin-section-navigation";
 import { InstitutionSetupCentre } from "../../../src/features/institution-setup/institution-setup-centre";
 import { loadScopedInstitution, loadTenantSetupBundle } from "../../../src/server/institution-setup-api";
 import { requireWorkspaceSession } from "../../../src/server/require-workspace-session";
@@ -28,5 +29,10 @@ export default async function InstitutionSetupPage({ searchParams }: { searchPar
     bundle = await loadScopedInstitution(selected);
   }
 
-  return <AppShell session={resolution.session} active="admin"><InstitutionSetupCentre bundle={bundle} session={resolution.session} tenantOwner={tenantOwner}/></AppShell>;
+  return (
+    <AppShell session={resolution.session} active="admin">
+      <AdminSectionNavigation active="institution"/>
+      <InstitutionSetupCentre bundle={bundle} session={resolution.session} tenantOwner={tenantOwner}/>
+    </AppShell>
+  );
 }
