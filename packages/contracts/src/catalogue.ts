@@ -94,6 +94,7 @@ export interface CatalogueWorkspace {
 export interface CatalogueReferences {
   readonly academicPeriods: readonly { readonly id: string; readonly code: string; readonly title: string; readonly startsOn: string; readonly endsOn: string }[];
   readonly eligibleLearners: readonly { readonly id: string; readonly displayName: string; readonly learnerStatus: string }[];
+  readonly eligibleStaff: readonly { readonly id: string; readonly displayName: string; readonly staffStatus: string; readonly employeeNumber?: string }[];
   readonly cohorts: readonly { readonly id: string; readonly code: string; readonly title: string; readonly status: string }[];
   readonly classes: readonly { readonly id: string; readonly courseRunId: string; readonly cohortId?: string; readonly code: string; readonly title: string; readonly status: string; readonly version: number }[];
 }
