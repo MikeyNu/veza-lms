@@ -12,7 +12,7 @@ import { NotificationDigestPreparationHandler } from "./notification-scheduler.j
 import { OutboxRepository } from "./outbox-repository.js";
 import type { ClaimedOutboxEvent, EventPublisher, PublishResult } from "./outbox.types.js";
 import { nextAttemptAt, retryDelaySeconds } from "./retry.js";
-import { WorkerScheduler } from "./scheduler.js";
+import { PlatformGovernanceSweepHandler, WorkerScheduler } from "./scheduler.js";
 
 function log(
   level: "info" | "warn" | "error",
@@ -185,6 +185,14 @@ async function main(): Promise<void> {
   scheduler.register(
     "communications.digest-preparation",
     new NotificationDigestPreparationHandler(pool),
+  );
+  scheduler.register(
+    "support.session-expiry",
+    new PlatformGovernanceSweepHandler(pool, "expire_support_sessions"),
+  );
+  scheduler.register(
+    "commercial.effective-date-sweep",
+    new PlatformGovernanceSweepHandler(pool, "apply_due_commercial_policy"),
   );
   const notificationDispatcher = new NotificationDispatcher(
     pool,

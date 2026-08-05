@@ -12,6 +12,7 @@ import {
 } from "@nestjs/common";
 import type { AuthenticatedRequest } from "../../../platform/authentication/authenticated-request.js";
 import { AuthenticationGuard } from "../../../platform/authentication/authentication.guard.js";
+import { MfaGuard } from "../../../platform/authentication/mfa.guard.js";
 import { PlatformOperatorGuard } from "../../../platform/authentication/platform-operator.guard.js";
 import {
   AssignTenantReleaseRingDto,
@@ -42,6 +43,7 @@ export class ControlPlaneReleaseGovernanceController {
   }
 
   @Post("feature-flags")
+  @UseGuards(MfaGuard)
   createFeatureFlag(
     @Req() request: AuthenticatedRequest,
     @Headers("idempotency-key") idempotencyKey: string | undefined,
@@ -54,6 +56,7 @@ export class ControlPlaneReleaseGovernanceController {
   }
 
   @Post("feature-flags/:flagKey/lifecycle")
+  @UseGuards(MfaGuard)
   changeFeatureFlagLifecycle(
     @Req() request: AuthenticatedRequest,
     @Param("flagKey") flagKey: string,
@@ -67,6 +70,7 @@ export class ControlPlaneReleaseGovernanceController {
   }
 
   @Put("release-rings/:ringKey/feature-flags/:flagKey")
+  @UseGuards(MfaGuard)
   configureRingFlag(
     @Req() request: AuthenticatedRequest,
     @Param("ringKey") ringKey: string,
@@ -81,6 +85,7 @@ export class ControlPlaneReleaseGovernanceController {
   }
 
   @Put("tenants/:tenantId/release-ring")
+  @UseGuards(MfaGuard)
   assignTenantRing(
     @Req() request: AuthenticatedRequest,
     @Param("tenantId", new ParseUUIDPipe()) tenantId: string,
@@ -94,6 +99,7 @@ export class ControlPlaneReleaseGovernanceController {
   }
 
   @Put("tenants/:tenantId/feature-flags/:flagKey")
+  @UseGuards(MfaGuard)
   configureTenantFlag(
     @Req() request: AuthenticatedRequest,
     @Param("tenantId", new ParseUUIDPipe()) tenantId: string,

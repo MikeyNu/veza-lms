@@ -1,4 +1,7 @@
 import { Module } from "@nestjs/common";
+import { CommercialGovernanceService } from "./application/commercial-governance.service.js";
+import { ControlPlaneCompletionService } from "./application/control-plane-completion.service.js";
+import { ControlPlaneEvidenceService } from "./application/control-plane-evidence.service.js";
 import { CreateFeatureFlagService } from "./application/create-feature-flag.service.js";
 import { DeadLetterOperationsService } from "./application/dead-letter-operations.service.js";
 import { FeatureFlagLifecycleService } from "./application/feature-flag-lifecycle.service.js";
@@ -6,6 +9,7 @@ import { FeatureFlagMutationsService } from "./application/feature-flag-mutation
 import { PlanOperationsService } from "./application/plan-operations.service.js";
 import { PlatformAuditQueryService } from "./application/platform-audit-query.service.js";
 import { PlatformAuditWriter } from "./application/platform-audit-writer.service.js";
+import { ReleaseCompletionService } from "./application/release-completion.service.js";
 import { PlatformOperationExecutor } from "./application/release-governance-mutation-support.js";
 import { ReleaseGovernanceMutationsService } from "./application/release-governance-mutations.service.js";
 import { ReleaseGovernanceService } from "./application/release-governance.service.js";
@@ -13,7 +17,13 @@ import { RingFeatureConfigurationService } from "./application/ring-feature-conf
 import { TenantFeatureOverrideService } from "./application/tenant-feature-override.service.js";
 import { TenantReleaseMutationsService } from "./application/tenant-release-mutations.service.js";
 import { TenantRingAssignmentService } from "./application/tenant-ring-assignment.service.js";
+import {
+  ControlPlaneCommercialGovernanceController,
+  ControlPlaneReleaseCompletionController,
+} from "./http/control-plane-commercial-release.controller.js";
+import { ControlPlaneCompletionController } from "./http/control-plane-completion.controller.js";
 import { ControlPlaneDeadLettersController } from "./http/control-plane-dead-letters.controller.js";
+import { ControlPlaneEvidenceController } from "./http/control-plane-evidence.controller.js";
 import { ControlPlanePlansController } from "./http/control-plane-plans.controller.js";
 import { ControlPlaneReleaseGovernanceController } from "./http/control-plane-release-governance.controller.js";
 import { PlatformAuditController } from "./http/platform-audit.controller.js";
@@ -24,6 +34,10 @@ import { PlatformAuditController } from "./http/platform-audit.controller.js";
     ControlPlanePlansController,
     ControlPlaneDeadLettersController,
     ControlPlaneReleaseGovernanceController,
+    ControlPlaneCompletionController,
+    ControlPlaneEvidenceController,
+    ControlPlaneCommercialGovernanceController,
+    ControlPlaneReleaseCompletionController,
   ],
   providers: [
     PlatformAuditQueryService,
@@ -40,6 +54,10 @@ import { PlatformAuditController } from "./http/platform-audit.controller.js";
     TenantFeatureOverrideService,
     TenantReleaseMutationsService,
     ReleaseGovernanceMutationsService,
+    ControlPlaneCompletionService,
+    ControlPlaneEvidenceService,
+    CommercialGovernanceService,
+    ReleaseCompletionService,
   ],
   exports: [PlatformAuditWriter],
 })
