@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import type { BaselineRoleKey } from "@veza/contracts";
 import { AppShell } from "../../src/components/app-shell";
+import { CatalogueGovernanceControls } from "../../src/features/catalogue/catalogue-governance-controls";
 import { CatalogueWorkspaceView } from "../../src/features/catalogue/catalogue-workspace";
 import { loadCatalogue, loadCatalogueReferences } from "../../src/server/catalogue-api";
 import { requireWorkspaceSession } from "../../src/server/require-workspace-session";
@@ -24,6 +25,9 @@ export default async function LearningPage() {
     loadCatalogue(institutionId),
     loadCatalogueReferences(institutionId),
   ]);
+  const roleSet = new Set(resolution.session.membership.roles);
+  const canManageCurriculum = ["tenant-owner", "institution-admin", "curriculum-manager"].some((role) => roleSet.has(role as BaselineRoleKey));
+  const canManageDelivery = ["tenant-owner", "institution-admin", "registrar", "course-manager"].some((role) => roleSet.has(role as BaselineRoleKey));
   return (
     <AppShell session={resolution.session} active="learning">
       <CatalogueWorkspaceView
@@ -31,6 +35,13 @@ export default async function LearningPage() {
         workspace={workspace}
         references={references}
         roles={resolution.session.membership.roles}
+      />
+      <CatalogueGovernanceControls
+        institutionId={institutionId}
+        workspace={workspace}
+        references={references}
+        canManageCurriculum={canManageCurriculum}
+        canManageDelivery={canManageDelivery}
       />
     </AppShell>
   );
