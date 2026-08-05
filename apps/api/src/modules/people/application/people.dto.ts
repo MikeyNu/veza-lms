@@ -3,6 +3,7 @@ import {
   IsArray,
   IsBoolean,
   IsDateString,
+  IsEmpty,
   IsIn,
   IsInt,
   IsOptional,
@@ -109,6 +110,10 @@ export class CreatePersonDto {
   @IsString()
   @Matches(/^[a-z]{2}(?:-[A-Z]{2})?$/)
   locale?: string;
+
+  @IsOptional()
+  @IsEmpty({ message: "Identity links must use the dedicated identity-link workflow" })
+  userId?: never;
 
   @IsOptional()
   @IsIn(statuses)
