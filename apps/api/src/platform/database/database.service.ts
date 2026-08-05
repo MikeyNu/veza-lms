@@ -43,6 +43,16 @@ export class DatabaseService implements OnApplicationShutdown {
     return this.controlPlanePool.query<TRow>(text, [...values]);
   }
 
+  async queryWithoutTenant<TRow extends QueryResultRow = QueryResultRow>(
+    text: string,
+    values: readonly unknown[] = [],
+  ): Promise<QueryResult<TRow>> {
+    if (!/^\s*SELECT\b/i.test(text) || /;\s*\S/.test(text)) {
+      throw new Error("Public verification queries must be a single read statement");
+    }
+    return this.controlPlanePool.query<TRow>(text, [...values]);
+  }
+
   async onApplicationShutdown(): Promise<void> {
     await Promise.all([this.applicationPool.end(), this.controlPlanePool.end()]);
   }
