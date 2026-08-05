@@ -6,7 +6,7 @@ import { getOperatorSession } from "../../../../src/server/operator-session";
 
 const noStore = { "cache-control": "no-store" };
 const allowed = [
-  /^tenant:[0-9a-f-]{36}:(profile|lifecycle|export|hold|deletion|entitlement|threshold|billing)$/i,
+  /^tenant:[0-9a-f-]{36}:(profile|health|lifecycle|export|hold|deletion|entitlement|threshold|billing)$/i,
   /^export:[0-9a-f-]{36}:[0-9a-f-]{36}:complete$/i,
   /^hold:[0-9a-f-]{36}:[0-9a-f-]{36}:release$/i,
   /^deletion:[0-9a-f-]{36}:[0-9a-f-]{36}:cancel$/i,
@@ -14,6 +14,7 @@ const allowed = [
   /^support:[0-9a-f-]{36}:(approval|elevation|resolve)$/i,
   /^session:[0-9a-f-]{36}:terminate$/i,
   /^incident:create$/,
+  /^incident:[0-9a-f-]{36}:transition$/i,
 ];
 
 export async function POST(
