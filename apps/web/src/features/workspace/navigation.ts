@@ -49,7 +49,7 @@ const definitions: readonly NavigationDefinition[] = [
   { key: "insights", labels: { default: "Insights", learner: "Progress", registrar: "Reports", "guardian-sponsor": "Learner summary" }, href: "/insights", icon: "chart", roles: [...institutionalRoles, "learner", "guardian-sponsor"] },
   { key: "evidence", labels: { default: "Evidence room", auditor: "Evidence room" }, href: "/evidence", icon: "evidence", roles: ["tenant-owner", "institution-admin", "auditor"] },
   { key: "support", labels: { default: "Support cases" }, href: "/support", icon: "support", roles: ["tenant-owner", "institution-admin", "support-agent"] },
-  { key: "admin", labels: { default: "Admin" }, href: "/admin", icon: "admin", roles: ["tenant-owner", "institution-admin"] },
+  { key: "admin", labels: { default: "Admin" }, href: "/admin/institution-setup", icon: "admin", roles: ["tenant-owner", "institution-admin"] },
   { key: "help", labels: { default: "Help" }, href: "/help", icon: "help" },
 ];
 

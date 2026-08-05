@@ -79,7 +79,6 @@ test("every exposed workspace action resolves through a guarded route", async ()
   assert.match(navigation, /href: "\/people\/invitations\/new"/);
 });
 
-
 test("tenant-owner invitation is server mediated and never accepts tenant authority", async () => {
   const [route, page] = await Promise.all([
     source("../app/api/membership-invitations/tenant-owners/route.ts"),
@@ -114,7 +113,6 @@ test("signed-out and unassigned states do not link to an authenticated help loop
   assert.match(pending, /institution administrator/);
 });
 
-
 test("workspace API contracts fail closed on enum drift, unbounded choices and missing core", async () => {
   const api = await source("../src/server/workspace-api.ts");
   assert.match(api, /tenantStatuses/);
@@ -136,4 +134,43 @@ test("foundation workspace has an explicit responsive bento hierarchy", async ()
   assert.match(foundation, /foundation-boundary/);
   assert.match(foundation, /tenant-status\.provisioning/);
   assert.match(foundation, /@media \(max-width: 620px\)/);
+});
+
+test("institution setup is driven by verified API readiness rather than local completion flags", async () => {
+  const [page, centre, panels, api] = await Promise.all([
+    source("../app/admin/institution-setup/page.tsx"),
+    source("../src/features/institution-setup/institution-setup-centre.tsx"),
+    source("../src/features/institution-setup/tenant-setup-panels.tsx"),
+    source("../src/server/institution-setup-api.ts"),
+  ]);
+  assert.match(page, /requireWorkspaceSession/);
+  assert.match(page, /roles\.has\("tenant-owner"\)/);
+  assert.match(page, /membership\.institutionIds/);
+  assert.match(panels, /bundle\.readiness\?\.checks/);
+  assert.match(panels, /disabled=\{!bundle\.readiness\.ready/);
+  assert.match(api, /activation-readiness/);
+  assert.match(api, /Activation check did not match the API contract/);
+  assert.doesNotMatch(centre, /set.*passed/i);
+});
+
+test("institution setup BFF accepts only whitelisted membership-scoped operations", async () => {
+  const route = await source("../app/api/institution-setup/[...path]/route.ts");
+  assert.match(route, /isSameOriginRequest/);
+  assert.match(route, /routes\.some/);
+  assert.match(route, /x-veza-membership-id/);
+  assert.match(route, /maximumRequestBytes/);
+  assert.match(route, /containsSecretKey/);
+  assert.doesNotMatch(route, /x-veza-tenant-id/);
+});
+
+test("institution setup has an explicit responsive task-driven bento hierarchy", async () => {
+  const [css, globals] = await Promise.all([
+    source("../styles/institution-setup.css"),
+    source("../app/globals.css"),
+  ]);
+  assert.match(globals, /institution-setup\.css/);
+  assert.match(css, /grid-template-columns: minmax\(240px,.72fr\) minmax\(580px,1.75fr\) minmax\(250px,.76fr\)/);
+  assert.match(css, /setup-bento/);
+  assert.match(css, /activation-rail/);
+  assert.match(css, /@media \(max-width: 620px\)/);
 });
