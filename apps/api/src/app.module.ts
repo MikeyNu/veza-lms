@@ -19,6 +19,7 @@ import { DatabaseModule } from "./platform/database/database.module.js";
 import { EventsModule } from "./platform/events/events.module.js";
 import { FeatureFlagsModule } from "./platform/feature-flags/feature-flags.module.js";
 import { RequestContextModule } from "./platform/request-context/request-context.module.js";
+import { StorageModule } from "./platform/storage/storage.module.js";
 
 @Module({
   imports: [
@@ -29,6 +30,7 @@ import { RequestContextModule } from "./platform/request-context/request-context
     AuditModule,
     EventsModule,
     CommunicationsModule,
+    StorageModule,
     FeatureFlagsModule,
     PlatformOperationsModule,
     IdentityAccessModule,
