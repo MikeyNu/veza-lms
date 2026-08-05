@@ -15,6 +15,8 @@ test("dead-letter operations are operator guarded, bounded and payload blind", a
   assert.match(service, /dead_lettered_at IS NOT NULL/);
   assert.match(service, /platform_operation_requests/);
   assert.match(service, /FOR UPDATE/);
+  assert.match(service, /requeued\.rowCount !== 1/);
+  assert.match(service, /credentialPattern/);
   assert.match(service, /this\.tenantAudit\.append/);
   assert.match(service, /this\.platformAudit\.append/);
   assert.doesNotMatch(service, /SELECT[\s\S]{0,220}payload/);

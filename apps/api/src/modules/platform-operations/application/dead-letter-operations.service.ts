@@ -18,7 +18,8 @@ interface DeadLetterRow extends QueryResultRow {
   readonly attempts: number;
   readonly last_error: string | null;
   readonly occurred_at: Date;
-  readonly dead_lettered_at: Date;
+  readonly dead_lettered_at: Date | null;
+  readonly published_at: Date | null;
 }
 
 interface OperationRequestRow extends QueryResultRow {
@@ -31,6 +32,9 @@ interface OperationRequestRow extends QueryResultRow {
 }
 
 interface Cursor { readonly deadLetteredAt: string; readonly id: string }
+
+const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const credentialPattern = /\b(?:authorization|access[_-]?token|refresh[_-]?token|id[_-]?token|client[_-]?secret|password|secret)\b\s*[:=]|\bBearer\s+/i;
 
 export interface DeadLetterEventView {
   readonly id: string;
@@ -63,7 +67,7 @@ function encodeCursor(value: Cursor): string {
 function decodeCursor(value: string): Cursor {
   try {
     const parsed = JSON.parse(Buffer.from(value, "base64url").toString("utf8")) as Partial<Cursor>;
-    if (!parsed.deadLetteredAt || !Number.isFinite(Date.parse(parsed.deadLetteredAt)) || !parsed.id || !/^[0-9a-f]{8}-[0-9a-f-]{27}$/i.test(parsed.id)) throw new Error();
+    if (!parsed.deadLetteredAt || !Number.isFinite(Date.parse(parsed.deadLetteredAt)) || !parsed.id || !uuidPattern.test(parsed.id)) throw new Error();
     return { deadLetteredAt: parsed.deadLetteredAt, id: parsed.id };
   } catch {
     throw new BadRequestException("Dead-letter cursor is invalid");
@@ -123,9 +127,9 @@ export class DeadLetterOperationsService {
         attempts: row.attempts,
         failureCode: failureCode(row.last_error),
         occurredAt: row.occurred_at.toISOString(),
-        deadLetteredAt: row.dead_lettered_at.toISOString(),
+        deadLetteredAt: row.dead_lettered_at!.toISOString(),
       })),
-      page: { limit: input.limit, ...(hasMore && last ? { nextCursor: encodeCursor({ deadLetteredAt: last.dead_lettered_at.toISOString(), id: last.id }) } : {}) },
+      page: { limit: input.limit, ...(hasMore && last ? { nextCursor: encodeCursor({ deadLetteredAt: last.dead_lettered_at!.toISOString(), id: last.id }) } : {}) },
     };
   }
 
@@ -140,6 +144,9 @@ export class DeadLetterOperationsService {
       throw new BadRequestException("Idempotency-Key must be 16-128 URL-safe characters");
     }
     const normalizedReason = reason.trim().replace(/\s+/g, " ");
+    if (credentialPattern.test(normalizedReason)) {
+      throw new BadRequestException("Requeue reason must not contain credentials or bearer tokens");
+    }
     const requestHash = createHash("sha256").update(JSON.stringify({ eventId, reason: normalizedReason }), "utf8").digest("hex");
     return this.database.withControlPlaneTransaction(async (client) => {
       const inserted = await client.query(
@@ -166,22 +173,24 @@ export class DeadLetterOperationsService {
 
       const result = await client.query<DeadLetterRow>(
         `SELECT id, tenant_id, event_name, event_version, aggregate_type, aggregate_id,
-                aggregate_version, attempts, last_error, occurred_at, dead_lettered_at
+                aggregate_version, attempts, last_error, occurred_at, dead_lettered_at, published_at
          FROM outbox_events WHERE id = $1 FOR UPDATE`,
         [eventId],
       );
       const event = result.rows[0];
       if (!event) throw new NotFoundException("Dead-letter event was not found");
+      if (event.published_at) throw new ConflictException("Published outbox events cannot be requeued");
       if (!event.dead_lettered_at) throw new ConflictException("Outbox event is not in dead-letter state");
 
       const queuedAt = new Date().toISOString();
-      await client.query(
+      const requeued = await client.query(
         `UPDATE outbox_events
          SET attempts = 0, next_attempt_at = now(), dead_lettered_at = NULL,
              leased_at = NULL, lease_owner = NULL, last_error = NULL
          WHERE id = $1 AND dead_lettered_at IS NOT NULL AND published_at IS NULL`,
         [eventId],
       );
+      if (requeued.rowCount !== 1) throw new ConflictException("Dead-letter state changed before requeue could complete");
       const errorFingerprint = event.last_error
         ? createHash("sha256").update(event.last_error, "utf8").digest("hex")
         : undefined;
