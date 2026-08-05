@@ -33,7 +33,10 @@ function mapRow(row: OutboxRow): ClaimedOutboxEvent {
   };
 }
 
-async function transaction<TResult>(pool: Pool, work: (client: PoolClient) => Promise<TResult>): Promise<TResult> {
+async function transaction<TResult>(
+  pool: Pool,
+  work: (client: PoolClient) => Promise<TResult>,
+): Promise<TResult> {
   const client = await pool.connect();
   try {
     await client.query("BEGIN");
@@ -51,7 +54,11 @@ async function transaction<TResult>(pool: Pool, work: (client: PoolClient) => Pr
 export class OutboxRepository {
   constructor(private readonly pool: Pool) {}
 
-  async claim(owner: string, batchSize: number, leaseSeconds: number): Promise<readonly ClaimedOutboxEvent[]> {
+  async claim(
+    owner: string,
+    batchSize: number,
+    leaseSeconds: number,
+  ): Promise<readonly ClaimedOutboxEvent[]> {
     return transaction(this.pool, async (client) => {
       const result = await client.query<OutboxRow>(
         `WITH candidates AS (
@@ -79,34 +86,88 @@ export class OutboxRepository {
     });
   }
 
-  async markPublished(owner: string, eventId: string, reference: string | undefined): Promise<boolean> {
-    const result = await this.pool.query(
-      `UPDATE outbox_events
-       SET published_at = now(), published_reference = $3,
-           leased_at = NULL, lease_owner = NULL, last_error = NULL
-       WHERE id = $1 AND lease_owner = $2 AND published_at IS NULL AND dead_lettered_at IS NULL`,
-      [eventId, owner, reference ?? null],
-    );
-    return result.rowCount === 1;
+  async markPublished(
+    owner: string,
+    event: ClaimedOutboxEvent,
+    destinationKey: string,
+    reference: string | undefined,
+    latencyMs: number,
+  ): Promise<boolean> {
+    return transaction(this.pool, async (client) => {
+      const result = await client.query(
+        `UPDATE outbox_events
+         SET published_at = now(), published_reference = $4,
+             leased_at = NULL, lease_owner = NULL, last_error = NULL
+         WHERE id = $1 AND lease_owner = $2 AND attempts = $3
+           AND published_at IS NULL AND dead_lettered_at IS NULL`,
+        [event.id, owner, event.attempts, reference ?? null],
+      );
+      if (result.rowCount !== 1) return false;
+      await client.query(
+        `INSERT INTO event_delivery_evidence (
+           tenant_id, outbox_event_id, delivery_stage, destination_key,
+           attempt_number, state, worker_id, provider_reference, latency_ms
+         ) VALUES ($1,$2,'transport',$3,$4,'delivered',$5,$6,$7)`,
+        [
+          event.tenantId,
+          event.id,
+          destinationKey,
+          event.attempts,
+          owner,
+          reference ?? null,
+          latencyMs,
+        ],
+      );
+      await client.query("SELECT app.enqueue_event_consumers($1)", [event.id]);
+      return true;
+    });
   }
 
   async markFailed(
     owner: string,
     event: ClaimedOutboxEvent,
+    destinationKey: string,
     error: string,
     nextAttempt: Date,
     deadLetter: boolean,
+    latencyMs: number,
   ): Promise<boolean> {
-    const result = await this.pool.query(
-      `UPDATE outbox_events
-       SET last_error = $3,
-           next_attempt_at = $4,
-           dead_lettered_at = CASE WHEN $5::boolean THEN now() ELSE NULL END,
-           leased_at = NULL,
-           lease_owner = NULL
-       WHERE id = $1 AND lease_owner = $2 AND published_at IS NULL`,
-      [event.id, owner, error.slice(0, 2_000), nextAttempt, deadLetter],
-    );
-    return result.rowCount === 1;
+    return transaction(this.pool, async (client) => {
+      const result = await client.query(
+        `UPDATE outbox_events
+         SET last_error = $4,
+             next_attempt_at = $5,
+             dead_lettered_at = CASE WHEN $6::boolean THEN now() ELSE NULL END,
+             leased_at = NULL,
+             lease_owner = NULL
+         WHERE id = $1 AND lease_owner = $2 AND attempts = $3 AND published_at IS NULL`,
+        [
+          event.id,
+          owner,
+          event.attempts,
+          error.slice(0, 2_000),
+          nextAttempt,
+          deadLetter,
+        ],
+      );
+      if (result.rowCount !== 1) return false;
+      await client.query(
+        `INSERT INTO event_delivery_evidence (
+           tenant_id, outbox_event_id, delivery_stage, destination_key,
+           attempt_number, state, worker_id, error_code, latency_ms
+         ) VALUES ($1,$2,'transport',$3,$4,$5,$6,$7,$8)`,
+        [
+          event.tenantId,
+          event.id,
+          destinationKey,
+          event.attempts,
+          deadLetter ? "dead-letter" : "retry",
+          owner,
+          error.slice(0, 160),
+          latencyMs,
+        ],
+      );
+      return true;
+    });
   }
 }
