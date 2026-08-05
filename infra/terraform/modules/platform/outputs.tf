@@ -25,7 +25,7 @@ output "media_bucket" {
 
 output "database_secret_arn" {
   value       = aws_secretsmanager_secret.database.arn
-  description = "Aurora connection secret ARN."
+  description = "Aurora bootstrap connection secret ARN."
 }
 
 output "database_endpoint" {
@@ -59,6 +59,21 @@ output "opensearch_endpoint" {
 output "ecs_cluster_name" {
   value       = aws_ecs_cluster.main.name
   description = "ECS cluster name."
+}
+
+output "migration_task_definition_arn" {
+  value       = aws_ecs_task_definition.migration.arn
+  description = "One-off role bootstrap and migration task definition."
+}
+
+output "migration_subnet_ids" {
+  value       = [for subnet in aws_subnet.private : subnet.id]
+  description = "Private subnet IDs for the one-off migration task."
+}
+
+output "migration_security_group_id" {
+  value       = aws_security_group.application.id
+  description = "Security group for the one-off migration task."
 }
 
 output "operations_topic_arn" {
