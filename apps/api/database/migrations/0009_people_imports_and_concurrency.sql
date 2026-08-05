@@ -1,4 +1,4 @@
-ALTER TABLE people ADD COLUMN IF NOT EXISTS version integer NOT NULL DEFAULT 1 CHECK (version > 0);
+BEGIN;
 
 CREATE TABLE people_imports (
   id uuid PRIMARY KEY,
@@ -16,7 +16,8 @@ CREATE TABLE people_imports (
   completed_at timestamptz,
   failure_code text,
   UNIQUE (tenant_id, source_checksum),
-  UNIQUE (tenant_id, id)
+  UNIQUE (tenant_id, id),
+  UNIQUE (tenant_id, institution_id, id)
 );
 
 CREATE TABLE people_import_rows (
@@ -24,10 +25,10 @@ CREATE TABLE people_import_rows (
   tenant_id uuid NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
   import_id uuid NOT NULL,
   row_number integer NOT NULL CHECK (row_number > 0),
-  raw_record jsonb NOT NULL CHECK (jsonb_typeof(raw_record) = 'object'),
-  normalized_record jsonb CHECK (normalized_record IS NULL OR jsonb_typeof(normalized_record) = 'object'),
+  raw_record jsonb NOT NULL CHECK (jsonb_typeof(raw_record) = 'object' AND octet_length(raw_record::text) <= 65536),
+  normalized_record jsonb CHECK (normalized_record IS NULL OR (jsonb_typeof(normalized_record) = 'object' AND octet_length(normalized_record::text) <= 32768)),
   validation_status text NOT NULL CHECK (validation_status IN ('pending','valid','invalid','duplicate','committed')),
-  validation_errors jsonb NOT NULL DEFAULT '[]'::jsonb CHECK (jsonb_typeof(validation_errors) = 'array'),
+  validation_errors jsonb NOT NULL DEFAULT '[]'::jsonb CHECK (jsonb_typeof(validation_errors) = 'array' AND octet_length(validation_errors::text) <= 32768),
   matched_person_id uuid,
   committed_person_id uuid,
   committed_at timestamptz,
@@ -37,8 +38,8 @@ CREATE TABLE people_import_rows (
   FOREIGN KEY (tenant_id, committed_person_id) REFERENCES people(tenant_id, id)
 );
 
-CREATE INDEX people_directory_name_idx ON people (tenant_id, lower(family_name), lower(given_name), id) WHERE merged_into_person_id IS NULL;
-CREATE INDEX people_directory_email_idx ON person_contact_points (tenant_id, lower(value)) WHERE contact_type = 'email';
+CREATE INDEX people_directory_name_idx ON people (tenant_id, lower(legal_family_name), lower(legal_given_names), id) WHERE merged_into_person_id IS NULL;
+CREATE INDEX people_directory_email_idx ON person_contact_points (tenant_id, lower(normalized_value)) WHERE kind = 'email' AND valid_until IS NULL;
 CREATE INDEX people_import_rows_status_idx ON people_import_rows (tenant_id, import_id, validation_status, row_number);
 
 ALTER TABLE people_imports ENABLE ROW LEVEL SECURITY;
@@ -47,3 +48,5 @@ ALTER TABLE people_import_rows ENABLE ROW LEVEL SECURITY;
 ALTER TABLE people_import_rows FORCE ROW LEVEL SECURITY;
 CREATE POLICY people_imports_tenant_isolation ON people_imports USING (tenant_id = current_setting('app.tenant_id', true)::uuid) WITH CHECK (tenant_id = current_setting('app.tenant_id', true)::uuid);
 CREATE POLICY people_import_rows_tenant_isolation ON people_import_rows USING (tenant_id = current_setting('app.tenant_id', true)::uuid) WITH CHECK (tenant_id = current_setting('app.tenant_id', true)::uuid);
+
+COMMIT;
