@@ -26,6 +26,7 @@ import { RequestContextModule } from "./platform/request-context/request-context
     PlatformOperationsModule,
     IdentityAccessModule,
     InstitutionStructureModule,
+    PeopleModule,
     TenancyModule,
     TenantEntitlementsModule,
     HealthModule,
