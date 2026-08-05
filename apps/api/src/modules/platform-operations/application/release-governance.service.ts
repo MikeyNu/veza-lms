@@ -13,6 +13,11 @@ interface ReleaseRingRow extends QueryResultRow {
   readonly configured_flag_count: number;
 }
 
+interface RingConfiguration {
+  readonly enabled: boolean;
+  readonly version: number;
+}
+
 interface FeatureFlagRow extends QueryResultRow {
   readonly key: string;
   readonly display_name: string;
@@ -22,7 +27,7 @@ interface FeatureFlagRow extends QueryResultRow {
   readonly default_enabled: boolean;
   readonly required_module_key: string | null;
   readonly version: number;
-  readonly ring_configuration: Readonly<Record<string, boolean>>;
+  readonly ring_configuration: Readonly<Record<string, RingConfiguration>>;
   readonly tenant_override_count: number;
 }
 
@@ -59,8 +64,10 @@ export class ReleaseGovernanceService {
       this.database.controlPlaneQuery<FeatureFlagRow>(
         `SELECT flag.key, flag.display_name, flag.description, flag.risk_level, flag.lifecycle,
                 flag.default_enabled, flag.required_module_key, flag.version,
-                COALESCE(jsonb_object_agg(configuration.ring_key, configuration.enabled)
-                  FILTER (WHERE configuration.ring_key IS NOT NULL), '{}'::jsonb) AS ring_configuration,
+                COALESCE(jsonb_object_agg(
+                  configuration.ring_key,
+                  jsonb_build_object('enabled', configuration.enabled, 'version', configuration.version)
+                ) FILTER (WHERE configuration.ring_key IS NOT NULL), '{}'::jsonb) AS ring_configuration,
                 count(DISTINCT tenant_override.tenant_id)::int AS tenant_override_count
          FROM feature_flags flag
          LEFT JOIN release_ring_feature_flags configuration ON configuration.feature_flag_key = flag.key
