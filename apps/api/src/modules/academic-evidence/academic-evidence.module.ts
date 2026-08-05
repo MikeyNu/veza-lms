@@ -6,10 +6,16 @@ import { CredentialDefinitionService } from "./application/credential-definition
 import { LearnerSubmissionService } from "./application/learner-submission.service.js";
 import { AcademicEvidenceController } from "./http/academic-evidence.controller.js";
 import { AcademicEvidenceQueryController } from "./http/academic-evidence-query.controller.js";
+import { CredentialDefinitionController } from "./http/credential-definition.controller.js";
 import { PublicCertificateController } from "./http/public-certificate.controller.js";
 
 @Module({
-  controllers: [AcademicEvidenceController, AcademicEvidenceQueryController, PublicCertificateController],
+  controllers: [
+    AcademicEvidenceController,
+    AcademicEvidenceQueryController,
+    CredentialDefinitionController,
+    PublicCertificateController,
+  ],
   providers: [
     AcademicEvidenceService,
     AcademicEvidenceQueryService,
