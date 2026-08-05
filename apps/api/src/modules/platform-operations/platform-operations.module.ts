@@ -1,4 +1,5 @@
 import { Module } from "@nestjs/common";
+import { ControlPlaneCompletionService } from "./application/control-plane-completion.service.js";
 import { CreateFeatureFlagService } from "./application/create-feature-flag.service.js";
 import { DeadLetterOperationsService } from "./application/dead-letter-operations.service.js";
 import { FeatureFlagLifecycleService } from "./application/feature-flag-lifecycle.service.js";
@@ -13,6 +14,7 @@ import { RingFeatureConfigurationService } from "./application/ring-feature-conf
 import { TenantFeatureOverrideService } from "./application/tenant-feature-override.service.js";
 import { TenantReleaseMutationsService } from "./application/tenant-release-mutations.service.js";
 import { TenantRingAssignmentService } from "./application/tenant-ring-assignment.service.js";
+import { ControlPlaneCompletionController } from "./http/control-plane-completion.controller.js";
 import { ControlPlaneDeadLettersController } from "./http/control-plane-dead-letters.controller.js";
 import { ControlPlanePlansController } from "./http/control-plane-plans.controller.js";
 import { ControlPlaneReleaseGovernanceController } from "./http/control-plane-release-governance.controller.js";
@@ -24,6 +26,7 @@ import { PlatformAuditController } from "./http/platform-audit.controller.js";
     ControlPlanePlansController,
     ControlPlaneDeadLettersController,
     ControlPlaneReleaseGovernanceController,
+    ControlPlaneCompletionController,
   ],
   providers: [
     PlatformAuditQueryService,
@@ -40,6 +43,7 @@ import { PlatformAuditController } from "./http/platform-audit.controller.js";
     TenantFeatureOverrideService,
     TenantReleaseMutationsService,
     ReleaseGovernanceMutationsService,
+    ControlPlaneCompletionService,
   ],
   exports: [PlatformAuditWriter],
 })
