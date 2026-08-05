@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { AppShell } from "../../../src/components/app-shell";
 import { LearnerAssignmentPanel } from "../../../src/features/learner/learner-assignment-panel";
+import { LearnerUploadFinalization } from "../../../src/features/learner/learner-upload-finalization";
 import { LearnerCourseWorkspace } from "../../../src/features/learner/learner-workspaces";
 import {
   loadLearnerAssignments,
@@ -37,6 +38,7 @@ export default async function CourseRoomPage({
         workspace={assignments}
         gradebook={gradebook}
       />
+      <LearnerUploadFinalization enrolmentId={enrolmentId} workspace={assignments} />
     </AppShell>
   );
 }
