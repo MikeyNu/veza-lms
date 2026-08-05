@@ -9,11 +9,16 @@ import { PeopleQueryService } from "./application/people-query.service.js";
 import { PeopleReferenceService } from "./application/people-reference.service.js";
 import { PeopleService } from "./application/people.service.js";
 import { PeopleOperationsController } from "./http/people-operations.controller.js";
+import { PeopleReferenceController } from "./http/people-reference.controller.js";
 import { PeopleController } from "./http/people.controller.js";
 
 @Module({
   imports: [IdentityAccessModule],
-  controllers: [PeopleController, PeopleOperationsController],
+  controllers: [
+    PeopleController,
+    PeopleOperationsController,
+    PeopleReferenceController,
+  ],
   providers: [
     PeopleService,
     PeopleIntegrityService,
