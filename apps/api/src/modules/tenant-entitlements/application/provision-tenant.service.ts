@@ -10,6 +10,7 @@ import type {
 import type { QueryResultRow } from "pg";
 import { AuditWriter } from "../../audit/audit-writer.service.js";
 import { InvitationTokenService } from "../../identity-access/security/invitation-token.service.js";
+import { PlatformAuditWriter } from "../../platform-operations/application/platform-audit-writer.service.js";
 import { DatabaseService } from "../../../platform/database/database.service.js";
 import { isPostgresError } from "../../../platform/database/database.types.js";
 import { OutboxWriter } from "../../../platform/events/outbox-writer.service.js";
@@ -65,6 +66,7 @@ export class ProvisionTenantService {
     private readonly database: DatabaseService,
     private readonly invitationTokens: InvitationTokenService,
     private readonly audit: AuditWriter,
+    private readonly platformAudit: PlatformAuditWriter,
     private readonly outbox: OutboxWriter,
   ) {}
 
@@ -193,6 +195,21 @@ export class ProvisionTenantService {
         purpose: "customer provisioning",
         correlationId,
         afterState: {
+          slug: normalized.slug,
+          status: "provisioning",
+          deploymentTier: input.deploymentTier,
+          residencyRegion: input.residencyRegion,
+          planKey: input.planKey,
+          modules: normalized.modules,
+        },
+      });
+      await this.platformAudit.append(client, {
+        eventType: "platform.tenant-provisioned",
+        actorId: principal.userId,
+        resourceType: "tenant",
+        resourceId: tenantId,
+        correlationId,
+        metadata: {
           slug: normalized.slug,
           status: "provisioning",
           deploymentTier: input.deploymentTier,

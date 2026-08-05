@@ -8,7 +8,7 @@ const navigation = [
   { label: "Plans", href: "/plans", number: "03", available: false },
   { label: "Release rings", href: "/releases", number: "04", available: false },
   { label: "Service health", href: "/health", number: "05", available: true },
-  { label: "Audit", href: "/audit", number: "06", available: false },
+  { label: "Audit", href: "/audit", number: "06", available: true },
 ] as const;
 
 function initials(name: string | undefined): string {

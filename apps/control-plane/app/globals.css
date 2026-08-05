@@ -4,5 +4,6 @@
 @import "../styles/provisioning.css";
 @import "../styles/tenant-fleet.css";
 @import "../styles/service-health.css";
+@import "../styles/platform-audit.css";
 @import "../styles/auth.css";
 @import "../styles/responsive.css";
