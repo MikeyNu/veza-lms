@@ -6,16 +6,23 @@ import { RequiresTenantPermission } from "../../../platform/authorization/requir
 import { TenantPermissionGuard } from "../../../platform/authorization/tenant-permission.guard.js";
 import { TenantMembershipGuard } from "../../tenancy/tenant-membership.guard.js";
 import { ChangeRelationshipStateDto, CommitPeopleImportDto, CreatePersonDto, CreateRelationshipDto, DuplicateDecisionDto, ListPeopleDto, MergePeopleDto, ReverseMergeDto, StagePeopleImportDto, UpdatePersonDto, UpsertLearnerProfileDto, UpsertStaffProfileDto } from "../application/people.dto.js";
+import { PeopleIntegrityService } from "../application/people-integrity.service.js";
 import { PeopleService } from "../application/people.service.js";
 
 @Controller("people")
 @UseGuards(AuthenticationGuard, TenantMembershipGuard, TenantPermissionGuard)
 export class PeopleController {
-  constructor(private readonly people: PeopleService) {}
+  constructor(private readonly people: PeopleService, private readonly integrity: PeopleIntegrityService) {}
 
   @Get()
   @RequiresTenantPermission(permissions.peopleRead)
   list(@Query() input: ListPeopleDto) { return this.people.list(input); }
+
+  @Get("duplicates")
+  @RequiresTenantPermission(permissions.peopleMerge)
+  duplicates(@Query("cursor") cursor?: string, @Query("limit") limit?: string, @Query("status") status?: string) {
+    return this.integrity.listDuplicates({ cursor, limit: limit ? Number(limit) : undefined, status });
+  }
 
   @Get(":personId")
   @RequiresTenantPermission(permissions.peopleRead)
@@ -35,7 +42,7 @@ export class PeopleController {
 
   @Put(":personId/institutions/:institutionId/staff-profile")
   @RequiresTenantPermission(permissions.staffManage)
-  staff(@Param("personId", new ParseUUIDPipe()) personId: string, @Param("institutionId", new ParseUUIDPipe()) institutionId: string, @Body() input: UpsertStaffProfileDto) { return this.people.upsertStaff(personId, institutionId, input); }
+  staff(@Param("personId", new ParseUUIDPipe()) personId: string, @Param("institutionId", new ParseUUIDPipe()) institutionId: string, @Body() input: UpsertStaffProfileDto) { return this.integrity.upsertStaff(personId, institutionId, input); }
 
   @Post(":personId/relationships")
   @RequiresTenantPermission(permissions.relationshipManage)
@@ -43,25 +50,25 @@ export class PeopleController {
 
   @Post("relationships/:relationshipId/verify")
   @RequiresTenantPermission(permissions.relationshipManage)
-  verify(@Param("relationshipId", new ParseUUIDPipe()) relationshipId: string, @Body() input: ChangeRelationshipStateDto) { return this.people.verifyRelationship(relationshipId, input); }
+  verify(@Param("relationshipId", new ParseUUIDPipe()) relationshipId: string, @Body() input: ChangeRelationshipStateDto) { return this.integrity.verifyRelationship(relationshipId, input); }
 
   @Post("relationships/:relationshipId/revoke")
   @RequiresTenantPermission(permissions.relationshipManage)
-  revoke(@Param("relationshipId", new ParseUUIDPipe()) relationshipId: string, @Body() input: ChangeRelationshipStateDto) { return this.people.revokeRelationship(relationshipId, input); }
+  revoke(@Param("relationshipId", new ParseUUIDPipe()) relationshipId: string, @Body() input: ChangeRelationshipStateDto) { return this.integrity.revokeRelationship(relationshipId, input); }
 
   @Post("duplicates/:candidateId/decision")
   @RequiresTenantPermission(permissions.peopleMerge)
-  decide(@Param("candidateId", new ParseUUIDPipe()) candidateId: string, @Body() input: DuplicateDecisionDto) { return this.people.decideDuplicate(candidateId, input); }
+  decide(@Param("candidateId", new ParseUUIDPipe()) candidateId: string, @Body() input: DuplicateDecisionDto) { return this.integrity.decideDuplicate(candidateId, input); }
 
   @Post("merges")
   @RequiresTenantPermission(permissions.peopleMerge)
   @UseGuards(MfaGuard)
-  merge(@Body() input: MergePeopleDto) { return this.people.merge(input); }
+  merge(@Body() input: MergePeopleDto) { return this.integrity.merge(input); }
 
   @Post("merges/:mergeId/reverse")
   @RequiresTenantPermission(permissions.peopleMerge)
   @UseGuards(MfaGuard)
-  reverse(@Param("mergeId", new ParseUUIDPipe()) mergeId: string, @Body() input: ReverseMergeDto) { return this.people.reverseMerge(mergeId, input); }
+  reverse(@Param("mergeId", new ParseUUIDPipe()) mergeId: string, @Body() input: ReverseMergeDto) { return this.integrity.reverseMerge(mergeId, input); }
 
   @Post("imports/dry-run")
   @RequiresTenantPermission(permissions.peopleImportManage)
