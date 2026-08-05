@@ -1,5 +1,6 @@
 import { isSameOriginRequest } from "@veza/oidc-bff";
 import { NextResponse, type NextRequest } from "next/server";
+import { createCredentialDefinition } from "../../../../src/server/credential-definition-api";
 import { mutateAcademic } from "../../../../src/server/learning-platform-api";
 
 const noStore = { "cache-control": "no-store" };
@@ -35,6 +36,7 @@ const operations = new Set([
   "certificate-revoke",
   "export",
 ]);
+const credentialDefinitions = new Set(["certificate-template", "award-rule"]);
 
 export async function POST(
   request: NextRequest,
@@ -62,6 +64,18 @@ export async function POST(
       );
     }
     const body = (await request.json()) as Record<string, unknown>;
+    if (credentialDefinitions.has(operation)) {
+      const institutionId = typeof body.institutionId === "string" ? body.institutionId : "";
+      const { institutionId: _, ...input } = body;
+      return NextResponse.json(
+        await createCredentialDefinition(
+          institutionId,
+          operation as "certificate-template" | "award-rule",
+          input,
+        ),
+        { status: 200, headers: noStore },
+      );
+    }
     return NextResponse.json(await mutateAcademic(operation, body), {
       status: 200,
       headers: noStore,
