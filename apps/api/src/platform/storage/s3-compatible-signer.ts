@@ -10,6 +10,15 @@ interface PresignInput {
   readonly checksumSha256?: string;
 }
 
+interface StorageSigningConfiguration {
+  readonly endpoint: URL;
+  readonly region: string;
+  readonly accessKey: string;
+  readonly secretKey: string;
+  readonly sessionToken?: string;
+  readonly forcePathStyle: boolean;
+}
+
 function sha256(value: string): string {
   return createHash("sha256").update(value, "utf8").digest("hex");
 }
@@ -35,43 +44,21 @@ function timestamp(date: Date): { readonly amz: string; readonly day: string } {
 
 @Injectable()
 export class S3CompatibleSigner {
-  private readonly endpoint: URL;
-  private readonly region: string;
-  private readonly accessKey: string;
-  private readonly secretKey: string;
-  private readonly sessionToken?: string;
-  private readonly forcePathStyle: boolean;
-
-  constructor() {
-    const endpoint = process.env.OBJECT_STORAGE_ENDPOINT?.trim();
-    const region = process.env.OBJECT_STORAGE_REGION?.trim();
-    const accessKey = process.env.OBJECT_STORAGE_ACCESS_KEY_ID?.trim();
-    const secretKey = process.env.OBJECT_STORAGE_SECRET_ACCESS_KEY?.trim();
-    if (!endpoint || !region || !accessKey || !secretKey) {
-      throw new ServiceUnavailableException("Object storage signing is not configured");
-    }
-    this.endpoint = new URL(endpoint);
-    this.region = region;
-    this.accessKey = accessKey;
-    this.secretKey = secretKey;
-    this.sessionToken = process.env.OBJECT_STORAGE_SESSION_TOKEN?.trim() || undefined;
-    this.forcePathStyle = process.env.OBJECT_STORAGE_FORCE_PATH_STYLE !== "false";
-  }
-
   presign(input: PresignInput): {
     readonly url: string;
     readonly requiredHeaders: Readonly<Record<string, string>>;
     readonly expiresAt: string;
   } {
+    const configuration = this.configuration();
     const now = new Date();
     const expiresSeconds = Math.max(60, Math.min(3600, input.expiresSeconds));
     const expiresAt = new Date(now.getTime() + expiresSeconds * 1000);
     const { amz, day } = timestamp(now);
-    const scope = `${day}/${this.region}/s3/aws4_request`;
-    const host = this.forcePathStyle
-      ? this.endpoint.host
-      : `${input.bucket}.${this.endpoint.host}`;
-    const path = this.forcePathStyle
+    const scope = `${day}/${configuration.region}/s3/aws4_request`;
+    const host = configuration.forcePathStyle
+      ? configuration.endpoint.host
+      : `${input.bucket}.${configuration.endpoint.host}`;
+    const path = configuration.forcePathStyle
       ? `/${encode(input.bucket)}/${canonicalKey(input.key)}`
       : `/${canonicalKey(input.key)}`;
     const signedHeaders = ["host"];
@@ -82,16 +69,20 @@ export class S3CompatibleSigner {
     }
     if (input.checksumSha256) {
       signedHeaders.push("x-amz-checksum-sha256");
-      headers["x-amz-checksum-sha256"] = Buffer.from(input.checksumSha256, "hex").toString("base64");
+      headers["x-amz-checksum-sha256"] = Buffer.from(input.checksumSha256, "hex").toString(
+        "base64",
+      );
     }
     signedHeaders.sort();
     const query = new URLSearchParams({
       "X-Amz-Algorithm": "AWS4-HMAC-SHA256",
-      "X-Amz-Credential": `${this.accessKey}/${scope}`,
+      "X-Amz-Credential": `${configuration.accessKey}/${scope}`,
       "X-Amz-Date": amz,
       "X-Amz-Expires": String(expiresSeconds),
       "X-Amz-SignedHeaders": signedHeaders.join(";"),
-      ...(this.sessionToken ? { "X-Amz-Security-Token": this.sessionToken } : {}),
+      ...(configuration.sessionToken
+        ? { "X-Amz-Security-Token": configuration.sessionToken }
+        : {}),
     });
     const canonicalQuery = [...query.entries()]
       .sort(([left], [right]) => left.localeCompare(right))
@@ -115,12 +106,17 @@ export class S3CompatibleSigner {
       sha256(canonicalRequest),
     ].join("\n");
     const signingKey = hmac(
-      hmac(hmac(hmac(`AWS4${this.secretKey}`, day), this.region), "s3"),
+      hmac(
+        hmac(hmac(`AWS4${configuration.secretKey}`, day), configuration.region),
+        "s3",
+      ),
       "aws4_request",
     );
-    const signature = createHmac("sha256", signingKey).update(stringToSign, "utf8").digest("hex");
+    const signature = createHmac("sha256", signingKey)
+      .update(stringToSign, "utf8")
+      .digest("hex");
     query.set("X-Amz-Signature", signature);
-    const origin = `${this.endpoint.protocol}//${host}`;
+    const origin = `${configuration.endpoint.protocol}//${host}`;
     return {
       url: `${origin}${path}?${query.toString()}`,
       requiredHeaders: headers,
@@ -141,10 +137,30 @@ export class S3CompatibleSigner {
     const expiresAt = Math.floor(Date.now() / 1000) + Math.max(60, Math.min(3600, expiresSeconds));
     const path = `/${canonicalKey(objectKey)}`;
     const payload = `${tenantId}\n${path}\n${expiresAt}`;
-    const signature = createHmac("sha256", signingKey).update(payload, "utf8").digest("base64url");
+    const signature = createHmac("sha256", signingKey)
+      .update(payload, "utf8")
+      .digest("base64url");
     return {
       url: `https://${cdnDomain}${path}?tenant=${encode(tenantId)}&expires=${expiresAt}&signature=${encode(signature)}`,
       expiresAt: new Date(expiresAt * 1000).toISOString(),
+    };
+  }
+
+  private configuration(): StorageSigningConfiguration {
+    const endpoint = process.env.OBJECT_STORAGE_ENDPOINT?.trim();
+    const region = process.env.OBJECT_STORAGE_REGION?.trim();
+    const accessKey = process.env.OBJECT_STORAGE_ACCESS_KEY_ID?.trim();
+    const secretKey = process.env.OBJECT_STORAGE_SECRET_ACCESS_KEY?.trim();
+    if (!endpoint || !region || !accessKey || !secretKey) {
+      throw new ServiceUnavailableException("Object storage signing is not configured");
+    }
+    return {
+      endpoint: new URL(endpoint),
+      region,
+      accessKey,
+      secretKey,
+      sessionToken: process.env.OBJECT_STORAGE_SESSION_TOKEN?.trim() || undefined,
+      forcePathStyle: process.env.OBJECT_STORAGE_FORCE_PATH_STYLE !== "false",
     };
   }
 }
