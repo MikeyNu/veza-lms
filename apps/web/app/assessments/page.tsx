@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { AppShell } from "../../src/components/app-shell";
 import { AssessmentGovernanceCompletion } from "../../src/features/academic-evidence/academic-governance-completion";
 import { AssessmentWorkspace } from "../../src/features/academic-evidence/academic-workspaces";
+import { StaffGradebookDirectory } from "../../src/features/academic-evidence/staff-gradebook-workspace";
 import { loadAcademicEvidenceWorkspace } from "../../src/server/academic-evidence-api";
 import { loadCatalogue, loadCatalogueReferences } from "../../src/server/catalogue-api";
 import { requireWorkspaceSession } from "../../src/server/require-workspace-session";
@@ -40,9 +41,10 @@ export default async function AssessmentsPage() {
         institutionId={institutionId}
         workspace={workspace}
         references={references}
-        canApprove={roles.has("moderator") || roles.has("tenant-owner") || roles.has("institution-admin")}
+        canApprove={roles.has("moderator")}
         canRelease={roles.has("moderator") || roles.has("tenant-owner") || roles.has("institution-admin")}
       />
+      <StaffGradebookDirectory gradebooks={workspace.gradebooks} />
     </AppShell>
   );
 }
