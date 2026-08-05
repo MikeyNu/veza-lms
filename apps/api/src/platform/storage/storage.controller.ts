@@ -17,6 +17,7 @@ import { MfaGuard } from "../authentication/mfa.guard.js";
 import { TenantAuthorizationService } from "../authorization/tenant-authorization.service.js";
 import { TenantPermissionGuard } from "../authorization/tenant-permission.guard.js";
 import { TenantMembershipGuard } from "../../modules/tenancy/tenant-membership.guard.js";
+import { StorageAccessibilityService } from "./storage-accessibility.service.js";
 import { StorageAdministrationService } from "./storage-administration.service.js";
 import {
   ApproveMediaDeletionDto,
@@ -37,6 +38,7 @@ import { StorageService } from "./storage.service.js";
 export class StorageController {
   constructor(
     private readonly storage: StorageService,
+    private readonly accessibility: StorageAccessibilityService,
     private readonly administration: StorageAdministrationService,
     private readonly authorization: TenantAuthorizationService,
   ) {}
@@ -106,7 +108,7 @@ export class StorageController {
     @Body() input: RecordMediaAccessibilityDto,
   ) {
     this.manage(request);
-    return this.storage.recordAccessibility(assetId, input);
+    return this.accessibility.record(assetId, input);
   }
 
   @Get("assets/:assetId/delivery")
