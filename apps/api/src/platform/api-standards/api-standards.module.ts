@@ -11,6 +11,7 @@ import {
   OAuthTokenController,
   ServiceAccountController,
 } from "./service-account.controller.js";
+import { ServiceAccountQueryService } from "./service-account-query.service.js";
 import { ServiceAccountService } from "./service-account.service.js";
 
 @Global()
@@ -26,6 +27,7 @@ import { ServiceAccountService } from "./service-account.service.js";
     ApiGovernanceInterceptor,
     IdempotencyInterceptor,
     OpenApiService,
+    ServiceAccountQueryService,
     ServiceAccountService,
   ],
   exports: [
@@ -33,6 +35,7 @@ import { ServiceAccountService } from "./service-account.service.js";
     ApiGovernanceInterceptor,
     IdempotencyInterceptor,
     OpenApiService,
+    ServiceAccountQueryService,
     ServiceAccountService,
   ],
 })
