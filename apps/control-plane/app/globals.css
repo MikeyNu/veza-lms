@@ -1,4 +1,4 @@
-@import "@veza/ui/tokens.css";
+@import "@veza/ui/styles.css";
 @import "tailwindcss";
 @import "../styles/shell.css";
 @import "../styles/provisioning.css";
