@@ -1,8 +1,21 @@
-import { Body, Controller, Get, Param, ParseUUIDPipe, Post, Put, Query, UseGuards } from "@nestjs/common";
-import { permissions } from "@veza/authz";
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  ParseUUIDPipe,
+  Post,
+  Put,
+  Query,
+  Req,
+  UseGuards,
+} from "@nestjs/common";
+import { permissions, type Permission } from "@veza/authz";
+import type { AuthenticatedRequest } from "../../../platform/authentication/authenticated-request.js";
 import { AuthenticationGuard } from "../../../platform/authentication/authentication.guard.js";
 import { MfaGuard } from "../../../platform/authentication/mfa.guard.js";
 import { RequiresTenantPermission } from "../../../platform/authorization/requires-tenant-permission.decorator.js";
+import { TenantAuthorizationService } from "../../../platform/authorization/tenant-authorization.service.js";
 import { TenantPermissionGuard } from "../../../platform/authorization/tenant-permission.guard.js";
 import { TenantMembershipGuard } from "../../tenancy/tenant-membership.guard.js";
 import {
@@ -30,6 +43,7 @@ export class PeopleController {
     private readonly people: PeopleService,
     private readonly integrity: PeopleIntegrityService,
     private readonly query: PeopleQueryService,
+    private readonly authorization: TenantAuthorizationService,
   ) {}
 
   @Get()
@@ -76,49 +90,61 @@ export class PeopleController {
   @Put(":personId/institutions/:institutionId/learner-profile")
   @RequiresTenantPermission(permissions.learnerManage)
   learner(
+    @Req() request: AuthenticatedRequest,
     @Param("personId", new ParseUUIDPipe()) personId: string,
     @Param("institutionId", new ParseUUIDPipe()) institutionId: string,
     @Body() input: UpsertLearnerProfileDto,
   ) {
+    this.assertInstitutionPermission(request, permissions.learnerManage, institutionId);
     return this.people.upsertLearner(personId, institutionId, input);
   }
 
   @Put(":personId/institutions/:institutionId/staff-profile")
   @RequiresTenantPermission(permissions.staffManage)
   staff(
+    @Req() request: AuthenticatedRequest,
     @Param("personId", new ParseUUIDPipe()) personId: string,
     @Param("institutionId", new ParseUUIDPipe()) institutionId: string,
     @Body() input: UpsertStaffProfileDto,
   ) {
+    this.assertInstitutionPermission(request, permissions.staffManage, institutionId);
     return this.integrity.upsertStaff(personId, institutionId, input);
   }
 
   @Post(":personId/institutions/:institutionId/relationships")
   @RequiresTenantPermission(permissions.relationshipManage)
   relationship(
+    @Req() request: AuthenticatedRequest,
     @Param("personId", new ParseUUIDPipe()) personId: string,
     @Param("institutionId", new ParseUUIDPipe()) institutionId: string,
     @Body() input: CreateRelationshipDto,
   ) {
+    this.assertInstitutionPermission(request, permissions.relationshipManage, institutionId);
     return this.people.createRelationship(personId, institutionId, input);
   }
 
-  @Post("relationships/:relationshipId/verify")
+  @Post("institutions/:institutionId/relationships/:relationshipId/verify")
   @RequiresTenantPermission(permissions.relationshipManage)
   verify(
+    @Req() request: AuthenticatedRequest,
+    @Param("institutionId", new ParseUUIDPipe()) institutionId: string,
     @Param("relationshipId", new ParseUUIDPipe()) relationshipId: string,
     @Body() input: ChangeRelationshipStateDto,
   ) {
-    return this.integrity.verifyRelationship(relationshipId, input);
+    this.assertInstitutionPermission(request, permissions.relationshipManage, institutionId);
+    return this.integrity.verifyRelationship(relationshipId, input, institutionId);
   }
 
-  @Post("relationships/:relationshipId/revoke")
+  @Post("institutions/:institutionId/relationships/:relationshipId/revoke")
   @RequiresTenantPermission(permissions.relationshipManage)
   revoke(
+    @Req() request: AuthenticatedRequest,
+    @Param("institutionId", new ParseUUIDPipe()) institutionId: string,
     @Param("relationshipId", new ParseUUIDPipe()) relationshipId: string,
     @Body() input: ChangeRelationshipStateDto,
   ) {
-    return this.integrity.revokeRelationship(relationshipId, input);
+    this.assertInstitutionPermission(request, permissions.relationshipManage, institutionId);
+    return this.integrity.revokeRelationship(relationshipId, input, institutionId);
   }
 
   @Post("duplicates/:candidateId/decision")
@@ -161,5 +187,17 @@ export class PeopleController {
     @Body() input: CommitPeopleImportDto,
   ) {
     return this.people.commitImport(importId, input);
+  }
+
+  private assertInstitutionPermission(
+    request: AuthenticatedRequest,
+    permission: Permission,
+    institutionId: string,
+  ): void {
+    this.authorization.assertPermission(
+      request,
+      permission,
+      this.authorization.buildInstitutionResource(institutionId),
+    );
   }
 }
