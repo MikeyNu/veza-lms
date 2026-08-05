@@ -1,18 +1,6 @@
-import { Controller, Get, Module } from "@nestjs/common";
+import { Module } from "@nestjs/common";
+import { HealthController } from "./health.controller.js";
+import { HealthService } from "./health.service.js";
 
-interface HealthResponse {
-  readonly status: "ok";
-  readonly service: "veza-api";
-  readonly timestamp: string;
-}
-
-@Controller("health")
-class HealthController {
-  @Get()
-  check(): HealthResponse {
-    return { status: "ok", service: "veza-api", timestamp: new Date().toISOString() };
-  }
-}
-
-@Module({ controllers: [HealthController] })
+@Module({ controllers: [HealthController], providers: [HealthService] })
 export class HealthModule {}
