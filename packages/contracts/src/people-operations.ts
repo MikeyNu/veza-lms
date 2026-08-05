@@ -127,3 +127,19 @@ export interface PeopleImportRowRecord {
   readonly reconciliationReason?: string;
   readonly version: number;
 }
+
+export interface PeopleOperationReferences {
+  readonly institutionId: string;
+  readonly organisationalUnits: readonly {
+    readonly id: string;
+    readonly code: string;
+    readonly displayName: string;
+    readonly unitType: string;
+  }[];
+  readonly linkableIdentities: readonly {
+    readonly userId: string;
+    readonly displayName: string;
+    readonly email?: string;
+    readonly roles: readonly string[];
+  }[];
+}
