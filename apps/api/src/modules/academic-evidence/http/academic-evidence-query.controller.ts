@@ -7,14 +7,60 @@ import { TenantPermissionGuard } from "../../../platform/authorization/tenant-pe
 import { TenantMembershipGuard } from "../../tenancy/tenant-membership.guard.js";
 import { AcademicEvidenceQueryService } from "../application/academic-evidence-query.service.js";
 
-@Controller("institutions/:institutionId/academic-evidence")
+@Controller()
 @UseGuards(AuthenticationGuard, TenantMembershipGuard, TenantPermissionGuard)
 export class AcademicEvidenceQueryController {
-  constructor(private readonly query: AcademicEvidenceQueryService, private readonly authorization: TenantAuthorizationService) {}
+  constructor(
+    private readonly query: AcademicEvidenceQueryService,
+    private readonly authorization: TenantAuthorizationService,
+  ) {}
 
-  @Get()
-  workspace(@Req() request: AuthenticatedRequest, @Param("institutionId", new ParseUUIDPipe()) institutionId: string) {
-    this.authorization.assertPermission(request, permissions.gradebookRead, this.authorization.buildInstitutionResource(institutionId));
+  @Get("institutions/:institutionId/academic-evidence")
+  workspace(
+    @Req() request: AuthenticatedRequest,
+    @Param("institutionId", new ParseUUIDPipe()) institutionId: string,
+  ) {
+    this.authorization.assertPermission(
+      request,
+      permissions.gradebookRead,
+      this.authorization.buildInstitutionResource(institutionId),
+    );
     return this.query.workspace(institutionId);
+  }
+
+  @Get("learner/assignments")
+  learnerAssignments(@Req() request: AuthenticatedRequest) {
+    this.authorization.assertPermission(
+      request,
+      permissions.assignmentRead,
+      this.authorization.buildTenantResource(),
+    );
+    return this.query.learnerAssignments();
+  }
+
+  @Get("learner/gradebook/:courseRunId")
+  learnerGradebook(
+    @Req() request: AuthenticatedRequest,
+    @Param("courseRunId", new ParseUUIDPipe()) courseRunId: string,
+  ) {
+    this.authorization.assertPermission(
+      request,
+      permissions.gradebookRead,
+      this.authorization.buildTenantResource(),
+    );
+    return this.query.learnerGradebook(courseRunId);
+  }
+
+  @Get("academic-evidence/gradebook/:courseRunId/staff")
+  staffGradebook(
+    @Req() request: AuthenticatedRequest,
+    @Param("courseRunId", new ParseUUIDPipe()) courseRunId: string,
+  ) {
+    this.authorization.assertPermission(
+      request,
+      permissions.gradebookRead,
+      this.authorization.buildTenantResource(),
+    );
+    return this.query.staffGradebook(courseRunId);
   }
 }
