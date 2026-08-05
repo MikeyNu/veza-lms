@@ -53,6 +53,22 @@ class EventReconciliationHandler implements ScheduledJobHandler {
   }
 }
 
+export class PlatformGovernanceSweepHandler implements ScheduledJobHandler {
+  constructor(
+    private readonly pool: Pool,
+    private readonly functionName:
+      | "expire_support_sessions"
+      | "apply_due_commercial_policy",
+  ) {}
+
+  async execute(): Promise<Readonly<Record<string, unknown>>> {
+    const result = await this.pool.query<{ result: Readonly<Record<string, unknown>> }>(
+      `SELECT app.${this.functionName}() result`,
+    );
+    return result.rows[0]?.result ?? {};
+  }
+}
+
 export class WorkerScheduler {
   private readonly handlers = new Map<string, ScheduledJobHandler>();
 
