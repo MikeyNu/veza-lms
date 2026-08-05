@@ -8,6 +8,11 @@
       "types": "./src/index.ts",
       "import": "./dist/index.js",
       "default": "./dist/index.js"
+    },
+    "./delegation": {
+      "types": "./src/delegation.ts",
+      "import": "./dist/delegation.js",
+      "default": "./dist/delegation.js"
     }
   },
   "scripts": {

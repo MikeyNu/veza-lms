@@ -1,23 +1,21 @@
-import { randomUUID } from "node:crypto";
 import { ConflictException, ForbiddenException, GoneException, Injectable, NotFoundException } from "@nestjs/common";
 import type { BaselineRoleKey, MembershipId, TenantId, UserId } from "@veza/contracts";
 import type { QueryResultRow } from "pg";
 import { AuditWriter } from "../../audit/audit-writer.service.js";
 import { OutboxWriter } from "../../../platform/events/outbox-writer.service.js";
 import { DatabaseService } from "../../../platform/database/database.service.js";
-import { isPostgresError } from "../../../platform/database/database.types.js";
 import type { AuthenticatedRequest } from "../../../platform/authentication/authenticated-request.js";
 import type { ExternalPrincipal } from "../../../platform/authentication/external-principal.js";
 import { TenantContext } from "../../../platform/request-context/tenant-context.js";
 import { InvitationTokenService } from "../security/invitation-token.service.js";
-import { TenantAuthorizationService } from "../../../platform/authorization/tenant-authorization.service.js";
+import { AccessAdministrationService } from "./access-administration.service.js";
 
 interface InvitationRow extends QueryResultRow {
   readonly id: string;
   readonly tenant_id: string;
   readonly email: string;
   readonly role_key: BaselineRoleKey;
-  readonly scope_type: "tenant";
+  readonly scope_type: "tenant" | "institution";
   readonly scope_id: string;
   readonly status: string;
   readonly token_digest: string | null;
@@ -50,7 +48,7 @@ export class MembershipInvitationService {
   constructor(
     private readonly database: DatabaseService,
     private readonly tenantContext: TenantContext,
-    private readonly authorization: TenantAuthorizationService,
+    private readonly accessAdministration: AccessAdministrationService,
     private readonly tokens: InvitationTokenService,
     private readonly audit: AuditWriter,
     private readonly outbox: OutboxWriter,
@@ -58,62 +56,18 @@ export class MembershipInvitationService {
 
   async inviteTenantOwner(request: AuthenticatedRequest, email: string, expiresInDays: number): Promise<InvitationQueued> {
     const context = this.tenantContext.require();
-    const resource = this.authorization.buildTenantResource();
-    this.authorization.assertCanDelegate(request, "tenant-owner", resource);
-
-    const invitationId = randomUUID();
-    const expiresAt = new Date(Date.now() + expiresInDays * 86_400_000);
-    const secret = this.tokens.create();
-    const normalizedEmail = email.trim().toLowerCase();
-
-    return this.database.withTenantTransaction(context.tenantId, async (client) => {
-      try {
-        await client.query(
-          `INSERT INTO membership_invitations (
-             id, tenant_id, email, role_key, scope_type, scope_id,
-             status, token_digest, expires_at, invited_by
-           ) VALUES ($1,$2,$3,'tenant-owner','tenant',$2,'pending-delivery',$4,$5,$6)`,
-          [invitationId, context.tenantId, normalizedEmail, secret.tokenDigest, expiresAt, context.actorId],
-        );
-      } catch (error) {
-        if (isPostgresError(error, "23505", "membership_invitations_open_email_idx")) {
-          throw new ConflictException("An active invitation already exists for this tenant owner");
-        }
-        throw error;
-      }
-
-      await this.audit.append(client, {
-        tenantId: context.tenantId,
-        plane: "application",
-        eventType: "membership.invitation.created",
-        actorId: context.actorId,
-        membershipId: context.membershipId,
-        resourceType: "membership-invitation",
-        resourceId: invitationId,
-        purpose: "tenant administration",
-        correlationId: context.correlationId,
-        afterState: { email: normalizedEmail, role: "tenant-owner", status: "pending-delivery" },
-      });
-      await this.outbox.append(client, {
-        tenantId: context.tenantId,
-        eventName: "identity.membership-invitation.requested",
-        eventVersion: 1,
-        aggregateType: "membership-invitation",
-        aggregateId: invitationId,
-        aggregateVersion: 1,
-        actorId: context.actorId,
-        correlationId: context.correlationId,
-        payload: {
-          invitationId,
-          email: normalizedEmail,
-          role: "tenant-owner",
-          expiresAt: expiresAt.toISOString(),
-          encryptedToken: secret.encryptedToken,
-        },
-      });
-
-      return { invitationId, deliveryStatus: "queued", expiresAt: expiresAt.toISOString() };
+    const result = await this.accessAdministration.createInvitation(request, {
+      email,
+      roleKey: "tenant-owner",
+      scopeType: "tenant",
+      scopeId: context.tenantId,
+      expiresInDays,
     });
+    return {
+      invitationId: result.invitationId,
+      deliveryStatus: result.deliveryStatus,
+      expiresAt: result.expiresAt,
+    };
   }
 
   async accept(
@@ -149,7 +103,9 @@ export class MembershipInvitationService {
         `INSERT INTO users (identity_issuer, identity_subject, email, display_name)
          VALUES ($1,$2,$3,$4)
          ON CONFLICT (identity_issuer, identity_subject)
-         DO UPDATE SET email = EXCLUDED.email, display_name = COALESCE(EXCLUDED.display_name, users.display_name), updated_at = now()
+         DO UPDATE SET email = EXCLUDED.email,
+                       display_name = COALESCE(EXCLUDED.display_name, users.display_name),
+                       updated_at = now()
          RETURNING id`,
         [external.issuer, external.subject, externalEmail, external.displayName ?? null],
       );
@@ -167,14 +123,25 @@ export class MembershipInvitationService {
       const membershipId = membershipResult.rows[0]?.id as MembershipId | undefined;
       if (!membershipId) throw new Error("Membership could not be created");
 
-      await client.query(
-        `INSERT INTO role_assignments (
-           tenant_id, membership_id, role_key, scope_type, scope_id, assigned_by
-         ) VALUES ($1,$2,$3,$4,$5,$6)
-         ON CONFLICT (tenant_id, membership_id, role_key, scope_type, scope_id)
-         DO NOTHING`,
-        [invitation.tenant_id, membershipId, invitation.role_key, invitation.scope_type, invitation.scope_id, invitation.invited_by],
+      const activeRole = await client.query(
+        `SELECT 1 FROM role_assignments
+         WHERE tenant_id = $1
+           AND membership_id = $2
+           AND role_key = $3
+           AND scope_type = $4
+           AND scope_id = $5
+           AND valid_from <= now()
+           AND (valid_until IS NULL OR valid_until > now())`,
+        [invitation.tenant_id, membershipId, invitation.role_key, invitation.scope_type, invitation.scope_id],
       );
+      if (activeRole.rowCount === 0) {
+        await client.query(
+          `INSERT INTO role_assignments (
+             tenant_id, membership_id, role_key, scope_type, scope_id, assigned_by
+           ) VALUES ($1,$2,$3,$4,$5,$6)`,
+          [invitation.tenant_id, membershipId, invitation.role_key, invitation.scope_type, invitation.scope_id, invitation.invited_by],
+        );
+      }
       await client.query(
         `UPDATE membership_invitations
          SET status = 'accepted', accepted_by_user_id = $2, token_digest = NULL, updated_at = now()
@@ -183,6 +150,12 @@ export class MembershipInvitationService {
       );
 
       const tenantId = invitation.tenant_id as TenantId;
+      const evidence = {
+        status: "active",
+        roleKey: invitation.role_key,
+        scopeType: invitation.scope_type,
+        scopeId: invitation.scope_id,
+      };
       await this.audit.append(client, {
         tenantId,
         plane: "control",
@@ -192,7 +165,7 @@ export class MembershipInvitationService {
         resourceType: "membership",
         resourceId: membershipId,
         correlationId,
-        afterState: { status: "active", role: invitation.role_key },
+        afterState: evidence,
       });
       await this.outbox.append(client, {
         tenantId,
@@ -203,7 +176,7 @@ export class MembershipInvitationService {
         aggregateVersion: 1,
         actorId: userId,
         correlationId,
-        payload: { membershipId, userId, role: invitation.role_key },
+        payload: { membershipId, userId, ...evidence },
       });
 
       return { tenantId, membershipId, status: "active" };

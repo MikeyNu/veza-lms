@@ -1,11 +1,11 @@
 import { ForbiddenException, Injectable } from "@nestjs/common";
 import {
   evaluateAccess,
-  permissionsForRoles,
   type Permission,
   type PolicyAssignment,
   type ResourceScope,
 } from "@veza/authz";
+import { canDelegateRole, type DelegationScopeType } from "@veza/authz/delegation";
 import type { BaselineRoleKey, TenantModuleKey } from "@veza/contracts";
 import type { AuthenticatedRequest } from "../authentication/authenticated-request.js";
 import { TenantContext } from "../request-context/tenant-context.js";
@@ -38,13 +38,27 @@ export class TenantAuthorizationService {
     targetRole: BaselineRoleKey,
     resource: ResourceScope,
   ): void {
-    const requiredPermissions = permissionsForRoles([targetRole]);
-    for (const permission of requiredPermissions) this.assertPermission(request, permission, resource);
+    if (resource.type !== "tenant" && resource.type !== "institution") {
+      throw new ForbiddenException("Role delegation is not available for this scope yet");
+    }
+    const actingRoles = request.workspaceSession?.membership.roles ?? [];
+    if (!canDelegateRole(actingRoles, targetRole, resource.type as DelegationScopeType)) {
+      throw new ForbiddenException("The selected role cannot be delegated from this workspace scope");
+    }
   }
 
   buildTenantResource(): ResourceScope {
     const context = this.tenantContext.require();
     return { type: "tenant", id: context.tenantId, ancestors: [] };
+  }
+
+  buildInstitutionResource(institutionId: string): ResourceScope {
+    const context = this.tenantContext.require();
+    return {
+      type: "institution",
+      id: institutionId,
+      ancestors: [{ type: "tenant", id: context.tenantId }],
+    };
   }
 }
 
