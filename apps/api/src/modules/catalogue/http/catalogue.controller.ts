@@ -27,6 +27,7 @@ import {
 } from "../application/catalogue.dto.js";
 import { CatalogueReferenceService } from "../application/catalogue-reference.service.js";
 import { CatalogueService } from "../application/catalogue.service.js";
+import { CatalogueWorkspaceQueryService } from "../application/catalogue-workspace-query.service.js";
 import { CurriculumApprovalService } from "../application/curriculum-approval.service.js";
 
 @Controller("institutions/:institutionId/catalogue")
@@ -34,6 +35,7 @@ import { CurriculumApprovalService } from "../application/curriculum-approval.se
 export class CatalogueController {
   constructor(
     private readonly catalogue: CatalogueService,
+    private readonly workspaceQuery: CatalogueWorkspaceQueryService,
     private readonly definitions: CatalogueDefinitionService,
     private readonly references: CatalogueReferenceService,
     private readonly analysis: CatalogueAnalysisService,
@@ -47,7 +49,7 @@ export class CatalogueController {
     @Param("institutionId", new ParseUUIDPipe()) institutionId: string,
   ) {
     this.assert(request, permissions.catalogueRead, institutionId);
-    return this.catalogue.workspace(institutionId);
+    return this.workspaceQuery.load(institutionId);
   }
 
   @Get("references")
