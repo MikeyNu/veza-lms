@@ -10,6 +10,7 @@ import { AuthenticationModule } from "./platform/authentication/authentication.m
 import { AuthorizationModule } from "./platform/authorization/authorization.module.js";
 import { DatabaseModule } from "./platform/database/database.module.js";
 import { EventsModule } from "./platform/events/events.module.js";
+import { FeatureFlagsModule } from "./platform/feature-flags/feature-flags.module.js";
 import { RequestContextModule } from "./platform/request-context/request-context.module.js";
 
 @Module({
@@ -20,6 +21,7 @@ import { RequestContextModule } from "./platform/request-context/request-context
     RequestContextModule,
     AuditModule,
     EventsModule,
+    FeatureFlagsModule,
     PlatformOperationsModule,
     IdentityAccessModule,
     InstitutionStructureModule,
