@@ -31,7 +31,18 @@ export const permissions = Object.freeze({
   relationshipManage: "relationship.manage",
   peopleImportManage: "people-import.manage",
   peopleManage: "people.manage",
+  catalogueRead: "catalogue.read",
+  outcomeManage: "outcome.manage",
+  programmeManage: "programme.manage",
+  programmeApprove: "programme.approve",
+  blueprintManage: "blueprint.manage",
+  blueprintApprove: "blueprint.approve",
+  courseRunManage: "course-run.manage",
+  cohortManage: "cohort.manage",
+  classManage: "class.manage",
+  enrolmentRead: "enrolment.read",
   enrolmentManage: "enrolment.manage",
+  enrolmentTransfer: "enrolment.transfer",
   curriculumManage: "curriculum.manage",
   courseManage: "course.manage",
   courseDeliver: "course.deliver",
@@ -79,6 +90,21 @@ export interface AccessDecision {
   readonly reason: "explicit-deny" | "missing-permission" | "scope-mismatch" | "condition-failed" | "allowed";
 }
 
+const curriculumPermissions = [
+  permissions.catalogueRead,
+  permissions.outcomeManage,
+  permissions.programmeManage,
+  permissions.programmeApprove,
+  permissions.blueprintManage,
+  permissions.blueprintApprove,
+  permissions.courseRunManage,
+  permissions.cohortManage,
+  permissions.classManage,
+  permissions.enrolmentRead,
+  permissions.enrolmentManage,
+  permissions.enrolmentTransfer,
+] as const;
+
 const rolePermissions: Readonly<Record<BaselineRoleKey, readonly Permission[]>> = Object.freeze({
   "tenant-owner": [
     permissions.tenantRead, permissions.tenantConfigure, permissions.tenantActivate,
@@ -91,6 +117,7 @@ const rolePermissions: Readonly<Record<BaselineRoleKey, readonly Permission[]>> 
     permissions.peopleMerge, permissions.learnerRead, permissions.learnerManage,
     permissions.staffRead, permissions.staffManage, permissions.relationshipRead,
     permissions.relationshipManage, permissions.peopleImportManage,
+    ...curriculumPermissions,
   ],
   "institution-admin": [
     permissions.tenantRead, permissions.entitlementRead, permissions.membershipRead,
@@ -102,23 +129,34 @@ const rolePermissions: Readonly<Record<BaselineRoleKey, readonly Permission[]>> 
     permissions.peopleMerge, permissions.learnerRead, permissions.learnerManage,
     permissions.staffRead, permissions.staffManage, permissions.relationshipRead,
     permissions.relationshipManage, permissions.peopleImportManage,
-    permissions.enrolmentManage, permissions.courseManage,
+    ...curriculumPermissions,
   ],
   registrar: [
     permissions.membershipRead, permissions.academicPeriodManage, permissions.peopleRead,
     permissions.peopleCreate, permissions.peopleUpdate, permissions.peopleMerge,
     permissions.learnerRead, permissions.learnerManage, permissions.relationshipRead,
-    permissions.relationshipManage, permissions.peopleImportManage, permissions.enrolmentManage,
-    permissions.auditRead,
+    permissions.relationshipManage, permissions.peopleImportManage,
+    permissions.catalogueRead, permissions.courseRunManage, permissions.cohortManage,
+    permissions.classManage, permissions.enrolmentRead, permissions.enrolmentManage,
+    permissions.enrolmentTransfer, permissions.auditRead,
   ],
-  "curriculum-manager": [permissions.curriculumManage, permissions.courseManage, permissions.peopleRead],
-  "course-manager": [permissions.courseManage, permissions.peopleRead, permissions.membershipRead],
-  instructor: [permissions.courseDeliver, permissions.peopleRead, permissions.learnerRead, permissions.assessmentGrade],
+  "curriculum-manager": [
+    permissions.peopleRead, permissions.catalogueRead, permissions.outcomeManage,
+    permissions.programmeManage, permissions.programmeApprove,
+    permissions.blueprintManage, permissions.blueprintApprove,
+    permissions.curriculumManage, permissions.courseManage,
+  ],
+  "course-manager": [
+    permissions.courseManage, permissions.peopleRead, permissions.membershipRead,
+    permissions.catalogueRead, permissions.courseRunManage, permissions.cohortManage,
+    permissions.classManage, permissions.enrolmentRead,
+  ],
+  instructor: [permissions.courseDeliver, permissions.peopleRead, permissions.learnerRead, permissions.catalogueRead, permissions.enrolmentRead, permissions.assessmentGrade],
   assessor: [permissions.assessmentGrade],
   moderator: [permissions.assessmentModerate, permissions.assessmentGrade],
   learner: [permissions.learningParticipate],
   "guardian-sponsor": [permissions.guardianSummaryRead],
-  auditor: [permissions.evidenceRoomRead, permissions.auditRead],
+  auditor: [permissions.evidenceRoomRead, permissions.auditRead, permissions.catalogueRead, permissions.enrolmentRead],
   "support-agent": [permissions.supportDiagnose, permissions.tenantRead],
 });
 
