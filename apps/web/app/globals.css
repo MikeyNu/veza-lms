@@ -13,6 +13,7 @@
 @import "../styles/person-administration.css";
 @import "../styles/catalogue-workspace.css";
 @import "../styles/catalogue-governance.css";
+@import "../styles/learning-platform.css";
 
 :root { --ink:var(--veza-ink);--ink-soft:var(--veza-ink-soft);--muted:var(--veza-muted);--canvas:var(--veza-canvas);--surface:var(--veza-surface);--line:var(--veza-line);--line-strong:var(--veza-line-strong);--blue:var(--veza-brand);--teal:var(--veza-learning);--violet:var(--veza-violet);--amber:var(--veza-warning);--critical:var(--veza-critical);--success:var(--veza-success);--sidebar:var(--veza-sidebar);--radius:var(--veza-radius-panel) }
 *{box-sizing:border-box}html{background:var(--canvas)}body{margin:0;color:var(--ink);background:var(--canvas);font-family:Inter,Geist,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;font-size:14px}button,input,select,textarea{font:inherit}button,a{-webkit-tap-highlight-color:transparent}a{color:inherit;text-decoration:none}svg{width:20px;height:20px}:focus-visible{outline:none;box-shadow:var(--veza-focus)}
