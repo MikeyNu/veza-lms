@@ -7,6 +7,7 @@
 @import "../styles/auth.css";
 @import "../styles/foundation.css";
 @import "../styles/institution-setup.css";
+@import "../styles/evidence-room.css";
 
 :root {
   --ink: var(--veza-ink);
