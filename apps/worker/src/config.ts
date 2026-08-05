@@ -13,6 +13,8 @@ export interface WorkerConfig {
   readonly maximumAttempts: number;
   readonly retryBaseSeconds: number;
   readonly retryMaximumSeconds: number;
+  readonly metricRefreshIntervalMs: number;
+  readonly metricRefreshBatchSize: number;
   readonly workerId: string;
 }
 
@@ -33,24 +35,39 @@ function boundedInteger(name: string, fallback: number, minimum: number, maximum
 
 export function loadWorkerConfig(): WorkerConfig {
   const transport = (process.env.OUTBOX_TRANSPORT?.trim() || "stdout") as OutboxTransport;
-  if (transport !== "eventbridge" && transport !== "stdout") throw new Error("OUTBOX_TRANSPORT must be eventbridge or stdout");
+  if (transport !== "eventbridge" && transport !== "stdout") {
+    throw new Error("OUTBOX_TRANSPORT must be eventbridge or stdout");
+  }
   if (process.env.NODE_ENV === "production" && transport === "stdout") {
     throw new Error("OUTBOX_TRANSPORT=stdout is prohibited in production");
   }
 
   const eventBusName = process.env.EVENTBRIDGE_EVENT_BUS_NAME?.trim();
   const awsRegion = process.env.AWS_REGION?.trim();
-  if (transport === "eventbridge" && !eventBusName) throw new Error("EVENTBRIDGE_EVENT_BUS_NAME is required for EventBridge delivery");
-  if (transport === "eventbridge" && !awsRegion) throw new Error("AWS_REGION is required for EventBridge delivery");
-  if (eventBusName && eventBusName.length > 256) throw new Error("EVENTBRIDGE_EVENT_BUS_NAME must not exceed 256 characters");
+  if (transport === "eventbridge" && !eventBusName) {
+    throw new Error("EVENTBRIDGE_EVENT_BUS_NAME is required for EventBridge delivery");
+  }
+  if (transport === "eventbridge" && !awsRegion) {
+    throw new Error("AWS_REGION is required for EventBridge delivery");
+  }
+  if (eventBusName && eventBusName.length > 256) {
+    throw new Error("EVENTBRIDGE_EVENT_BUS_NAME must not exceed 256 characters");
+  }
 
   const eventSource = process.env.EVENTBRIDGE_EVENT_SOURCE?.trim() || "veza.learning-cloud";
   if (eventSource.length > 256) throw new Error("EVENTBRIDGE_EVENT_SOURCE must not exceed 256 characters");
   const workerId = process.env.WORKER_INSTANCE_ID?.trim() || `${process.env.HOSTNAME ?? "local"}-${process.pid}`;
-  if (!/^[A-Za-z0-9._:-]{3,160}$/.test(workerId)) throw new Error("WORKER_INSTANCE_ID contains unsupported characters");
+  if (!/^[A-Za-z0-9._:-]{3,160}$/.test(workerId)) {
+    throw new Error("WORKER_INSTANCE_ID contains unsupported characters");
+  }
 
   const leaseSeconds = boundedInteger("OUTBOX_LEASE_SECONDS", 60, 10, 3_600);
-  const eventBridgeRequestTimeoutMs = boundedInteger("EVENTBRIDGE_REQUEST_TIMEOUT_MS", 15_000, 1_000, 60_000);
+  const eventBridgeRequestTimeoutMs = boundedInteger(
+    "EVENTBRIDGE_REQUEST_TIMEOUT_MS",
+    15_000,
+    1_000,
+    60_000,
+  );
   if (transport === "eventbridge" && eventBridgeRequestTimeoutMs >= leaseSeconds * 1_000) {
     throw new Error("EVENTBRIDGE_REQUEST_TIMEOUT_MS must be shorter than the outbox lease");
   }
@@ -68,6 +85,13 @@ export function loadWorkerConfig(): WorkerConfig {
     maximumAttempts: boundedInteger("OUTBOX_MAXIMUM_ATTEMPTS", 12, 1, 100),
     retryBaseSeconds: boundedInteger("OUTBOX_RETRY_BASE_SECONDS", 5, 1, 3_600),
     retryMaximumSeconds: boundedInteger("OUTBOX_RETRY_MAXIMUM_SECONDS", 3_600, 1, 86_400),
+    metricRefreshIntervalMs: boundedInteger(
+      "METRIC_REFRESH_INTERVAL_MS",
+      300_000,
+      60_000,
+      86_400_000,
+    ),
+    metricRefreshBatchSize: boundedInteger("METRIC_REFRESH_BATCH_SIZE", 25, 1, 250),
     workerId,
   };
 }
