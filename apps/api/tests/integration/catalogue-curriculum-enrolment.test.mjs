@@ -96,7 +96,7 @@ test("approved blueprints are immutable and can create bounded delivery runs", a
   });
 });
 
-test("enrolment transitions retain immutable timeline evidence", async () => {
+test("enrolment creation automatically records timeline evidence", async () => {
   await withTenant(tenant, async (client) => {
     const definition = randomUUID();
     const blueprint = randomUUID();
@@ -134,14 +134,14 @@ test("enrolment transitions retain immutable timeline evidence", async () => {
        ) VALUES ($1,$2,$3,$4,$5,'active','2027-02-15',$6,$6)`,
       [enrolment, tenant, institution, learner, courseRun, actor],
     );
-    await client.query(
-      `INSERT INTO enrolment_transitions (
-         id,tenant_id,institution_id,enrolment_id,from_status,to_status,reason,actor_id,correlation_id
-       ) VALUES ($1,$2,$3,$4,NULL,'active','Initial verified registration',$5,$6)`,
-      [randomUUID(), tenant, institution, enrolment, actor, `catalogue-${runId}`],
+    const timeline = await client.query(
+      "SELECT from_status,to_status,reason FROM enrolment_transitions WHERE enrolment_id=$1",
+      [enrolment],
     );
-    const timeline = await client.query("SELECT from_status,to_status FROM enrolment_transitions WHERE enrolment_id=$1", [enrolment]);
-    assert.deepEqual(timeline.rows, [{ from_status: null, to_status: "active" }]);
+    assert.equal(timeline.rowCount, 1);
+    assert.equal(timeline.rows[0].from_status, null);
+    assert.equal(timeline.rows[0].to_status, "active");
+    assert.match(timeline.rows[0].reason, /institution enrolment workflow/i);
   });
 });
 
