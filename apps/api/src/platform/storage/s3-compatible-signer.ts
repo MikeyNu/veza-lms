@@ -10,13 +10,24 @@ interface PresignInput {
   readonly checksumSha256?: string;
 }
 
-interface StorageSigningConfiguration {
-  readonly endpoint: URL;
-  readonly region: string;
+interface StorageCredentials {
   readonly accessKey: string;
   readonly secretKey: string;
   readonly sessionToken?: string;
+  readonly expiresAt?: number;
+}
+
+interface StorageSigningConfiguration extends StorageCredentials {
+  readonly endpoint: URL;
+  readonly region: string;
   readonly forcePathStyle: boolean;
+}
+
+interface EcsCredentialResponse {
+  readonly AccessKeyId?: string;
+  readonly SecretAccessKey?: string;
+  readonly Token?: string;
+  readonly Expiration?: string;
 }
 
 function sha256(value: string): string {
@@ -44,12 +55,14 @@ function timestamp(date: Date): { readonly amz: string; readonly day: string } {
 
 @Injectable()
 export class S3CompatibleSigner {
-  presign(input: PresignInput): {
+  private cachedCredentials?: StorageCredentials;
+
+  async presign(input: PresignInput): Promise<{
     readonly url: string;
     readonly requiredHeaders: Readonly<Record<string, string>>;
     readonly expiresAt: string;
-  } {
-    const configuration = this.configuration();
+  }> {
+    const configuration = await this.configuration();
     const now = new Date();
     const expiresSeconds = Math.max(60, Math.min(3600, input.expiresSeconds));
     const expiresAt = new Date(now.getTime() + expiresSeconds * 1000);
@@ -146,21 +159,61 @@ export class S3CompatibleSigner {
     };
   }
 
-  private configuration(): StorageSigningConfiguration {
-    const endpoint = process.env.OBJECT_STORAGE_ENDPOINT?.trim();
-    const region = process.env.OBJECT_STORAGE_REGION?.trim();
+  private async configuration(): Promise<StorageSigningConfiguration> {
+    const region = process.env.OBJECT_STORAGE_REGION?.trim() || process.env.AWS_REGION?.trim();
+    if (!region) throw new ServiceUnavailableException("Object storage region is not configured");
+    const endpoint = new URL(
+      process.env.OBJECT_STORAGE_ENDPOINT?.trim() || `https://s3.${region}.amazonaws.com`,
+    );
+    const credentials = await this.credentials();
+    return {
+      endpoint,
+      region,
+      ...credentials,
+      forcePathStyle: process.env.OBJECT_STORAGE_FORCE_PATH_STYLE === "true",
+    };
+  }
+
+  private async credentials(): Promise<StorageCredentials> {
     const accessKey = process.env.OBJECT_STORAGE_ACCESS_KEY_ID?.trim();
     const secretKey = process.env.OBJECT_STORAGE_SECRET_ACCESS_KEY?.trim();
-    if (!endpoint || !region || !accessKey || !secretKey) {
-      throw new ServiceUnavailableException("Object storage signing is not configured");
+    if (accessKey && secretKey) {
+      return {
+        accessKey,
+        secretKey,
+        sessionToken: process.env.OBJECT_STORAGE_SESSION_TOKEN?.trim() || undefined,
+      };
     }
-    return {
-      endpoint: new URL(endpoint),
-      region,
-      accessKey,
-      secretKey,
-      sessionToken: process.env.OBJECT_STORAGE_SESSION_TOKEN?.trim() || undefined,
-      forcePathStyle: process.env.OBJECT_STORAGE_FORCE_PATH_STYLE !== "false",
+    if (
+      this.cachedCredentials &&
+      (!this.cachedCredentials.expiresAt || this.cachedCredentials.expiresAt > Date.now() + 300_000)
+    ) {
+      return this.cachedCredentials;
+    }
+    const relativeUri = process.env.AWS_CONTAINER_CREDENTIALS_RELATIVE_URI?.trim();
+    if (!relativeUri || !relativeUri.startsWith("/")) {
+      throw new ServiceUnavailableException(
+        "Object storage credentials are not available from environment or ECS task role",
+      );
+    }
+    const response = await fetch(`http://169.254.170.2${relativeUri}`, {
+      headers: { accept: "application/json" },
+      signal: AbortSignal.timeout(3_000),
+    }).catch(() => undefined);
+    if (!response?.ok) {
+      throw new ServiceUnavailableException("ECS task credentials could not be resolved");
+    }
+    const body = (await response.json()) as EcsCredentialResponse;
+    if (!body.AccessKeyId || !body.SecretAccessKey || !body.Token) {
+      throw new ServiceUnavailableException("ECS task credentials were incomplete");
+    }
+    const expiration = body.Expiration ? Date.parse(body.Expiration) : undefined;
+    this.cachedCredentials = {
+      accessKey: body.AccessKeyId,
+      secretKey: body.SecretAccessKey,
+      sessionToken: body.Token,
+      expiresAt: expiration && Number.isFinite(expiration) ? expiration : undefined,
     };
+    return this.cachedCredentials;
   }
 }
