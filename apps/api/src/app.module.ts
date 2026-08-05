@@ -6,6 +6,7 @@ import { IdentityAccessModule } from "./modules/identity-access/identity-access.
 import { InstitutionStructureModule } from "./modules/institution-structure/institution-structure.module.js";
 import { PeopleModule } from "./modules/people/people.module.js";
 import { PlatformOperationsModule } from "./modules/platform-operations/platform-operations.module.js";
+import { StudioModule } from "./modules/studio/studio.module.js";
 import { TenantEntitlementsModule } from "./modules/tenant-entitlements/tenant-entitlements.module.js";
 import { TenancyModule } from "./modules/tenancy/tenancy.module.js";
 import { TerminologyModule } from "./modules/terminology/terminology.module.js";
@@ -31,6 +32,7 @@ import { RequestContextModule } from "./platform/request-context/request-context
     PeopleModule,
     TerminologyModule,
     CatalogueModule,
+    StudioModule,
     TenancyModule,
     TenantEntitlementsModule,
     HealthModule,
