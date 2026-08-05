@@ -43,7 +43,7 @@ const definitions: readonly NavigationDefinition[] = [
   { key: "people", labels: { default: "People", instructor: "Learners" }, href: "/people", icon: "people", roles: institutionalRoles },
   { key: "learning", labels: { default: "Learning", learner: "My learning", instructor: "Classes" }, href: "/learning", icon: "book", roles: [...institutionalRoles, "learner"] },
   { key: "studio", labels: { default: "Studio" }, href: "/studio", icon: "studio", roles: ["tenant-owner", "institution-admin", "curriculum-manager", "course-manager", "instructor"], modules: ["studio-pro"] },
-  { key: "assess", labels: { default: "Assess", learner: "Assessments", moderator: "Moderation" }, href: "/assess", icon: "check", roles: ["tenant-owner", "institution-admin", "registrar", "course-manager", "instructor", "assessor", "moderator", "learner"] },
+  { key: "assess", labels: { default: "Assess", moderator: "Moderation" }, href: "/assessments", icon: "check", roles: ["tenant-owner", "institution-admin", "registrar", "course-manager", "instructor", "assessor", "moderator"] },
   { key: "calendar", labels: { default: "Calendar", registrar: "Timetable" }, href: "/calendar", icon: "calendar", roles: [...institutionalRoles, "assessor", "moderator", "learner", "guardian-sponsor"] },
   { key: "communicate", labels: { default: "Communicate", learner: "Messages", instructor: "Messages", "guardian-sponsor": "Messages" }, href: "/communicate", icon: "message", roles: [...institutionalRoles, "learner", "guardian-sponsor"] },
   { key: "insights", labels: { default: "Insights", learner: "Progress", registrar: "Reports", "guardian-sponsor": "Learner summary" }, href: "/insights", icon: "chart", roles: [...institutionalRoles, "learner", "guardian-sponsor"] },

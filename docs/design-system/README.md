@@ -13,6 +13,8 @@ The `@veza/ui` package is the authoritative reusable component layer for institu
 7. Keep platform-danger, warning and success colours outside institution branding.
 8. Use explicit status language alongside colour.
 
+The completed application audit, screen-family matrix and release gates are documented in [`ui-ux-audit.md`](./ui-ux-audit.md).
+
 ## Package entry points
 
 ```ts
@@ -61,6 +63,7 @@ pnpm --filter @veza/ui typecheck
 pnpm --filter @veza/ui test
 pnpm --filter @veza/ui test:a11y
 pnpm --filter @veza/ui test:visual
+node --test apps/web/tests/ui-ux-contracts.test.mjs
 ```
 
 Visual baselines are updated intentionally with:

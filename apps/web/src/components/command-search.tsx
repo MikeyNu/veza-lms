@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
+import { Icon } from "./icon";
 
 interface SearchItem {
   readonly id: string;
@@ -75,7 +76,7 @@ export function CommandSearch() {
         setItems(body.items);
         setStatus(
           body.items.length > 0
-            ? `${body.items.length} permitted results · ${body.latencyMs} ms`
+            ? `${body.items.length} permitted results, ${body.latencyMs} ms`
             : "No permitted results match this search.",
         );
       } catch (error) {
@@ -93,7 +94,7 @@ export function CommandSearch() {
   return (
     <>
       <button className="vz-search-button" type="button" onClick={() => setOpen(true)}>
-        <span aria-hidden="true">⌕</span>
+        <Icon name="search" />
         <span>Search Veza</span>
         <kbd>Ctrl K</kbd>
       </button>
@@ -107,7 +108,7 @@ export function CommandSearch() {
             onMouseDown={(event) => event.stopPropagation()}
           >
             <header>
-              <span aria-hidden="true">⌕</span>
+              <Icon name="search" />
               <input
                 ref={inputRef}
                 value={query}
@@ -144,7 +145,7 @@ export function CommandSearch() {
                     <small>{item.subtitle ?? item.entityType.replaceAll("-", " ")}</small>
                     {excerpt(item) ? <p>{excerpt(item)}</p> : null}
                   </div>
-                  <span aria-hidden="true">↗</span>
+                  <Icon name="arrow" />
                 </Link>
               ))}
             </div>

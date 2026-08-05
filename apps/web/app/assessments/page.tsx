@@ -33,7 +33,7 @@ export default async function AssessmentsPage() {
   const canRelease =
     roles.has("moderator") || roles.has("tenant-owner") || roles.has("institution-admin");
   return (
-    <AppShell session={resolution.session} active="assessments">
+    <AppShell session={resolution.session} active="assess">
       <AssessmentWorkspace
         institutionId={institutionId}
         workspace={workspace}

@@ -4,11 +4,20 @@ on:
   pull_request:
     paths:
       - "packages/ui/**"
-      - "apps/web/app/design-system/**"
-      - "apps/web/src/features/design-system/**"
-      - "apps/web/styles/design-system-catalogue.css"
       - "apps/web/app/globals.css"
+      - "apps/web/app/design-system/**"
+      - "apps/web/app/learning/**"
+      - "apps/web/app/assessments/**"
+      - "apps/web/app/insights/**"
+      - "apps/web/src/components/**"
+      - "apps/web/src/features/dashboard/**"
+      - "apps/web/src/features/design-system/**"
+      - "apps/web/src/features/learner/**"
+      - "apps/web/src/features/workspace/navigation.ts"
+      - "apps/web/styles/**"
+      - "apps/web/tests/**"
       - "apps/control-plane/app/globals.css"
+      - "docs/design/**"
       - "docs/design-system/**"
       - ".github/workflows/ui-system.yml"
   workflow_dispatch:
@@ -35,6 +44,7 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm --filter @veza/ui typecheck
       - run: pnpm --filter @veza/ui test
+      - run: node --test apps/web/tests/ui-ux-contracts.test.mjs
       - run: pnpm --filter @veza/ui build
       - run: pnpm --filter @veza/web build
       - run: pnpm --filter @veza/control-plane build
