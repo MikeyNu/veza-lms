@@ -9,6 +9,7 @@ import type { ExternalPrincipal } from "../../../platform/authentication/externa
 import { TenantContext } from "../../../platform/request-context/tenant-context.js";
 import { InvitationTokenService } from "../security/invitation-token.service.js";
 import { AccessAdministrationService } from "./access-administration.service.js";
+import { PersonIdentityAcceptanceService } from "./person-identity-acceptance.service.js";
 
 interface InvitationRow extends QueryResultRow {
   readonly id: string;
@@ -50,11 +51,16 @@ export class MembershipInvitationService {
     private readonly tenantContext: TenantContext,
     private readonly accessAdministration: AccessAdministrationService,
     private readonly tokens: InvitationTokenService,
+    private readonly identityAcceptance: PersonIdentityAcceptanceService,
     private readonly audit: AuditWriter,
     private readonly outbox: OutboxWriter,
   ) {}
 
-  async inviteTenantOwner(request: AuthenticatedRequest, email: string, expiresInDays: number): Promise<InvitationQueued> {
+  async inviteTenantOwner(
+    request: AuthenticatedRequest,
+    email: string,
+    expiresInDays: number,
+  ): Promise<InvitationQueued> {
     const context = this.tenantContext.require();
     const result = await this.accessAdministration.createInvitation(request, {
       email,
@@ -77,11 +83,14 @@ export class MembershipInvitationService {
     correlationId: string,
   ): Promise<InvitationAccepted> {
     const externalEmail = external.email?.trim().toLowerCase();
-    if (!externalEmail) throw new ForbiddenException("The identity provider must supply a verified email address");
+    if (!externalEmail) {
+      throw new ForbiddenException("The identity provider must supply a verified email address");
+    }
 
     return this.database.withControlPlaneTransaction(async (client) => {
       const invitationResult = await client.query<InvitationRow>(
-        `SELECT id, tenant_id, email, role_key, scope_type, scope_id, status, token_digest, expires_at, invited_by
+        `SELECT id, tenant_id, email, role_key, scope_type, scope_id, status,
+                token_digest, expires_at, invited_by
          FROM membership_invitations
          WHERE id = $1
          FOR UPDATE`,
@@ -89,9 +98,15 @@ export class MembershipInvitationService {
       );
       const invitation = invitationResult.rows[0];
       if (!invitation) throw new NotFoundException("Invitation was not found");
-      if (invitation.status === "accepted") throw new ConflictException("Invitation has already been accepted");
-      if (!["pending-delivery", "sent"].includes(invitation.status)) throw new GoneException("Invitation is no longer active");
-      if (invitation.expires_at.getTime() <= Date.now()) throw new GoneException("Invitation has expired");
+      if (invitation.status === "accepted") {
+        throw new ConflictException("Invitation has already been accepted");
+      }
+      if (!["pending-delivery", "sent"].includes(invitation.status)) {
+        throw new GoneException("Invitation is no longer active");
+      }
+      if (invitation.expires_at.getTime() <= Date.now()) {
+        throw new GoneException("Invitation has expired");
+      }
       if (!invitation.token_digest || !this.tokens.matches(rawToken, invitation.token_digest)) {
         throw new ForbiddenException("Invitation token is invalid");
       }
@@ -132,21 +147,43 @@ export class MembershipInvitationService {
            AND scope_id = $5
            AND valid_from <= now()
            AND (valid_until IS NULL OR valid_until > now())`,
-        [invitation.tenant_id, membershipId, invitation.role_key, invitation.scope_type, invitation.scope_id],
+        [
+          invitation.tenant_id,
+          membershipId,
+          invitation.role_key,
+          invitation.scope_type,
+          invitation.scope_id,
+        ],
       );
       if (activeRole.rowCount === 0) {
         await client.query(
           `INSERT INTO role_assignments (
              tenant_id, membership_id, role_key, scope_type, scope_id, assigned_by
            ) VALUES ($1,$2,$3,$4,$5,$6)`,
-          [invitation.tenant_id, membershipId, invitation.role_key, invitation.scope_type, invitation.scope_id, invitation.invited_by],
+          [
+            invitation.tenant_id,
+            membershipId,
+            invitation.role_key,
+            invitation.scope_type,
+            invitation.scope_id,
+            invitation.invited_by,
+          ],
         );
       }
       await client.query(
         `UPDATE membership_invitations
-         SET status = 'accepted', accepted_by_user_id = $2, token_digest = NULL, updated_at = now()
+         SET status = 'accepted', accepted_by_user_id = $2,
+             token_digest = NULL, updated_at = now()
          WHERE id = $1`,
         [invitation.id, userId],
+      );
+
+      await this.identityAcceptance.complete(
+        client,
+        invitation.id,
+        userId,
+        membershipId,
+        correlationId,
       );
 
       const tenantId = invitation.tenant_id as TenantId;

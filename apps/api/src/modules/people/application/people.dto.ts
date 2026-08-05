@@ -3,6 +3,7 @@ import {
   IsArray,
   IsBoolean,
   IsDateString,
+  IsEmpty,
   IsIn,
   IsInt,
   IsOptional,
@@ -25,6 +26,7 @@ const relationshipTypes = [
   "sponsor",
   "employer",
   "advisor",
+  "emergency-contact",
   "authorised-contact",
 ] as const;
 
@@ -110,8 +112,8 @@ export class CreatePersonDto {
   locale?: string;
 
   @IsOptional()
-  @IsUUID()
-  userId?: string;
+  @IsEmpty({ message: "Identity links must use the dedicated identity-link workflow" })
+  userId?: never;
 
   @IsOptional()
   @IsIn(statuses)

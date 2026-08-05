@@ -46,6 +46,9 @@ export class CreateBlueprintDto {
   @Matches(codePattern) code!: string;
   @IsString() @MinLength(3) @MaxLength(200) title!: string;
   @IsString() @MinLength(10) @MaxLength(8000) description!: string;
+  @IsIn(["subject", "module", "course", "unit"])
+  definitionType!: "subject" | "module" | "course" | "unit";
+  @IsOptional() @IsUUID() parentDefinitionId?: string;
   @IsOptional() @IsString() @MaxLength(120) subjectArea?: string;
   @IsOptional() @IsUUID() organisationalUnitId?: string;
   @IsOptional() @Type(() => Number) @IsNumber() @Min(0) creditValue?: number;
@@ -58,6 +61,7 @@ export class CreateBlueprintDto {
 
 export class ApproveCurriculumDto {
   @Type(() => Number) @IsInt() @Min(1) expectedVersion!: number;
+  @IsUUID() approvalReviewId!: string;
   @IsDateString() effectiveFrom!: string;
   @IsOptional() @IsDateString() effectiveUntil?: string;
   @IsString() @MinLength(20) @MaxLength(1000) approvalNotes!: string;
