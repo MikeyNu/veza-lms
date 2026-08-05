@@ -23,6 +23,10 @@ import { InvitationTokenService } from "./security/invitation-token.service.js";
     AccessAdministrationService,
     MembershipInvitationService,
   ],
-  exports: [IdentitySessionRepository, InvitationTokenService],
+  exports: [
+    IdentitySessionRepository,
+    InvitationTokenService,
+    AccessAdministrationService,
+  ],
 })
 export class IdentityAccessModule {}
