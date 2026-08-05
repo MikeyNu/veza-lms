@@ -32,6 +32,7 @@ import {
   UpsertLearnerProfileDto,
   UpsertStaffProfileDto,
 } from "../application/people.dto.js";
+import { InstitutionRelationshipService } from "../application/institution-relationship.service.js";
 import { PeopleIntegrityService } from "../application/people-integrity.service.js";
 import { PeopleQueryService } from "../application/people-query.service.js";
 import { PeopleService } from "../application/people.service.js";
@@ -43,6 +44,7 @@ export class PeopleController {
     private readonly people: PeopleService,
     private readonly integrity: PeopleIntegrityService,
     private readonly query: PeopleQueryService,
+    private readonly relationships: InstitutionRelationshipService,
     private readonly authorization: TenantAuthorizationService,
   ) {}
 
@@ -132,7 +134,7 @@ export class PeopleController {
     @Body() input: ChangeRelationshipStateDto,
   ) {
     this.assertInstitutionPermission(request, permissions.relationshipManage, institutionId);
-    return this.integrity.verifyRelationship(relationshipId, input, institutionId);
+    return this.relationships.verify(relationshipId, institutionId, input);
   }
 
   @Post("institutions/:institutionId/relationships/:relationshipId/revoke")
@@ -144,7 +146,7 @@ export class PeopleController {
     @Body() input: ChangeRelationshipStateDto,
   ) {
     this.assertInstitutionPermission(request, permissions.relationshipManage, institutionId);
-    return this.integrity.revokeRelationship(relationshipId, input, institutionId);
+    return this.relationships.revoke(relationshipId, institutionId, input);
   }
 
   @Post("duplicates/:candidateId/decision")
