@@ -20,6 +20,16 @@ export const permissions = Object.freeze({
   institutionalPolicyManage: "institutional-policy.manage",
   institutionalPolicyApprove: "institutional-policy.approve",
   peopleRead: "people.read",
+  peopleCreate: "people.create",
+  peopleUpdate: "people.update",
+  peopleMerge: "people.merge",
+  learnerRead: "learner.read",
+  learnerManage: "learner.manage",
+  staffRead: "staff.read",
+  staffManage: "staff.manage",
+  relationshipRead: "relationship.read",
+  relationshipManage: "relationship.manage",
+  peopleImportManage: "people-import.manage",
   peopleManage: "people.manage",
   enrolmentManage: "enrolment.manage",
   curriculumManage: "curriculum.manage",
@@ -66,63 +76,44 @@ export interface AccessContext {
 
 export interface AccessDecision {
   readonly allowed: boolean;
-  readonly reason:
-    | "explicit-deny"
-    | "missing-permission"
-    | "scope-mismatch"
-    | "condition-failed"
-    | "allowed";
+  readonly reason: "explicit-deny" | "missing-permission" | "scope-mismatch" | "condition-failed" | "allowed";
 }
 
 const rolePermissions: Readonly<Record<BaselineRoleKey, readonly Permission[]>> = Object.freeze({
   "tenant-owner": [
-    permissions.tenantRead,
-    permissions.tenantConfigure,
-    permissions.tenantActivate,
-    permissions.entitlementRead,
-    permissions.entitlementManage,
-    permissions.membershipRead,
-    permissions.membershipInvite,
-    permissions.membershipRoleAssign,
-    permissions.auditRead,
-    permissions.institutionCreate,
-    permissions.institutionConfigure,
-    permissions.campusManage,
-    permissions.organisationalUnitManage,
-    permissions.academicPeriodManage,
-    permissions.institutionalPolicyManage,
-    permissions.institutionalPolicyApprove,
-    permissions.peopleRead,
+    permissions.tenantRead, permissions.tenantConfigure, permissions.tenantActivate,
+    permissions.entitlementRead, permissions.entitlementManage, permissions.membershipRead,
+    permissions.membershipInvite, permissions.membershipRoleAssign, permissions.auditRead,
+    permissions.institutionCreate, permissions.institutionConfigure, permissions.campusManage,
+    permissions.organisationalUnitManage, permissions.academicPeriodManage,
+    permissions.institutionalPolicyManage, permissions.institutionalPolicyApprove,
+    permissions.peopleRead, permissions.peopleCreate, permissions.peopleUpdate,
+    permissions.peopleMerge, permissions.learnerRead, permissions.learnerManage,
+    permissions.staffRead, permissions.staffManage, permissions.relationshipRead,
+    permissions.relationshipManage, permissions.peopleImportManage,
   ],
   "institution-admin": [
-    permissions.tenantRead,
-    permissions.entitlementRead,
-    permissions.membershipRead,
-    permissions.membershipInvite,
-    permissions.membershipRoleAssign,
-    permissions.auditRead,
-    permissions.institutionConfigure,
-    permissions.campusManage,
-    permissions.organisationalUnitManage,
-    permissions.academicPeriodManage,
-    permissions.institutionalPolicyManage,
-    permissions.institutionalPolicyApprove,
-    permissions.peopleRead,
-    permissions.peopleManage,
-    permissions.enrolmentManage,
-    permissions.courseManage,
+    permissions.tenantRead, permissions.entitlementRead, permissions.membershipRead,
+    permissions.membershipInvite, permissions.membershipRoleAssign, permissions.auditRead,
+    permissions.institutionConfigure, permissions.campusManage,
+    permissions.organisationalUnitManage, permissions.academicPeriodManage,
+    permissions.institutionalPolicyManage, permissions.institutionalPolicyApprove,
+    permissions.peopleRead, permissions.peopleCreate, permissions.peopleUpdate,
+    permissions.peopleMerge, permissions.learnerRead, permissions.learnerManage,
+    permissions.staffRead, permissions.staffManage, permissions.relationshipRead,
+    permissions.relationshipManage, permissions.peopleImportManage,
+    permissions.enrolmentManage, permissions.courseManage,
   ],
   registrar: [
-    permissions.membershipRead,
-    permissions.academicPeriodManage,
-    permissions.peopleRead,
-    permissions.peopleManage,
-    permissions.enrolmentManage,
+    permissions.membershipRead, permissions.academicPeriodManage, permissions.peopleRead,
+    permissions.peopleCreate, permissions.peopleUpdate, permissions.peopleMerge,
+    permissions.learnerRead, permissions.learnerManage, permissions.relationshipRead,
+    permissions.relationshipManage, permissions.peopleImportManage, permissions.enrolmentManage,
     permissions.auditRead,
   ],
   "curriculum-manager": [permissions.curriculumManage, permissions.courseManage, permissions.peopleRead],
   "course-manager": [permissions.courseManage, permissions.peopleRead, permissions.membershipRead],
-  instructor: [permissions.courseDeliver, permissions.peopleRead, permissions.assessmentGrade],
+  instructor: [permissions.courseDeliver, permissions.peopleRead, permissions.learnerRead, permissions.assessmentGrade],
   assessor: [permissions.assessmentGrade],
   moderator: [permissions.assessmentModerate, permissions.assessmentGrade],
   learner: [permissions.learningParticipate],
@@ -140,11 +131,7 @@ function scopeContains(assignment: PolicyAssignment, resource: ResourceScope): b
   return resource.ancestors.some((scope) => scope.type === assignment.scopeType && scope.id === assignment.scopeId);
 }
 
-function conditionsPass(
-  conditions: PolicyConditions | undefined,
-  resource: ResourceScope,
-  context: AccessContext,
-): boolean {
+function conditionsPass(conditions: PolicyConditions | undefined, resource: ResourceScope, context: AccessContext): boolean {
   if (!conditions) return true;
   const now = Date.parse(context.now);
   if (conditions.validFrom && now < Date.parse(conditions.validFrom)) return false;
@@ -155,36 +142,17 @@ function conditionsPass(
   return true;
 }
 
-export function evaluateAccess(
-  assignments: readonly PolicyAssignment[],
-  permission: Permission,
-  resource: ResourceScope,
-  context: AccessContext,
-): AccessDecision {
+export function evaluateAccess(assignments: readonly PolicyAssignment[], permission: Permission, resource: ResourceScope, context: AccessContext): AccessDecision {
   const permissionMatches = assignments.filter((assignment) => assignment.permission === permission);
   if (permissionMatches.length === 0) return { allowed: false, reason: "missing-permission" };
-
   const scopeMatches = permissionMatches.filter((assignment) => scopeContains(assignment, resource));
   if (scopeMatches.length === 0) return { allowed: false, reason: "scope-mismatch" };
-
-  const applicableAssignments = scopeMatches.filter((assignment) =>
-    conditionsPass(assignment.conditions, resource, context),
-  );
+  const applicableAssignments = scopeMatches.filter((assignment) => conditionsPass(assignment.conditions, resource, context));
   if (applicableAssignments.length === 0) return { allowed: false, reason: "condition-failed" };
-  if (applicableAssignments.some((assignment) => assignment.effect === "deny")) {
-    return { allowed: false, reason: "explicit-deny" };
-  }
-
-  return {
-    allowed: applicableAssignments.some((assignment) => assignment.effect === "allow"),
-    reason: "allowed",
-  };
+  if (applicableAssignments.some((assignment) => assignment.effect === "deny")) return { allowed: false, reason: "explicit-deny" };
+  return { allowed: applicableAssignments.some((assignment) => assignment.effect === "allow"), reason: "allowed" };
 }
 
-export function assignmentsForRole(
-  role: BaselineRoleKey,
-  scopeType: ScopeType,
-  scopeId: string,
-): readonly PolicyAssignment[] {
+export function assignmentsForRole(role: BaselineRoleKey, scopeType: ScopeType, scopeId: string): readonly PolicyAssignment[] {
   return rolePermissions[role].map((permission) => ({ effect: "allow", permission, scopeType, scopeId }));
 }

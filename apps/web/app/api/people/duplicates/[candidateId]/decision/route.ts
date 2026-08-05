@@ -1,0 +1,5 @@
+import { isSameOriginRequest } from "@veza/oidc-bff";
+import { NextResponse, type NextRequest } from "next/server";
+import { decideDuplicate } from "../../../../../../src/server/people-api";
+const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;const noStore={"cache-control":"no-store"};
+export async function POST(request:NextRequest,{params}:{params:Promise<{candidateId:string}>}){if(!isSameOriginRequest(request.url,request.headers.get("origin")))return NextResponse.json({message:"Cross-origin duplicate decisions are not allowed."},{status:403,headers:noStore});try{const {candidateId}=await params;if(!uuid.test(candidateId))return NextResponse.json({message:"Candidate identifier is invalid."},{status:400,headers:noStore});return NextResponse.json(await decideDuplicate(candidateId,await request.json()),{headers:noStore});}catch(error){return NextResponse.json({message:error instanceof Error?error.message:"Duplicate decision failed."},{status:400,headers:noStore});}}
