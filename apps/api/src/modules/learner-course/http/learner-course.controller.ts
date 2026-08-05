@@ -7,13 +7,11 @@ import {
   ParseUUIDPipe,
   Post,
   Query,
-  Req,
   UseGuards,
 } from "@nestjs/common";
 import { permissions } from "@veza/authz";
-import type { AuthenticatedRequest } from "../../../platform/authentication/authenticated-request.js";
 import { AuthenticationGuard } from "../../../platform/authentication/authentication.guard.js";
-import { RequireTenantPermission } from "../../../platform/authorization/require-tenant-permission.decorator.js";
+import { RequiresTenantPermission } from "../../../platform/authorization/requires-tenant-permission.decorator.js";
 import { TenantPermissionGuard } from "../../../platform/authorization/tenant-permission.guard.js";
 import { TenantMembershipGuard } from "../../tenancy/tenant-membership.guard.js";
 import {
@@ -27,12 +25,12 @@ import { LearnerCourseService } from "../application/learner-course.service.js";
 
 @Controller("learner")
 @UseGuards(AuthenticationGuard, TenantMembershipGuard, TenantPermissionGuard)
-@RequireTenantPermission(permissions.learnerCourseRead)
+@RequiresTenantPermission(permissions.learnerCourseRead)
 export class LearnerCourseController {
   constructor(private readonly learnerCourse: LearnerCourseService) {}
 
   @Get("home")
-  home(@Req() _request: AuthenticatedRequest) {
+  home() {
     return this.learnerCourse.home();
   }
 
