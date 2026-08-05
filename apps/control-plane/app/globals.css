@@ -3,6 +3,7 @@
 @import "../styles/shell.css";
 @import "../styles/provisioning.css";
 @import "../styles/tenant-fleet.css";
+@import "../styles/tenant-operations.css";
 @import "../styles/plan-catalogue.css";
 @import "../styles/service-health.css";
 @import "../styles/platform-audit.css";
