@@ -94,8 +94,7 @@ export class NotificationProviderRegistry {
 
   constructor() {
     const timeoutMs = Number(process.env.NOTIFICATION_PROVIDER_TIMEOUT_MS ?? 15_000);
-    const local = new StdoutNotificationProvider();
-    this.providers.set("stdout", local);
+    this.providers.set("stdout", new StdoutNotificationProvider());
     for (const channel of ["EMAIL", "SMS", "PUSH"] as const) {
       const endpoint = process.env[`${channel}_PROVIDER_URL`]?.trim();
       const token = process.env[`${channel}_PROVIDER_TOKEN`]?.trim();
@@ -109,6 +108,9 @@ export class NotificationProviderRegistry {
   }
 
   resolve(providerKey: string): NotificationProvider {
+    if (process.env.NODE_ENV === "production" && providerKey === "stdout") {
+      throw new Error("notification-local-provider-prohibited");
+    }
     const provider = this.providers.get(providerKey);
     if (provider) return provider;
     if (process.env.NODE_ENV !== "production") return this.providers.get("stdout")!;
