@@ -23,6 +23,7 @@ import {
   RotateServiceAccountSecretDto,
   UpdateServiceAccountStatusDto,
 } from "./service-account.dto.js";
+import { ServiceAccountQueryService } from "./service-account-query.service.js";
 import { ServiceAccountService } from "./service-account.service.js";
 
 @Controller("oauth")
@@ -44,13 +45,14 @@ export class OAuthTokenController {
 export class ServiceAccountController {
   constructor(
     private readonly serviceAccounts: ServiceAccountService,
+    private readonly serviceAccountQuery: ServiceAccountQueryService,
     private readonly authorization: TenantAuthorizationService,
   ) {}
 
   @Get()
   list(@Req() request: AuthenticatedRequest) {
     this.read(request);
-    return this.serviceAccounts.list();
+    return this.serviceAccountQuery.list();
   }
 
   @Post()
