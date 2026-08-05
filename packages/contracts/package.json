@@ -14,7 +14,8 @@
     "build": "tsc -p tsconfig.json",
     "lint": "tsc --noEmit",
     "typecheck": "tsc --noEmit",
-    "test": "node --test"
+    "test": "node --test",
+    "dev": "tsc -p tsconfig.json --watch --preserveWatchOutput"
   },
   "devDependencies": {
     "typescript": "^7.0.2"
