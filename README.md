@@ -7,6 +7,7 @@ Veza is a multi-tenant education operating system for institutions, academies, t
 - `apps/web`: role-adaptive Next.js institutional workspace
 - `apps/control-plane`: separately authenticated tenant provisioning and service-operations workspace
 - `apps/api`: NestJS modular monolith and versioned API
+- `apps/worker`: dedicated transactional-outbox delivery process
 - `packages/ui`: shared design-system primitives and semantic tokens
 - `packages/contracts`: versioned API, session and event contracts
 - `packages/authz`: scoped RBAC and policy-evaluation primitives
@@ -17,15 +18,16 @@ Veza is a multi-tenant education operating system for institutions, academies, t
 
 1. Tenant context is derived from a verified identity and active persisted membership, never from a tenant identifier supplied by the browser.
 2. Application SQL runs through a tenant transaction and forced PostgreSQL row-level security.
-3. Control-plane, application-plane and migration database identities are separate.
+3. Control-plane, application-plane, worker and migration database identities are separate.
 4. Scoped authorisation denies by default and explicit deny assignments take precedence.
 5. Consequential changes append immutable audit evidence and transactional outbox events.
-6. UI surfaces exist to support a decision or task, not to decorate a dashboard.
-7. Accessibility, low-bandwidth behaviour and keyboard operation are release requirements.
+6. The worker leases and publishes outbox events; the API never performs hidden background delivery.
+7. UI surfaces exist to support a decision or task, not to decorate a dashboard.
+8. Accessibility, low-bandwidth behaviour and keyboard operation are release requirements.
 
 ## Local development
 
-A clean local database volume is required the first time the three service identities are introduced.
+A clean local database volume is required the first time service identities are introduced or changed.
 
 ```bash
 corepack enable
@@ -42,10 +44,14 @@ Default local ports:
 - Veza control plane: `http://localhost:3001`
 - API: `http://localhost:4000/v1`
 
+The local outbox worker defaults to the metadata-only `stdout` transport. Production startup rejects that transport and requires EventBridge configuration.
+
 The OIDC examples in `.env.example` are placeholders. Set `VEZA_DEMO_MODE=true` only for an intentional visual-reference preview; it is disabled by default. Configure distinct web and control-plane clients, redirect URIs and 32-byte base64 session-encryption keys before sign-in can operate.
 
 ## Current implementation boundary
 
-The implemented foundation now includes tenant provisioning, plans and module entitlements, secure first-owner invitations, verified OIDC principals, encrypted BFF sessions, safe workspace selection, membership-derived tenant context, scoped policy evaluation, forced RLS, audit inspection and transactional outbox records.
+The implemented platform foundation includes tenant provisioning, fleet inspection, plans and module entitlements, secure first-owner invitations, verified OIDC principals, encrypted BFF sessions, safe workspace selection, membership-derived tenant context, scoped policy evaluation, forced RLS, audit inspection, transactional outbox delivery, liveness/readiness reporting and control-plane service health.
 
-Institution structures, people records and academic entities intentionally remain outside this increment. They depend on this trust boundary and are introduced in the next gated vertical slice.
+The institution foundation includes operational setup profiles, institutions, campuses, organisational units, academic periods, immutable approved policy versions and evidence-based tenant activation.
+
+People and relationship records, programme and course catalogues, enrolments, cohorts, classes, content authoring, assessments and learning evidence remain intentionally outside the current boundary. They must reference the durable tenant, institution and academic-time identifiers established here.
