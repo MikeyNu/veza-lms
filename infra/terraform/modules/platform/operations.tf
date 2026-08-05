@@ -168,9 +168,9 @@ resource "aws_iam_role" "backup" {
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
     Statement = [{
-      Effect = "Allow"
+      Effect    = "Allow"
       Principal = { Service = "backup.amazonaws.com" }
-      Action = "sts:AssumeRole"
+      Action    = "sts:AssumeRole"
     }]
   })
   tags = local.common_tags
@@ -197,7 +197,7 @@ resource "aws_backup_plan" "main" {
     completion_window = 360
 
     lifecycle {
-      cold_storage_after = var.backup_retention_days > 90 ? 90 : 0
+      cold_storage_after = var.backup_retention_days > 90 ? 90 : null
       delete_after       = var.backup_retention_days
     }
 
