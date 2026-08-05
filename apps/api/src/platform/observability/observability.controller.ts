@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Get,
@@ -119,7 +120,7 @@ export class ObservabilityControlController {
     @Body() input: UpdateRuntimeStatusDto,
   ) {
     if (!/^[a-z][a-z0-9.-]{2,119}$/.test(runtimeKey)) {
-      throw new Error("Runtime key is invalid");
+      throw new BadRequestException("Runtime key is invalid");
     }
     return this.operations.updateRuntime(runtimeKey, input, this.actor(request));
   }
