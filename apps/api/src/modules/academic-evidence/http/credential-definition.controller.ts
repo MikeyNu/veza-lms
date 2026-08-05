@@ -5,7 +5,7 @@ import { AuthenticationGuard } from "../../../platform/authentication/authentica
 import { TenantAuthorizationService } from "../../../platform/authorization/tenant-authorization.service.js";
 import { TenantPermissionGuard } from "../../../platform/authorization/tenant-permission.guard.js";
 import { TenantMembershipGuard } from "../../tenancy/tenant-membership.guard.js";
-import type {
+import {
   CreateAwardRuleDto,
   CreateCertificateTemplateDto,
 } from "../application/academic-evidence.dto.js";
