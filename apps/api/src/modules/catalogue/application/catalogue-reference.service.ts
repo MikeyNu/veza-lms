@@ -18,7 +18,7 @@ export class CatalogueReferenceService {
       );
       if (!institution.rowCount) throw new NotFoundException("Active institution was not found");
 
-      const [periods, learners, cohorts, classes] = await Promise.all([
+      const [periods, learners, staff, cohorts, classes] = await Promise.all([
         client.query(
           `SELECT id,code,display_name title,starts_on,ends_on
            FROM academic_periods
@@ -34,6 +34,17 @@ export class CatalogueReferenceService {
            JOIN learner_profiles learner ON learner.person_id=person.id
            WHERE learner.institution_id=$1 AND person.status='active'
              AND learner.status IN ('prospective','active')
+           ORDER BY person.legal_family_name,person.legal_given_names`,
+          [institutionId],
+        ),
+        client.query(
+          `SELECT person.id,
+                  concat_ws(' ',person.preferred_name,person.legal_given_names,person.legal_family_name) display_name,
+                  profile.status staff_status,profile.employee_number
+           FROM people person
+           JOIN staff_profiles profile ON profile.person_id=person.id
+           WHERE profile.institution_id=$1 AND person.status='active'
+             AND profile.status IN ('active','on_leave')
            ORDER BY person.legal_family_name,person.legal_given_names`,
           [institutionId],
         ),
@@ -64,6 +75,12 @@ export class CatalogueReferenceService {
           id: row.id,
           displayName: row.display_name.trim(),
           learnerStatus: row.learner_status,
+        })),
+        eligibleStaff: staff.rows.map((row) => ({
+          id: row.id,
+          displayName: row.display_name.trim(),
+          staffStatus: row.staff_status,
+          employeeNumber: row.employee_number ?? undefined,
         })),
         cohorts: cohorts.rows,
         classes: classes.rows.map((row) => ({
