@@ -109,14 +109,15 @@ test("learner routes are role-safe and evidence-led", () => {
   const insightsPage = read("apps/web/app/insights/page.tsx");
   const assessmentPage = read("apps/web/app/assessments/page.tsx");
   const overview = read("apps/web/src/features/dashboard/learning-overview.tsx");
+  const assessmentDefinition = navigation.match(/\{ key: "assess"[^\n]+/u)?.[0] ?? "";
 
   assert.match(learningPage, /role === "learner"/);
   assert.match(learningPage, /loadLearnerToday/);
   assert.match(insightsPage, /LearnerProgressWorkspace/);
   assert.match(insightsPage, /role === "guardian-sponsor"/);
   assert.match(assessmentPage, /active="assess"/);
-  assert.match(navigation, /href: "\/assessments"/);
-  assert.doesNotMatch(navigation, /"moderator", "learner"/);
+  assert.match(assessmentDefinition, /href: "\/assessments"/);
+  assert.doesNotMatch(assessmentDefinition, /"learner"/);
   assert.doesNotMatch(overview, /href="\/assessments"/);
   assert.doesNotMatch(overview, /href="\/today"/);
 });
