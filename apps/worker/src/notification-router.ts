@@ -1,12 +1,7 @@
 import { createDecipheriv } from "node:crypto";
 import type { Pool, PoolClient } from "pg";
-import type {
-  ClaimedConsumerDelivery,
-} from "./consumer-repository.js";
-import type {
-  ConsumerHandler,
-  ConsumerHandlerResult,
-} from "./consumer-runtime.js";
+import type { ClaimedConsumerDelivery } from "./consumer-repository.js";
+import type { ConsumerHandler, ConsumerHandlerResult } from "./consumer-runtime.js";
 
 interface NotificationContract {
   readonly templateKey: string;
@@ -31,12 +26,16 @@ function stringValue(record: Readonly<Record<string, unknown>>, key: string): st
 }
 
 function stringArray(value: unknown): readonly string[] {
-  return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : [];
+  return Array.isArray(value)
+    ? value.filter((item): item is string => typeof item === "string")
+    : [];
 }
 
 function invitationToken(encrypted: unknown): string {
   if (!isRecord(encrypted)) throw new Error("invitation-token-envelope-missing");
-  if (encrypted.algorithm !== "A256GCM") throw new Error("invitation-token-algorithm-unsupported");
+  if (encrypted.algorithm !== "A256GCM") {
+    throw new Error("invitation-token-algorithm-unsupported");
+  }
   const encodedKey = process.env.INVITATION_TOKEN_ENCRYPTION_KEY;
   if (!encodedKey) throw new Error("invitation-token-encryption-key-unavailable");
   const key = Buffer.from(encodedKey, "base64");
@@ -73,9 +72,14 @@ function contractFor(delivery: ClaimedConsumerDelivery): NotificationContract {
   if (delivery.eventName === "identity.membership-invitation.requested") {
     const email = stringValue(payload, "email");
     const invitationId = stringValue(payload, "invitationId");
-    if (!email || !invitationId) throw new Error("invitation-notification-recipient-missing");
+    if (!email || !invitationId) {
+      throw new Error("invitation-notification-recipient-missing");
+    }
     const token = invitationToken(payload.encryptedToken);
-    const applicationUrl = (process.env.VEZA_PUBLIC_APP_URL ?? "http://localhost:3000").replace(/\/$/, "");
+    const applicationUrl = (process.env.VEZA_PUBLIC_APP_URL ?? "http://localhost:3000").replace(
+      /\/$/,
+      "",
+    );
     return {
       templateKey: "identity.membership-invitation",
       topicKey: "identity.access",
@@ -106,11 +110,10 @@ function contractFor(delivery: ClaimedConsumerDelivery): NotificationContract {
   if (!templateKey || !topicKey || !recipient || channels.length === 0) {
     throw new Error("notification-contract-invalid");
   }
-  const policy = source.policy === "required" ? "required" : "optional";
   return {
     templateKey,
     topicKey,
-    policy,
+    policy: source.policy === "required" ? "required" : "optional",
     channels,
     recipientUserId: stringValue(source, "recipientUserId"),
     recipientPersonId: stringValue(source, "recipientPersonId"),
@@ -142,15 +145,13 @@ async function ensureInvitationTemplate(
   await client.query(
     `INSERT INTO notification_template_versions (
        tenant_id, template_id, version_number, subject_template,
-       body_template, content_type, variable_schema, status,
-       created_by, submitted_by, submitted_at, approved_by, approved_at,
-       approval_reason
+       body_template, content_type, variable_schema, status, created_by
      ) VALUES (
        $1,$2,1,'You have been invited to Veza',
        'You have been invited to join Veza as {{roleKey}}. Open {{invitationUrl}} before {{expiresAt}}.',
        'text/plain',
        '{"required":["roleKey","invitationUrl","expiresAt"]}'::jsonb,
-       'active',$3,$3,now(),$3,now(),'System-required access notification template.'
+       'active',$3
      )
      ON CONFLICT (tenant_id, template_id, version_number) DO NOTHING`,
     [tenantId, template.rows[0].id, actorId],
