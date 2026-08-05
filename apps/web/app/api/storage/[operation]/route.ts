@@ -16,6 +16,15 @@ const allowed = [
   /^withdraw-consent:[0-9a-f-]{36}$/i,
 ];
 
+function normalise(operation: string, body: Record<string, unknown>): Record<string, unknown> {
+  if (operation !== "consent" || typeof body.expiresAt !== "string" || !body.expiresAt) {
+    return body;
+  }
+  const parsed = new Date(body.expiresAt);
+  if (!Number.isFinite(parsed.getTime())) throw new Error("Recording consent expiry is invalid.");
+  return { ...body, expiresAt: parsed.toISOString() };
+}
+
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ operation: string }> },
@@ -41,7 +50,7 @@ export async function POST(
         { status: 413, headers: noStore },
       );
     }
-    const body = (await request.json()) as Record<string, unknown>;
+    const body = normalise(operation, (await request.json()) as Record<string, unknown>);
     return NextResponse.json(await mutateStorage(operation, body), {
       headers: noStore,
     });
