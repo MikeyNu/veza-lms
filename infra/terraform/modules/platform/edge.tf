@@ -126,10 +126,11 @@ resource "aws_cloudfront_distribution" "main" {
   origin {
     domain_name = aws_lb.main.dns_name
     origin_id   = "application"
+
     custom_origin_config {
       http_port              = 80
       https_port             = 443
-      origin_protocol_policy = var.cloudfront_certificate_arn == null ? "http-only" : "https-only"
+      origin_protocol_policy = "http-only"
       origin_ssl_protocols   = ["TLSv1.2"]
     }
   }
@@ -141,11 +142,11 @@ resource "aws_cloudfront_distribution" "main" {
   }
 
   default_cache_behavior {
-    target_origin_id       = "application"
-    viewer_protocol_policy = "redirect-to-https"
-    allowed_methods        = ["DELETE", "GET", "HEAD", "OPTIONS", "PATCH", "POST", "PUT"]
-    cached_methods         = ["GET", "HEAD", "OPTIONS"]
-    compress               = true
+    target_origin_id         = "application"
+    viewer_protocol_policy   = "redirect-to-https"
+    allowed_methods          = ["DELETE", "GET", "HEAD", "OPTIONS", "PATCH", "POST", "PUT"]
+    cached_methods           = ["GET", "HEAD", "OPTIONS"]
+    compress                 = true
     cache_policy_id          = aws_cloudfront_cache_policy.application.id
     origin_request_policy_id = aws_cloudfront_origin_request_policy.application.id
   }
@@ -171,10 +172,11 @@ resource "aws_cloudfront_distribution" "main" {
     minimum_protocol_version       = var.domain_name == null ? "TLSv1" : "TLSv1.2_2021"
   }
 
-  logging_config {
-    bucket          = aws_s3_bucket.logs.bucket_domain_name
-    include_cookies = false
-    prefix          = "cloudfront/"
+  lifecycle {
+    precondition {
+      condition     = var.domain_name == null || var.cloudfront_certificate_arn != null
+      error_message = "cloudfront_certificate_arn is required when domain_name is configured."
+    }
   }
 
   tags = local.common_tags
@@ -209,6 +211,7 @@ resource "aws_route53_record" "application" {
   zone_id = var.hosted_zone_id
   name    = var.domain_name
   type    = "A"
+
   alias {
     name                   = aws_cloudfront_distribution.main.domain_name
     zone_id                = aws_cloudfront_distribution.main.hosted_zone_id
