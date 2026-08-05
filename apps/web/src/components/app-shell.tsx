@@ -7,6 +7,7 @@ import {
   type NavigationKey,
   workspaceLabel,
 } from "../features/workspace/navigation";
+import { CommandSearch } from "./command-search";
 import { Icon } from "./icon";
 
 function initials(name: string | undefined): string {
@@ -51,7 +52,7 @@ function Topbar({ session, active }: { session: WorkspaceSession; active: Naviga
   return <header className="topbar">
     <MobileNavigation session={session} active={active}/>
     <Link className="institution" href="/select-workspace" aria-label={`Switch institution. Current institution: ${session.tenant.displayName}`}><span className="institution-logo">{session.tenant.displayName[0]?.toUpperCase() ?? "V"}</span><span><small>Institution</small><strong>{session.tenant.displayName}</strong></span><b aria-hidden="true">⌄</b></Link>
-    <div className="search search-readiness" aria-label="Global search becomes available after academic data is configured"><Icon name="search"/><span>Search activates with academic data</span><kbd>⌘ K</kbd></div>
+    <CommandSearch/>
     {action ? <Link className="primary-button" href={action.href}>{action.label} <span aria-hidden="true">＋</span></Link> : null}
   </header>;
 }
