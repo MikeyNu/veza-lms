@@ -79,6 +79,7 @@ test("every exposed workspace action resolves through a guarded route", async ()
   assert.match(navigation, /href: "\/people\/invitations\/new"/);
 });
 
+
 test("tenant-owner invitation is server mediated and never accepts tenant authority", async () => {
   const [route, page] = await Promise.all([
     source("../app/api/membership-invitations/tenant-owners/route.ts"),
@@ -112,6 +113,7 @@ test("signed-out and unassigned states do not link to an authenticated help loop
   assert.doesNotMatch(pending, /href="\/help"/);
   assert.match(pending, /institution administrator/);
 });
+
 
 test("workspace API contracts fail closed on enum drift, unbounded choices and missing core", async () => {
   const api = await source("../src/server/workspace-api.ts");

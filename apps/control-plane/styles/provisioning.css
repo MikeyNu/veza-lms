@@ -18,6 +18,7 @@
 .provision-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; padding-bottom: 23px; border-bottom: 1px solid var(--veza-line); }
 .provision-heading h2 { margin: 7px 0 0; font-size: 24px; letter-spacing: -.8px; }
 .draft-state { padding: 7px 10px; color: #725d27; background: #fff8e8; border: 1px solid #f3e5bb; border-radius: 999px; font-size: 9px; font-weight: 800; text-transform: uppercase; }
+.draft-state.complete { color: #17653f; background: #eefbf4; border-color: #c7ecd8; }
 .form-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 20px; padding: 28px 0; }
 .form-grid label,.review-stack > label { display: grid; align-content: start; gap: 8px; color: var(--veza-ink-soft); font-size: 11px; font-weight: 750; }
 .form-grid label.wide { grid-column: 1/-1; }
