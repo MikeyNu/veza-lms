@@ -22,14 +22,14 @@ function nextStepFor(role: BaselineRoleKey, session: WorkspaceSession): NextStep
           eyebrow: "NEXT OPERATIONAL GATE",
           title: "Complete institution activation",
           description: "Identity, privacy, retention and support-readiness checks must be completed before learner access is enabled.",
-          href: "/admin",
+          href: "/admin/institution-setup",
           action: "Review activation",
         }
       : {
           eyebrow: "NEXT OPERATIONAL GATE",
           title: "Configure institution structure",
           description: "Campuses, academic periods and organisational units are introduced in the next implementation slice.",
-          href: "/admin",
+          href: "/admin/institution-setup",
           action: "Open administration",
         };
   }

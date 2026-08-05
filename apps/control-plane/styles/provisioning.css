@@ -69,3 +69,7 @@
 .inspector-note { margin-top: 20px; padding: 14px; background: #f8f7ff; border: 1px solid #e1ddff; border-radius: 12px; }
 .inspector-note strong { color: #5549b8; font-size: 10px; }
 .inspector-note p { margin: 7px 0 0; color: #6e6895; font-size: 9px; line-height: 1.55; }
+.draft-state.complete { color: #17653f; background: #eefbf4; border-color: #c7ecd8; }
+.module-option:has(input:focus-visible) { box-shadow: var(--veza-focus); }
+.button-primary:hover:not(:disabled) { background: #1d2939; }
+.button-secondary:hover:not(:disabled) { background: #f8fafc; }

@@ -6,6 +6,7 @@
 @import "../styles/responsive.css";
 @import "../styles/auth.css";
 @import "../styles/foundation.css";
+@import "../styles/institution-setup.css";
 
 :root {
   --ink: var(--veza-ink);
