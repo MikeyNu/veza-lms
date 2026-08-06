@@ -1,6 +1,5 @@
-import { getWebOidcSession } from "./web-session";
+import { requestWorkspaceJson } from "./workspace-json-request";
 
-const baseUrl = process.env.VEZA_API_BASE_URL ?? "http://localhost:4000";
 const maximumBytes = 256 * 1024;
 
 export interface ServiceAccountView {
@@ -31,28 +30,12 @@ export interface ServiceAccountDirectory {
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const session = await getWebOidcSession();
-  if (!session) throw new Error("Workspace authentication is required");
-  const response = await fetch(`${baseUrl}${path}`, {
-    ...init,
-    headers: {
-      authorization: `Bearer ${session.accessToken}`,
-      accept: "application/json",
-      ...(init?.body ? { "content-type": "application/json" } : {}),
-      ...init?.headers,
-    },
-    cache: "no-store",
-    signal: AbortSignal.timeout(20_000),
-  });
-  const declared = Number(response.headers.get("content-length") ?? "0");
-  if (Number.isFinite(declared) && declared > maximumBytes) {
-    throw new Error("Service account response is unexpectedly large");
-  }
-  const text = await response.text();
-  if (text.length > maximumBytes) throw new Error("Service account response is unexpectedly large");
-  const body = text ? (JSON.parse(text) as T & { message?: string }) : ({} as T & { message?: string });
-  if (!response.ok) throw new Error(body.message ?? "Service account request failed");
-  return body;
+  return (await requestWorkspaceJson(path, {
+    service: "Service account service",
+    maximumBytes,
+    timeoutMs: 20_000,
+    ...(init ? { init } : {}),
+  })) as T;
 }
 
 export function loadServiceAccounts(): Promise<ServiceAccountDirectory> {
@@ -65,13 +48,14 @@ export function mutateServiceAccount(
 ): Promise<Readonly<Record<string, unknown>>> {
   const rotate = operation.match(/^rotate:([0-9a-f-]{36})$/i);
   const status = operation.match(/^status:([0-9a-f-]{36})$/i);
-  const path = operation === "create"
-    ? "/v1/service-accounts"
-    : rotate
-      ? `/v1/service-accounts/${rotate[1]}/rotate-secret`
-      : status
-        ? `/v1/service-accounts/${status[1]}/status`
-        : undefined;
+  const path =
+    operation === "create"
+      ? "/v1/service-accounts"
+      : rotate
+        ? `/v1/service-accounts/${rotate[1]}/rotate-secret`
+        : status
+          ? `/v1/service-accounts/${status[1]}/status`
+          : undefined;
   if (!path) throw new Error("Service account operation is invalid");
   return request(path, { method: "POST", body: JSON.stringify(input) });
 }
