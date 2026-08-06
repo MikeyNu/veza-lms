@@ -69,3 +69,25 @@ test("Studio library and publication controls preserve structured evidence", asy
   assert.match(library, /Meaningful images require alternative text/);
   assert.match(migration, /ready Studio asset evidence is immutable/);
 });
+
+test("governed exports are rendered by the worker and cannot be manually completed by clients", async () => {
+  const [dto, controller, exportController, exportService, migration, worker, renderer] = await Promise.all([
+    source("../src/modules/academic-evidence/application/academic-evidence.dto.ts"),
+    source("../src/modules/academic-evidence/http/academic-evidence.controller.ts"),
+    source("../src/modules/academic-evidence/http/academic-export.controller.ts"),
+    source("../src/modules/academic-evidence/application/academic-export.service.ts"),
+    source("../database/migrations/0052_governed_document_exports.sql"),
+    source("../../worker/src/main.ts"),
+    source("../../worker/src/export-document.ts"),
+  ]);
+  assert.match(dto, /\["csv", "json", "pdf"\]/);
+  assert.doesNotMatch(controller, /exports\/:exportId\/complete/);
+  assert.match(exportController, /:exportId\/download/);
+  assert.match(exportService, /failed checksum verification/);
+  assert.match(migration, /app\.claim_export_jobs/);
+  assert.match(migration, /app\.complete_export_job/);
+  assert.match(migration, /GRANT EXECUTE ON FUNCTION app\.claim_export_jobs/);
+  assert.match(worker, /exportProcessor\.processDue/);
+  assert.match(renderer, /%PDF-1\.7/);
+  assert.match(renderer, /checksumSha256/);
+});
