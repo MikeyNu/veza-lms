@@ -55,7 +55,7 @@ export class HttpExportObjectStore implements ExportObjectStore {
         "x-veza-checksum-sha256": input.checksumSha256,
         ...(this.token ? { authorization: `Bearer ${this.token}` } : {}),
       },
-      body: input.bytes,
+      body: new Uint8Array(input.bytes),
       signal: AbortSignal.timeout(this.timeoutMs),
     });
     const body = (await response.json().catch(() => ({}))) as { objectKey?: string; message?: string };
