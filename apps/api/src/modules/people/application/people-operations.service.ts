@@ -25,7 +25,6 @@ import type {
   EndStaffEngagementDto,
   InvitePersonIdentityDto,
   InviteRelatedPersonDto,
-  LinkExistingIdentityDto,
   ReconcilePeopleImportRowDto,
   ResolvePeopleImportDuplicateDto,
 } from "./people-operations.dto.js";
@@ -36,7 +35,9 @@ interface PersonRow extends QueryResultRow {
   status: string;
   linked_user_id: string | null;
 }
-interface VersionRow extends QueryResultRow { version: number; }
+interface VersionRow extends QueryResultRow {
+  version: number;
+}
 interface ImportRow extends QueryResultRow {
   id: string;
   import_id: string;
@@ -88,15 +89,24 @@ export class PeopleOperationsService {
   }
 
   async createAddress(personId: string, input: CreatePersonAddressDto) {
-    if (Object.keys(input.address).length === 0) throw new BadRequestException("Address details are required");
+    if (Object.keys(input.address).length === 0) {
+      throw new BadRequestException("Address details are required");
+    }
     return this.createPersonChild(personId, input.expectedPersonVersion, async (client, context) => {
       const id = randomUUID();
       await client.query(
         `INSERT INTO person_addresses (
            id,tenant_id,person_id,address_type,address,is_primary,valid_from
          ) VALUES ($1,$2,$3,$4,$5,$6,$7)`,
-        [id, context.tenantId, personId, input.addressType, input.address, input.isPrimary,
-          input.validFrom ?? new Date().toISOString().slice(0, 10)],
+        [
+          id,
+          context.tenantId,
+          personId,
+          input.addressType,
+          input.address,
+          input.isPrimary,
+          input.validFrom ?? new Date().toISOString().slice(0, 10),
+        ],
       );
       return { eventType: "person.address.created", childType: "address", childId: id };
     });
@@ -159,7 +169,11 @@ export class PeopleOperationsService {
           context.actorId,
         ],
       );
-      return { eventType: "person.organisation-assignment.created", childType: "organisational-assignment", childId: id };
+      return {
+        eventType: "person.organisation-assignment.created",
+        childType: "organisational-assignment",
+        childId: id,
+      };
     });
   }
 
@@ -177,7 +191,9 @@ export class PeopleOperationsService {
         "SELECT person_id FROM staff_profiles WHERE person_id=$1 AND institution_id=$2",
         [personId, input.institutionId],
       );
-      if (!profile.rowCount) throw new ConflictException("A staff profile is required before creating an engagement");
+      if (!profile.rowCount) {
+        throw new ConflictException("A staff profile is required before creating an engagement");
+      }
       const id = randomUUID();
       await client.query(
         `INSERT INTO staff_engagements (
@@ -197,7 +213,11 @@ export class PeopleOperationsService {
           context.actorId,
         ],
       );
-      return { eventType: "person.staff-engagement.created", childType: "staff-engagement", childId: id };
+      return {
+        eventType: "person.staff-engagement.created",
+        childType: "staff-engagement",
+        childId: id,
+      };
     });
   }
 
@@ -217,35 +237,53 @@ export class PeopleOperationsService {
       );
       const engagement = result.rows[0];
       if (!engagement) throw new NotFoundException("Staff engagement was not found");
-      if (engagement.version !== input.expectedVersion) throw new ConflictException("Staff engagement changed since it was loaded");
-      if (!["planned", "active", "on_leave"].includes(engagement.status)) throw new ConflictException("Staff engagement has already ended");
-      if (input.endedOn < engagement.started_on) throw new BadRequestException("Engagement end date must not precede its start date");
+      if (engagement.version !== input.expectedVersion) {
+        throw new ConflictException("Staff engagement changed since it was loaded");
+      }
+      if (!["planned", "active", "on_leave"].includes(engagement.status)) {
+        throw new ConflictException("Staff engagement has already ended");
+      }
+      if (input.endedOn < engagement.started_on) {
+        throw new BadRequestException("Engagement end date must not precede its start date");
+      }
       const updated = await client.query<VersionRow>(
         `UPDATE staff_engagements
          SET status='ended',ended_on=$3,reason=$4,updated_by=$5,updated_at=now(),version=version+1
          WHERE id=$1 AND version=$2 RETURNING version`,
         [engagementId, input.expectedVersion, input.endedOn, input.reason.trim(), context.actorId],
       );
-      await this.record(client, "person.staff-engagement.ended", "staff-engagement", engagementId, {
-        personId: engagement.person_id,
-        endedOn: input.endedOn,
-        reason: input.reason.trim(),
-        version: updated.rows[0].version,
-      });
+      await this.record(
+        client,
+        "person.staff-engagement.ended",
+        "staff-engagement",
+        engagementId,
+        {
+          personId: engagement.person_id,
+          endedOn: input.endedOn,
+          reason: input.reason.trim(),
+          version: updated.rows[0].version,
+        },
+      );
       return { id: engagementId, status: "ended", version: updated.rows[0].version };
     });
   }
 
   async createConsent(personId: string, input: CreatePersonConsentDto) {
-    if (input.status === "granted" && !input.grantedAt) throw new BadRequestException("Granted consent requires a granted timestamp");
-    if (input.status === "withdrawn" && !input.withdrawnAt) throw new BadRequestException("Withdrawn consent requires a withdrawn timestamp");
+    if (input.status === "granted" && !input.grantedAt) {
+      throw new BadRequestException("Granted consent requires a granted timestamp");
+    }
+    if (input.status === "withdrawn" && !input.withdrawnAt) {
+      throw new BadRequestException("Withdrawn consent requires a withdrawn timestamp");
+    }
     return this.createPersonChild(personId, input.expectedPersonVersion, async (client, context) => {
       if (input.relationshipId) {
         const relationship = await client.query(
           "SELECT id FROM person_relationships WHERE id=$1 AND (subject_person_id=$2 OR related_person_id=$2)",
           [input.relationshipId, personId],
         );
-        if (!relationship.rowCount) throw new NotFoundException("Consent relationship was not found for this person");
+        if (!relationship.rowCount) {
+          throw new NotFoundException("Consent relationship was not found for this person");
+        }
       }
       const id = randomUUID();
       await client.query(
@@ -277,7 +315,9 @@ export class PeopleOperationsService {
     }
     return this.createPersonChild(personId, input.expectedPersonVersion, async (client, context) => {
       const id = randomUUID();
-      const relationshipTypes = (input.appliesToRelationshipTypes ?? []).map((value) => value.replaceAll("-", "_"));
+      const relationshipTypes = (input.appliesToRelationshipTypes ?? []).map((value) =>
+        value.replaceAll("-", "_"),
+      );
       await client.query(
         `INSERT INTO person_disclosure_restrictions (
            id,tenant_id,person_id,restriction_code,reason,applies_to_relationship_types,
@@ -295,52 +335,11 @@ export class PeopleOperationsService {
           context.actorId,
         ],
       );
-      return { eventType: "person.disclosure-restriction.created", childType: "disclosure-restriction", childId: id };
-    });
-  }
-
-  async linkExistingIdentity(personId: string, input: LinkExistingIdentityDto) {
-    const context = this.context.require();
-    return this.database.withTenantTransaction(context.tenantId, async (client) => {
-      const person = await this.lockPerson(client, personId, input.expectedPersonVersion);
-      if (person.linked_user_id) throw new ConflictException("Person already has a linked identity");
-      const membership = await client.query(
-        `SELECT membership.id FROM memberships membership
-         WHERE membership.tenant_id=$1 AND membership.user_id=$2
-           AND membership.status='active'
-           AND (membership.valid_until IS NULL OR membership.valid_until > now())`,
-        [context.tenantId, input.userId],
-      );
-      if (!membership.rowCount) throw new ConflictException("Identity must have an active membership in this tenant");
-      const duplicate = await client.query(
-        "SELECT id FROM people WHERE linked_user_id=$1 AND status <> 'merged' AND id <> $2",
-        [input.userId, personId],
-      );
-      if (duplicate.rowCount) throw new ConflictException("Identity is already linked to another person in this tenant");
-      const requestId = randomUUID();
-      await client.query(
-        `INSERT INTO person_identity_link_requests (
-           id,tenant_id,person_id,institution_id,status,linked_user_id,completed_at,created_by
-         ) SELECT $1,$2,$3,profile.institution_id,'linked',$4,now(),$5
-           FROM (
-             SELECT institution_id FROM learner_profiles WHERE person_id=$3
-             UNION ALL SELECT institution_id FROM staff_profiles WHERE person_id=$3
-             LIMIT 1
-           ) profile`,
-        [requestId, context.tenantId, personId, input.userId, context.actorId],
-      );
-      const updated = await client.query<VersionRow>(
-        `UPDATE people SET linked_user_id=$3,updated_by=$4,updated_at=now(),version=version+1
-         WHERE id=$1 AND version=$2 RETURNING version`,
-        [personId, input.expectedPersonVersion, input.userId, context.actorId],
-      );
-      if (!updated.rows[0]) throw new ConflictException("Person changed since it was loaded");
-      await this.record(client, "person.identity.linked", "person", personId, {
-        userId: input.userId,
-        reason: input.reason.trim(),
-        version: updated.rows[0].version,
-      });
-      return { personId, userId: input.userId, status: "linked", version: updated.rows[0].version };
+      return {
+        eventType: "person.disclosure-restriction.created",
+        childType: "disclosure-restriction",
+        childId: id,
+      };
     });
   }
 
@@ -355,12 +354,22 @@ export class PeopleOperationsService {
     await this.database.withTenantTransaction(context.tenantId, async (client) => {
       await this.requireInstitution(client, institutionId);
       const person = await this.lockPerson(client, personId, input.expectedPersonVersion);
-      if (person.linked_user_id) throw new ConflictException("Person already has a linked identity");
+      if (person.linked_user_id) {
+        throw new ConflictException("Person already has a linked identity");
+      }
       await client.query(
         `INSERT INTO person_identity_link_requests (
            id,tenant_id,person_id,institution_id,requested_email,requested_role_key,status,created_by
          ) VALUES ($1,$2,$3,$4,$5,$6,'pending',$7)`,
-        [requestId, context.tenantId, personId, institutionId, input.email.trim().toLowerCase(), input.roleKey, context.actorId],
+        [
+          requestId,
+          context.tenantId,
+          personId,
+          institutionId,
+          input.email.trim().toLowerCase(),
+          input.roleKey,
+          context.actorId,
+        ],
       );
       const version = await this.bumpPerson(client, personId, context.actorId);
       await this.record(client, "person.identity-invitation.requested", "person", personId, {
@@ -394,7 +403,12 @@ export class PeopleOperationsService {
           `UPDATE person_identity_link_requests
            SET status='failed',failure_reason=$2,updated_at=now(),version=version+1
            WHERE id=$1 AND status='pending'`,
-          [requestId, error instanceof Error ? error.message.slice(0, 1000) : "Identity invitation failed"],
+          [
+            requestId,
+            error instanceof Error
+              ? error.message.slice(0, 1000)
+              : "Identity invitation failed",
+          ],
         );
       });
       throw error;
@@ -419,19 +433,34 @@ export class PeopleOperationsService {
         [input.email.trim().toLowerCase()],
       );
       if (existingContact.rows[0]) {
-        throw new ConflictException("A person with this email already exists; create the relationship to the existing person instead");
+        throw new ConflictException(
+          "A person with this email already exists; create the relationship to the existing person instead",
+        );
       }
       await client.query(
         `INSERT INTO people (
            id,tenant_id,legal_given_names,legal_family_name,status,locale,created_by,updated_by
          ) VALUES ($1,$2,$3,$4,'active',$5,$6,$6)`,
-        [relatedPersonId, context.tenantId, input.givenName.trim(), input.familyName.trim(), context.locale, context.actorId],
+        [
+          relatedPersonId,
+          context.tenantId,
+          input.givenName.trim(),
+          input.familyName.trim(),
+          context.locale,
+          context.actorId,
+        ],
       );
       await client.query(
         `INSERT INTO person_contact_points (
            id,tenant_id,person_id,kind,value,normalized_value,label,is_primary
          ) VALUES ($1,$2,$3,'email',$4,$5,'Invitation',true)`,
-        [randomUUID(), context.tenantId, relatedPersonId, input.email.trim(), input.email.trim().toLowerCase()],
+        [
+          randomUUID(),
+          context.tenantId,
+          relatedPersonId,
+          input.email.trim(),
+          input.email.trim().toLowerCase(),
+        ],
       );
       await client.query(
         `INSERT INTO person_relationships (
@@ -455,27 +484,45 @@ export class PeopleOperationsService {
         ],
       );
       const version = await this.bumpPerson(client, subjectPersonId, context.actorId);
-      await this.record(client, "person.relationship.invitation-started", "person-relationship", relationshipId, {
-        subjectPersonId,
-        relatedPersonId,
-        institutionId,
-        relationshipType: input.relationshipType,
-        version,
-      });
+      await this.record(
+        client,
+        "person.relationship.invitation-started",
+        "person-relationship",
+        relationshipId,
+        {
+          subjectPersonId,
+          relatedPersonId,
+          institutionId,
+          relationshipType: input.relationshipType,
+          version,
+        },
+      );
     });
 
-    const invitation = await this.inviteIdentity(request, relatedPersonId, institutionId, {
-      email: input.email,
-      roleKey: "guardian-sponsor",
-      expiresInDays: input.expiresInDays,
-      expectedPersonVersion: 1,
-    });
+    const invitation = await this.inviteIdentity(
+      request,
+      relatedPersonId,
+      institutionId,
+      {
+        email: input.email,
+        roleKey: "guardian-sponsor",
+        expiresInDays: input.expiresInDays,
+        expectedPersonVersion: 1,
+      },
+    );
     await this.database.withTenantTransaction(context.tenantId, async (client) => {
       await client.query(
         `INSERT INTO person_relationship_invitations (
            id,tenant_id,institution_id,relationship_id,identity_link_request_id,status,created_by
          ) VALUES ($1,$2,$3,$4,$5,'queued',$6)`,
-        [randomUUID(), context.tenantId, institutionId, relationshipId, invitation.identityLinkRequestId, context.actorId],
+        [
+          randomUUID(),
+          context.tenantId,
+          institutionId,
+          relationshipId,
+          invitation.identityLinkRequestId,
+          context.actorId,
+        ],
       );
     });
     return { relatedPersonId, relationshipId, ...invitation };
@@ -484,7 +531,9 @@ export class PeopleOperationsService {
   async listImportRows(importId: string) {
     const context = this.context.require();
     return this.database.withTenantTransaction(context.tenantId, async (client) => {
-      const batch = await client.query("SELECT id,status FROM people_imports WHERE id=$1", [importId]);
+      const batch = await client.query("SELECT id,status FROM people_imports WHERE id=$1", [
+        importId,
+      ]);
       if (!batch.rowCount) throw new NotFoundException("People import was not found");
       const rows = await client.query(
         `SELECT id,row_number,normalized_record,validation_status,validation_errors,
@@ -496,15 +545,25 @@ export class PeopleOperationsService {
     });
   }
 
-  async reconcileImportRow(importId: string, rowId: string, input: ReconcilePeopleImportRowDto) {
+  async reconcileImportRow(
+    importId: string,
+    rowId: string,
+    input: ReconcilePeopleImportRowDto,
+  ) {
     const context = this.context.require();
     return this.database.withTenantTransaction(context.tenantId, async (client) => {
       await this.requireReadyImport(client, importId);
       const row = await this.lockImportRow(client, importId, rowId, input.expectedVersion);
-      if (row.validation_status === "committed") throw new ConflictException("Committed import rows cannot be changed");
+      if (row.validation_status === "committed") {
+        throw new ConflictException("Committed import rows cannot be changed");
+      }
       const errors: Array<{ field: string; code: string; message: string }> = [];
-      if (!input.givenName.trim()) errors.push({ field: "givenName", code: "required", message: "Given name is required" });
-      if (!input.familyName.trim()) errors.push({ field: "familyName", code: "required", message: "Family name is required" });
+      if (!input.givenName.trim()) {
+        errors.push({ field: "givenName", code: "required", message: "Given name is required" });
+      }
+      if (!input.familyName.trim()) {
+        errors.push({ field: "familyName", code: "required", message: "Family name is required" });
+      }
       const email = input.email?.trim().toLowerCase() || null;
       let matchedPersonId: string | null = null;
       if (email) {
@@ -547,20 +606,34 @@ export class PeopleOperationsService {
         matchedPersonId,
         version: updated.rows[0].version,
       });
-      return { id: rowId, validationStatus: status, matchedPersonId, version: updated.rows[0].version };
+      return {
+        id: rowId,
+        validationStatus: status,
+        matchedPersonId,
+        version: updated.rows[0].version,
+      };
     });
   }
 
-  async resolveImportDuplicate(importId: string, rowId: string, input: ResolvePeopleImportDuplicateDto) {
+  async resolveImportDuplicate(
+    importId: string,
+    rowId: string,
+    input: ResolvePeopleImportDuplicateDto,
+  ) {
     const context = this.context.require();
     return this.database.withTenantTransaction(context.tenantId, async (client) => {
       await this.requireReadyImport(client, importId);
       const row = await this.lockImportRow(client, importId, rowId, input.expectedVersion);
-      if (row.validation_status !== "duplicate") throw new ConflictException("Only duplicate rows require duplicate resolution");
+      if (row.validation_status !== "duplicate") {
+        throw new ConflictException("Only duplicate rows require duplicate resolution");
+      }
       const personId = input.matchedPersonId ?? row.matched_person_id;
       if (input.resolution === "link-existing") {
         if (!personId) throw new BadRequestException("Link-existing requires a matched person");
-        const person = await client.query("SELECT id FROM people WHERE id=$1 AND status <> 'merged'", [personId]);
+        const person = await client.query(
+          "SELECT id FROM people WHERE id=$1 AND status <> 'merged'",
+          [personId],
+        );
         if (!person.rowCount) throw new NotFoundException("Matched person was not found");
       }
       const validationStatus = input.resolution === "create-new" ? "valid" : "committed";
@@ -572,17 +645,36 @@ export class PeopleOperationsService {
              reconciliation_action=$5,reconciliation_reason=$7,reconciled_by=$8,reconciled_at=now(),
              version=version+1
          WHERE id=$1 AND import_id=$2 AND version=$3 RETURNING version`,
-        [rowId, importId, input.expectedVersion, validationStatus, input.resolution, committedPersonId,
-          input.reason.trim(), context.actorId],
+        [
+          rowId,
+          importId,
+          input.expectedVersion,
+          validationStatus,
+          input.resolution,
+          committedPersonId,
+          input.reason.trim(),
+          context.actorId,
+        ],
       );
       await this.recalculateImport(client, importId);
-      await this.record(client, "people.import-row.duplicate-resolved", "people-import-row", rowId, {
-        importId,
-        resolution: input.resolution,
+      await this.record(
+        client,
+        "people.import-row.duplicate-resolved",
+        "people-import-row",
+        rowId,
+        {
+          importId,
+          resolution: input.resolution,
+          committedPersonId,
+          version: updated.rows[0].version,
+        },
+      );
+      return {
+        id: rowId,
+        validationStatus,
         committedPersonId,
         version: updated.rows[0].version,
-      });
-      return { id: rowId, validationStatus, committedPersonId, version: updated.rows[0].version };
+      };
     });
   }
 
@@ -591,19 +683,52 @@ export class PeopleOperationsService {
     return this.database.withTenantTransaction(context.tenantId, async (client) => {
       const person = await client.query("SELECT * FROM people WHERE id=$1", [personId]);
       if (!person.rows[0]) throw new NotFoundException("Person was not found");
-      const [contacts, addresses, identifiers, learner, staff, engagements, assignments, relationships,
-        consents, restrictions, enrolments, identityLinks] = await Promise.all([
-        client.query("SELECT * FROM person_contact_points WHERE person_id=$1 ORDER BY created_at", [personId]),
-        client.query("SELECT * FROM person_addresses WHERE person_id=$1 ORDER BY created_at", [personId]),
-        client.query("SELECT * FROM person_identifiers WHERE person_id=$1 ORDER BY created_at", [personId]),
+      const [
+        contacts,
+        addresses,
+        identifiers,
+        learner,
+        staff,
+        engagements,
+        assignments,
+        relationships,
+        consents,
+        restrictions,
+        enrolments,
+        identityLinks,
+      ] = await Promise.all([
+        client.query("SELECT * FROM person_contact_points WHERE person_id=$1 ORDER BY created_at", [
+          personId,
+        ]),
+        client.query("SELECT * FROM person_addresses WHERE person_id=$1 ORDER BY created_at", [
+          personId,
+        ]),
+        client.query("SELECT * FROM person_identifiers WHERE person_id=$1 ORDER BY created_at", [
+          personId,
+        ]),
         client.query("SELECT * FROM learner_profiles WHERE person_id=$1", [personId]),
         client.query("SELECT * FROM staff_profiles WHERE person_id=$1", [personId]),
-        client.query("SELECT * FROM staff_engagements WHERE person_id=$1 ORDER BY started_on", [personId]),
-        client.query("SELECT * FROM person_organisational_assignments WHERE person_id=$1 ORDER BY valid_from", [personId]),
-        client.query("SELECT * FROM person_relationships WHERE subject_person_id=$1 OR related_person_id=$1 ORDER BY created_at", [personId]),
-        client.query("SELECT * FROM person_consents WHERE person_id=$1 ORDER BY created_at", [personId]),
-        client.query("SELECT * FROM person_disclosure_restrictions WHERE person_id=$1 ORDER BY created_at", [personId]),
-        client.query("SELECT * FROM enrolments WHERE learner_person_id=$1 ORDER BY created_at", [personId]),
+        client.query("SELECT * FROM staff_engagements WHERE person_id=$1 ORDER BY started_on", [
+          personId,
+        ]),
+        client.query(
+          "SELECT * FROM person_organisational_assignments WHERE person_id=$1 ORDER BY valid_from",
+          [personId],
+        ),
+        client.query(
+          "SELECT * FROM person_relationships WHERE subject_person_id=$1 OR related_person_id=$1 ORDER BY created_at",
+          [personId],
+        ),
+        client.query("SELECT * FROM person_consents WHERE person_id=$1 ORDER BY created_at", [
+          personId,
+        ]),
+        client.query(
+          "SELECT * FROM person_disclosure_restrictions WHERE person_id=$1 ORDER BY created_at",
+          [personId],
+        ),
+        client.query("SELECT * FROM enrolments WHERE learner_person_id=$1 ORDER BY created_at", [
+          personId,
+        ]),
         client.query(
           `SELECT id,institution_id,requested_email,requested_role_key,status,linked_user_id,
                   expires_at,completed_at,created_at,updated_at,version
@@ -635,15 +760,38 @@ export class PeopleOperationsService {
            id,tenant_id,person_id,request_type,status,reason,export_format,export_snapshot,
            export_checksum,requested_by,ready_at,completed_by
          ) VALUES ($1,$2,$3,$4,'ready',$5,'json',$6,$7,$8,now(),$8)`,
-        [requestId, context.tenantId, personId, input.requestType, input.reason.trim(), snapshot, checksum, context.actorId],
+        [
+          requestId,
+          context.tenantId,
+          personId,
+          input.requestType,
+          input.reason.trim(),
+          snapshot,
+          checksum,
+          context.actorId,
+        ],
       );
-      await this.record(client, "person.data-subject-export.ready", "person-data-subject-request", requestId, {
+      await this.record(
+        client,
+        "person.data-subject-export.ready",
+        "person-data-subject-request",
+        requestId,
+        {
+          personId,
+          requestType: input.requestType,
+          checksum,
+          version: 1,
+        },
+      );
+      return {
+        id: requestId,
         personId,
-        requestType: input.requestType,
-        checksum,
+        status: "ready",
+        exportFormat: "json",
+        exportChecksum: checksum,
+        snapshot,
         version: 1,
-      });
-      return { id: requestId, personId, status: "ready", exportFormat: "json", exportChecksum: checksum, snapshot, version: 1 };
+      };
     });
   }
 
@@ -656,7 +804,9 @@ export class PeopleOperationsService {
          FROM person_data_subject_requests WHERE id=$1 AND person_id=$2`,
         [requestId, personId],
       );
-      if (!result.rows[0]) throw new NotFoundException("Data-subject request was not found");
+      if (!result.rows[0]) {
+        throw new NotFoundException("Data-subject request was not found");
+      }
       return result.rows[0];
     });
   }
@@ -674,20 +824,31 @@ export class PeopleOperationsService {
       await this.lockPerson(client, personId, expectedVersion);
       const child = await create(client, context);
       const version = await this.bumpPerson(client, personId, context.actorId);
-      await this.record(client, child.eventType, child.childType, child.childId, { personId, version });
+      await this.record(client, child.eventType, child.childType, child.childId, {
+        personId,
+        version,
+      });
       return { id: child.childId, personId, aggregateVersion: version, version: 1 };
     });
   }
 
-  private async lockPerson(client: PoolClient, personId: string, expectedVersion: number): Promise<PersonRow> {
+  private async lockPerson(
+    client: PoolClient,
+    personId: string,
+    expectedVersion: number,
+  ): Promise<PersonRow> {
     const result = await client.query<PersonRow>(
       "SELECT id,version,status,linked_user_id FROM people WHERE id=$1 FOR UPDATE",
       [personId],
     );
     const person = result.rows[0];
     if (!person) throw new NotFoundException("Person was not found");
-    if (person.status === "merged") throw new ConflictException("Merged person records cannot be changed");
-    if (person.version !== expectedVersion) throw new ConflictException("Person changed since it was loaded");
+    if (person.status === "merged") {
+      throw new ConflictException("Merged person records cannot be changed");
+    }
+    if (person.version !== expectedVersion) {
+      throw new ConflictException("Person changed since it was loaded");
+    }
     return person;
   }
 
@@ -713,7 +874,9 @@ export class PeopleOperationsService {
       "SELECT id FROM people_imports WHERE id=$1 AND status='ready' FOR UPDATE",
       [importId],
     );
-    if (!result.rowCount) throw new ConflictException("People import is not open for reconciliation");
+    if (!result.rowCount) {
+      throw new ConflictException("People import is not open for reconciliation");
+    }
   }
 
   private async lockImportRow(
@@ -729,7 +892,9 @@ export class PeopleOperationsService {
     );
     const row = result.rows[0];
     if (!row) throw new NotFoundException("People import row was not found");
-    if (row.version !== expectedVersion) throw new ConflictException("People import row changed since it was loaded");
+    if (row.version !== expectedVersion) {
+      throw new ConflictException("People import row changed since it was loaded");
+    }
     return row;
   }
 
