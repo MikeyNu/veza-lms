@@ -23,7 +23,6 @@ import {
   ApproveCertificateTemplateDto,
   ApproveRubricDto,
   AttachRubricDto,
-  CompleteExportDto,
   CreateAssignmentDto,
   CreateAssignmentGroupDto,
   CreateAwardRuleDto,
@@ -388,16 +387,6 @@ export class AcademicEvidenceController {
   ) {
     this.assertTenant(request, permissions.exportManage);
     return this.service.requestExport(institutionId, input);
-  }
-
-  @Post("exports/:exportId/complete")
-  completeExport(
-    @Req() request: AuthenticatedRequest,
-    @Param("exportId", new ParseUUIDPipe()) exportId: string,
-    @Body() input: CompleteExportDto,
-  ) {
-    this.assertTenant(request, permissions.exportManage);
-    return this.service.completeExport(exportId, input);
   }
 
   @Get("analytics")
