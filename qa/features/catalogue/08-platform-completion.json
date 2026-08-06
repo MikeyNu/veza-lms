@@ -1,0 +1,127 @@
+{
+  "categories": [
+    {
+      "id": "identity-journey-hardening",
+      "title": "Institutional and operator identity journeys",
+      "boundary": "public browser, institutional BFF and control plane",
+      "sources": [
+        "apps/web/src/components/identity",
+        "apps/web/app/sign-in",
+        "apps/web/app/invitation",
+        "apps/web/app/account-help",
+        "apps/web/app/reset-password",
+        "apps/control-plane/src/components/operator-identity-gateway.tsx"
+      ],
+      "tests": [
+        "apps/web/tests/identity-journeys.test.mjs",
+        "apps/control-plane/tests/operator-identity.test.mjs"
+      ],
+      "verification": "contract, source and browser-state",
+      "features": [
+        { "id": "identity-journey-hardening.shared-institutional-identity-gateway", "name": "Shared institutional identity gateway", "status": "implemented" },
+        { "id": "identity-journey-hardening.multi-panel-institutional-sign-in", "name": "Multi-panel institutional sign-in", "status": "implemented" },
+        { "id": "identity-journey-hardening.institution-email-login-hint", "name": "Institution email login hint", "status": "implemented" },
+        { "id": "identity-journey-hardening.no-local-password-collection", "name": "No local password collection", "status": "implemented" },
+        { "id": "identity-journey-hardening.trusted-identity-provider-recovery-link-validation", "name": "Trusted identity-provider recovery-link validation", "status": "implemented" },
+        { "id": "identity-journey-hardening.account-help-routing-by-authority-owner", "name": "Account-help routing by authority owner", "status": "implemented" },
+        { "id": "identity-journey-hardening.password-recovery-identity-provider-handoff", "name": "Password-recovery identity-provider handoff", "status": "implemented" },
+        { "id": "identity-journey-hardening.browser-invitation-acceptance-journey", "name": "Browser invitation-acceptance journey", "status": "implemented" },
+        { "id": "identity-journey-hardening.invitation-wrong-identity-recovery", "name": "Invitation wrong-identity recovery", "status": "implemented" },
+        { "id": "identity-journey-hardening.identity-route-loading-skeletons", "name": "Identity-route loading skeletons", "status": "implemented" },
+        { "id": "identity-journey-hardening.identity-route-recoverable-errors", "name": "Identity-route recoverable errors", "status": "implemented" },
+        { "id": "identity-journey-hardening.mobile-identity-task-order", "name": "Mobile identity task order", "status": "implemented" },
+        { "id": "identity-journey-hardening.separate-operator-multi-panel-sign-in", "name": "Separate operator multi-panel sign-in", "status": "implemented" },
+        { "id": "identity-journey-hardening.operator-tenant-content-boundary-communication", "name": "Operator tenant-content boundary communication", "status": "implemented" }
+      ]
+    },
+    {
+      "id": "access-administration-completion",
+      "title": "Institutional access administration completion",
+      "boundary": "tenant application plane and institutional BFF",
+      "sources": [
+        "apps/api/src/modules/identity-access",
+        "apps/web/app/admin/access",
+        "apps/web/src/features/admin/access-administration-workspace.tsx",
+        "apps/web/src/server/access-directory-api.ts"
+      ],
+      "tests": [
+        "apps/api/tests/access-invitation-lifecycle.test.mjs",
+        "apps/web/tests/access-administration-workflow.test.mjs"
+      ],
+      "verification": "authorization, lifecycle and browser contract",
+      "features": [
+        { "id": "access-administration-completion.institutional-access-administration-workspace", "name": "Institutional access-administration workspace", "status": "implemented" },
+        { "id": "access-administration-completion.membership-inspection", "name": "Membership inspection", "status": "implemented" },
+        { "id": "access-administration-completion.role-assignment-browser-workflow", "name": "Role-assignment browser workflow", "status": "implemented" },
+        { "id": "access-administration-completion.role-termination-browser-workflow", "name": "Role-termination browser workflow", "status": "implemented" },
+        { "id": "access-administration-completion.membership-lifecycle-browser-workflow", "name": "Membership-lifecycle browser workflow", "status": "implemented" },
+        { "id": "access-administration-completion.invitation-creation-browser-workflow", "name": "Invitation-creation browser workflow", "status": "implemented" },
+        { "id": "access-administration-completion.invitation-token-rotation-and-resend", "name": "Invitation token rotation and resend", "status": "implemented" },
+        { "id": "access-administration-completion.invitation-bulk-revocation", "name": "Invitation bulk revocation", "status": "implemented" },
+        { "id": "access-administration-completion.runtime-access-directory-contract-validation", "name": "Runtime access-directory contract validation", "status": "implemented" },
+        { "id": "access-administration-completion.keyboard-membership-selection", "name": "Keyboard membership selection", "status": "implemented" },
+        { "id": "access-administration-completion.single-encoded-scope-selection", "name": "Single encoded access-scope selection", "status": "implemented" },
+        { "id": "access-administration-completion.safe-upstream-access-error-preservation", "name": "Safe upstream access-error preservation", "status": "implemented" }
+      ]
+    },
+    {
+      "id": "bounded-bulk-lifecycle",
+      "title": "Bounded bulk lifecycle operations",
+      "boundary": "tenant application plane and institutional BFF",
+      "sources": [
+        "apps/api/src/modules/people",
+        "apps/api/src/modules/identity-access",
+        "apps/web/src/components/data/bulk-selection-toolbar.tsx",
+        "apps/web/src/features/people/people-bulk-actions.tsx"
+      ],
+      "tests": [
+        "apps/api/tests/people-bulk-lifecycle.test.mjs",
+        "apps/api/tests/access-invitation-lifecycle.test.mjs",
+        "apps/web/tests/people-bulk-workflow.test.mjs"
+      ],
+      "verification": "bounded command, concurrency and browser contract",
+      "features": [
+        { "id": "bounded-bulk-lifecycle.shared-bulk-selection-toolbar", "name": "Shared bulk-selection toolbar", "status": "implemented" },
+        { "id": "bounded-bulk-lifecycle.atomic-people-status-batch", "name": "Atomic people-status batch", "status": "implemented" },
+        { "id": "bounded-bulk-lifecycle.people-batch-expected-version-validation", "name": "People-batch expected-version validation", "status": "implemented" },
+        { "id": "bounded-bulk-lifecycle.people-batch-sensitive-record-exclusion", "name": "People-batch sensitive-record exclusion", "status": "implemented" },
+        { "id": "bounded-bulk-lifecycle.people-batch-per-record-audit-and-outbox", "name": "People-batch per-record audit and outbox", "status": "implemented" },
+        { "id": "bounded-bulk-lifecycle.atomic-invitation-revocation-batch", "name": "Atomic invitation-revocation batch", "status": "implemented" },
+        { "id": "bounded-bulk-lifecycle.bulk-operation-reason-capture", "name": "Bulk-operation reason capture", "status": "implemented" },
+        { "id": "bounded-bulk-lifecycle.bulk-operation-size-limits", "name": "Bulk-operation size limits", "status": "implemented" }
+      ]
+    },
+    {
+      "id": "experience-resilience",
+      "title": "Shared loading, error and workflow resilience",
+      "boundary": "institutional browser and quality gates",
+      "sources": [
+        "apps/web/src/components/states",
+        "apps/web/styles/workspace-route-states.css",
+        "qa/crud",
+        "qa/workflows",
+        "scripts/qa"
+      ],
+      "tests": [
+        "apps/web/tests/workspace-route-states.test.mjs",
+        "scripts/qa/crud-lifecycle.mjs",
+        "scripts/qa/workflow-completeness.mjs",
+        "scripts/qa/migration-validation.mjs"
+      ],
+      "verification": "route-state, lifecycle and workflow gates",
+      "features": [
+        { "id": "experience-resilience.shared-workspace-loading-skeleton", "name": "Shared workspace loading skeleton", "status": "implemented" },
+        { "id": "experience-resilience.shared-workspace-recoverable-error", "name": "Shared workspace recoverable error", "status": "implemented" },
+        { "id": "experience-resilience.high-value-route-loading-coverage", "name": "High-value route loading coverage", "status": "implemented" },
+        { "id": "experience-resilience.high-value-route-error-coverage", "name": "High-value route error coverage", "status": "implemented" },
+        { "id": "experience-resilience.responsive-route-state-layout", "name": "Responsive route-state layout", "status": "implemented" },
+        { "id": "experience-resilience.authoritative-crud-lifecycle-registry", "name": "Authoritative CRUD lifecycle registry", "status": "implemented" },
+        { "id": "experience-resilience.executable-crud-lifecycle-gate", "name": "Executable CRUD lifecycle gate", "status": "implemented" },
+        { "id": "experience-resilience.authoritative-end-to-end-workflow-matrix", "name": "Authoritative end-to-end workflow matrix", "status": "implemented" },
+        { "id": "experience-resilience.executable-workflow-completeness-gate", "name": "Executable workflow-completeness gate", "status": "implemented" },
+        { "id": "experience-resilience.canonical-scheduled-job-conflict-target-validation", "name": "Canonical scheduled-job conflict-target validation", "status": "implemented" },
+        { "id": "experience-resilience.runtime-platform-schedule-reconciliation", "name": "Runtime platform-schedule reconciliation", "status": "implemented" }
+      ]
+    }
+  ]
+}
