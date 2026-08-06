@@ -1,6 +1,5 @@
-import { getWebOidcSession } from "./web-session";
+import { requestWorkspaceJson } from "./workspace-json-request";
 
-const apiBaseUrl = process.env.VEZA_API_BASE_URL ?? "http://localhost:4000";
 const maximumBytes = 1024 * 1024;
 
 export interface StorageWorkspace {
@@ -21,24 +20,12 @@ export interface StorageAdministrationWorkspace extends StorageWorkspace {
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const session = await getWebOidcSession();
-  if (!session) throw new Error("Workspace authentication is required");
-  const response = await fetch(`${apiBaseUrl}${path}`, {
-    ...init,
-    headers: {
-      authorization: `Bearer ${session.accessToken}`,
-      accept: "application/json",
-      ...(init?.body ? { "content-type": "application/json" } : {}),
-      ...init?.headers,
-    },
-    cache: "no-store",
-    signal: AbortSignal.timeout(20_000),
-  });
-  const text = await response.text();
-  if (text.length > maximumBytes) throw new Error("Storage response is unexpectedly large");
-  const body = text ? (JSON.parse(text) as T & { message?: string }) : ({} as T & { message?: string });
-  if (!response.ok) throw new Error(body.message ?? "Storage request failed");
-  return body;
+  return (await requestWorkspaceJson(path, {
+    service: "Storage service",
+    maximumBytes,
+    timeoutMs: 20_000,
+    ...(init ? { init } : {}),
+  })) as T;
 }
 
 export function loadStorageWorkspace(): Promise<StorageWorkspace> {
@@ -48,7 +35,9 @@ export function loadStorageWorkspace(): Promise<StorageWorkspace> {
 export async function loadStorageAdministration(): Promise<StorageAdministrationWorkspace> {
   const [workspace, deletions] = await Promise.all([
     request<StorageWorkspace>("/v1/storage/workspace"),
-    request<{ readonly items: readonly Readonly<Record<string, unknown>>[] }>("/v1/storage/deletion-requests"),
+    request<{ readonly items: readonly Readonly<Record<string, unknown>>[] }>(
+      "/v1/storage/deletion-requests",
+    ),
   ]);
   return { ...workspace, deletionRequests: deletions.items };
 }
@@ -65,7 +54,9 @@ export function mutateStorage(
   operation: string,
   input: Readonly<Record<string, unknown>>,
 ): Promise<Readonly<Record<string, unknown>>> {
-  const direct: Readonly<Record<string, Readonly<{ path: string; method: "POST" | "PUT" }>>> = {
+  const direct: Readonly<
+    Record<string, Readonly<{ path: string; method: "POST" | "PUT" }>>
+  > = {
     namespace: { path: "/v1/storage/namespaces", method: "POST" },
     policy: { path: "/v1/storage/policies", method: "POST" },
     quota: { path: "/v1/storage/quota", method: "PUT" },
@@ -78,12 +69,41 @@ export function mutateStorage(
   const approve = operation.match(/^approve-deletion:([0-9a-f-]{36})$/i);
   const withdraw = operation.match(/^withdraw-consent:([0-9a-f-]{36})$/i);
   const directOperation = direct[operation];
-  const target = directOperation
-    ?? (complete ? { path: `/v1/storage/upload-sessions/${complete[1]}/complete`, method: "POST" as const } : undefined)
-    ?? (accessibility ? { path: `/v1/storage/assets/${accessibility[1]}/accessibility`, method: "POST" as const } : undefined)
-    ?? (deletion ? { path: `/v1/storage/assets/${deletion[1]}/deletions`, method: "POST" as const } : undefined)
-    ?? (approve ? { path: `/v1/storage/deletions/${approve[1]}/approve`, method: "POST" as const } : undefined)
-    ?? (withdraw ? { path: `/v1/storage/recording-consents/${withdraw[1]}/withdraw`, method: "POST" as const } : undefined);
+  const target =
+    directOperation ??
+    (complete
+      ? {
+          path: `/v1/storage/upload-sessions/${complete[1]}/complete`,
+          method: "POST" as const,
+        }
+      : undefined) ??
+    (accessibility
+      ? {
+          path: `/v1/storage/assets/${accessibility[1]}/accessibility`,
+          method: "POST" as const,
+        }
+      : undefined) ??
+    (deletion
+      ? {
+          path: `/v1/storage/assets/${deletion[1]}/deletions`,
+          method: "POST" as const,
+        }
+      : undefined) ??
+    (approve
+      ? {
+          path: `/v1/storage/deletions/${approve[1]}/approve`,
+          method: "POST" as const,
+        }
+      : undefined) ??
+    (withdraw
+      ? {
+          path: `/v1/storage/recording-consents/${withdraw[1]}/withdraw`,
+          method: "POST" as const,
+        }
+      : undefined);
   if (!target) throw new Error("Storage operation is invalid");
-  return request(target.path, { method: target.method, body: JSON.stringify(input) });
+  return request(target.path, {
+    method: target.method,
+    body: JSON.stringify(input),
+  });
 }
