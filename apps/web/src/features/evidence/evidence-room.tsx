@@ -2,6 +2,8 @@ import Link from "next/link";
 import type { WorkspaceSession } from "@veza/contracts";
 import type { AuditEventPage, AuditFilters } from "../../server/audit-api";
 
+const exportManagerRoles = new Set(["tenant-owner", "institution-admin", "registrar"]);
+
 function humanize(value: string): string {
   return value.replaceAll(/[._-]+/g, " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
@@ -28,6 +30,7 @@ function nextHref(filters: AuditFilters, cursor: string): string {
 }
 
 export function EvidenceRoom({ page, filters, session }: { page: AuditEventPage; filters: AuditFilters; session: WorkspaceSession }) {
+  const canManageExports = session.membership.roles.some((role) => exportManagerRoles.has(role));
   return <section className="workspace evidence-room" aria-labelledby="evidence-title">
     <header className="evidence-heading">
       <div>
@@ -36,7 +39,7 @@ export function EvidenceRoom({ page, filters, session }: { page: AuditEventPage;
         <p>Review consequential actions inside the verified <strong>{session.tenant.displayName}</strong> boundary. This surface is read-only.</p>
       </div>
       <div className="evidence-heading-actions">
-        <Link className="evidence-export-link" href="/evidence/exports">Governed exports</Link>
+        {canManageExports ? <Link className="evidence-export-link" href="/evidence/exports">Governed exports</Link> : null}
         <div className="evidence-trust"><span aria-hidden="true">✓</span><div><strong>Tenant scoped</strong><small>Cursor paginated · immutable</small></div></div>
       </div>
     </header>
