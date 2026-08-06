@@ -1,29 +1,19 @@
-import { getWebOidcSession } from "./web-session";
+import { requestWorkspaceJson } from "./workspace-json-request";
 
-const baseUrl = process.env.VEZA_API_BASE_URL ?? "http://localhost:4000";
-const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const maximumBytes = 256 * 1024;
+const uuid =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 async function request(path: string, input: Record<string, unknown>) {
-  const session = await getWebOidcSession();
-  if (!session) throw new Error("Workspace authentication is required");
-  const response = await fetch(`${baseUrl}${path}`, {
-    method: "POST",
-    headers: {
-      authorization: `Bearer ${session.accessToken}`,
-      accept: "application/json",
-      "content-type": "application/json",
+  return (await requestWorkspaceJson(path, {
+    service: "Credential definition service",
+    maximumBytes,
+    timeoutMs: 20_000,
+    init: {
+      method: "POST",
+      body: JSON.stringify(input),
     },
-    body: JSON.stringify(input),
-    cache: "no-store",
-    signal: AbortSignal.timeout(20_000),
-  });
-  const body = (await response.json()) as Record<string, unknown>;
-  if (!response.ok) {
-    throw new Error(
-      typeof body.message === "string" ? body.message.slice(0, 400) : "Credential definition failed",
-    );
-  }
-  return body;
+  })) as Record<string, unknown>;
 }
 
 export function createCredentialDefinition(
