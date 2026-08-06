@@ -1,0 +1,92 @@
+.bulk-selection-toolbar {
+  position: sticky;
+  z-index: 12;
+  top: 4.65rem;
+  display: grid;
+  grid-template-columns: minmax(12rem, 1fr) auto auto;
+  align-items: center;
+  gap: 1rem;
+  margin: 1rem 0;
+  padding: .78rem .88rem;
+  border: 1px solid color-mix(in srgb, var(--brand) 30%, var(--line));
+  border-radius: .78rem;
+  background: color-mix(in srgb, var(--surface) 94%, var(--brand) 6%);
+  box-shadow: 0 .65rem 1.8rem rgb(15 23 42 / .08);
+}
+
+.bulk-selection-toolbar > div:first-child strong,
+.bulk-selection-toolbar > div:first-child span {
+  display: block;
+}
+
+.bulk-selection-toolbar > div:first-child strong { color: var(--ink); font-size: .72rem; }
+.bulk-selection-toolbar > div:first-child span { margin-top: .22rem; color: var(--muted); font-size: .6rem; }
+.bulk-selection-actions { display: flex; flex-wrap: wrap; gap: .45rem; }
+.bulk-selection-actions button,
+.bulk-confirmation-panel button {
+  min-height: 2.35rem;
+  padding: 0 .82rem;
+  border: 1px solid var(--brand-strong);
+  border-radius: .58rem;
+  background: var(--brand-strong);
+  color: #fff;
+  font-size: .65rem;
+  font-weight: 780;
+  cursor: pointer;
+}
+.bulk-selection-actions button.secondary,
+.bulk-confirmation-panel button.secondary,
+.bulk-selection-clear {
+  border-color: var(--line-strong);
+  background: var(--surface);
+  color: var(--ink);
+}
+.bulk-selection-clear {
+  min-height: 2.2rem;
+  padding: 0 .55rem;
+  border: 0;
+  font-size: .62rem;
+  font-weight: 720;
+  cursor: pointer;
+}
+.bulk-selection-toolbar button:focus-visible,
+.bulk-confirmation-panel button:focus-visible,
+.people-select-column input:focus-visible { outline: 0; box-shadow: var(--veza-focus); }
+.bulk-selection-toolbar button:disabled,
+.bulk-confirmation-panel button:disabled { cursor: not-allowed; opacity: .55; }
+.bulk-confirmation-panel {
+  display: grid;
+  grid-template-columns: minmax(0, .72fr) minmax(20rem, 1.28fr);
+  gap: clamp(1rem, 3vw, 2.5rem);
+  margin-bottom: 1rem;
+  padding: clamp(1rem, 2.5vw, 1.6rem);
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--brand);
+  border-radius: .78rem;
+  background: var(--surface);
+}
+.bulk-confirmation-panel > header { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; }
+.bulk-confirmation-panel > header p { margin: 0; color: var(--brand-strong); font-size: .58rem; font-weight: 820; letter-spacing: .12em; }
+.bulk-confirmation-panel > header h2 { margin: .45rem 0 0; font-size: 1.15rem; letter-spacing: -.025em; }
+.bulk-confirmation-panel > header > button { min-width: 2.2rem; padding: 0; border: 0; background: transparent; color: var(--muted); font-size: 1.1rem; }
+.bulk-confirmation-panel > p { grid-column: 1; margin: -1.35rem 0 0; color: var(--muted); font-size: .64rem; line-height: 1.55; }
+.bulk-confirmation-panel form { grid-column: 2; grid-row: 1 / span 2; display: grid; gap: .75rem; }
+.bulk-confirmation-panel label { display: grid; gap: .4rem; color: var(--ink-soft); font-size: .66rem; font-weight: 730; }
+.bulk-confirmation-panel textarea { width: 100%; resize: vertical; padding: .72rem .78rem; border: 1px solid var(--line-strong); border-radius: .62rem; background: var(--surface); color: var(--ink); font: inherit; line-height: 1.5; }
+.bulk-confirmation-panel textarea:focus { outline: 0; border-color: var(--brand); box-shadow: var(--veza-focus); }
+.bulk-confirmation-panel footer { display: flex; justify-content: flex-end; gap: .5rem; }
+.bulk-action-error, .bulk-action-notice { padding: .72rem .82rem; border-radius: .62rem; font-size: .64rem; line-height: 1.5; }
+.bulk-action-error { margin: 0; border: 1px solid color-mix(in srgb, var(--critical) 28%, var(--line)); background: var(--veza-critical-surface); color: var(--critical); }
+.bulk-action-notice { margin: 1rem 0; border: 1px solid color-mix(in srgb, var(--success) 25%, var(--line)); background: color-mix(in srgb, var(--success) 7%, white); color: #0c7041; }
+.people-select-column { width: 3rem; text-align: center; }
+.people-select-column input { width: 1rem; height: 1rem; accent-color: var(--brand-strong); }
+.people-table-panel tbody tr.selected { background: var(--surface-selected); }
+
+@media (max-width: 760px) {
+  .bulk-selection-toolbar { top: .75rem; grid-template-columns: minmax(0, 1fr) auto; }
+  .bulk-selection-actions { grid-column: 1 / -1; order: 3; }
+  .bulk-selection-actions button { flex: 1; }
+  .bulk-confirmation-panel { grid-template-columns: minmax(0, 1fr); }
+  .bulk-confirmation-panel > p { grid-column: 1; margin: 0; }
+  .bulk-confirmation-panel form { grid-column: 1; grid-row: auto; }
+}
