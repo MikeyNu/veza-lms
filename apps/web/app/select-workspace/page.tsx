@@ -1,22 +1,39 @@
 import { redirect } from "next/navigation";
+import {
+  IdentityGateway,
+  IdentityStatus,
+} from "../../src/components/identity/identity-gateway";
 import { getWebOidcSession } from "../../src/server/web-session";
 import { listWorkspaceOptions, WorkspaceApiError } from "../../src/server/workspace-api";
 
 export const dynamic = "force-dynamic";
 
-const errors: Readonly<Record<string, string>> = {
-  invalid: "That workspace selection was malformed. Choose a workspace below.",
-  unavailable: "That membership is no longer available to this account.",
-  service: "Veza could not verify the selection. No workspace was opened; try again.",
+const errors: Readonly<Record<string, { readonly title: string; readonly detail: string }>> = {
+  invalid: {
+    title: "The workspace selector was invalid",
+    detail: "No workspace was opened. Choose one of the verified memberships below.",
+  },
+  unavailable: {
+    title: "That membership is no longer available",
+    detail: "Its status or validity changed after sign-in. Select another current membership.",
+  },
+  service: {
+    title: "Veza could not verify the selection",
+    detail: "No tenant context was installed. Retry the selection after the service is available.",
+  },
 };
 
 function roleSummary(roles: readonly string[]): string {
   return roles.map((role) => role.replaceAll("-", " ")).join(" · ");
 }
 
-export default async function SelectWorkspacePage({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
+export default async function SelectWorkspacePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ error?: string }>;
+}) {
   const [session, query] = await Promise.all([getWebOidcSession(), searchParams]);
-  if (!session) redirect("/sign-in");
+  if (!session) redirect("/sign-in?returnTo=/select-workspace");
 
   let workspaces;
   try {
@@ -27,24 +44,32 @@ export default async function SelectWorkspacePage({ searchParams }: { searchPara
   }
   if (workspaces.length === 0) redirect("/access-pending");
 
-  return <main className="workspace-select-page">
-    <section className="workspace-select-panel">
-      <div className="auth-brand-lockup"><span className="brand-mark">V</span><div><strong>veza</strong><small>LEARNING CLOUD</small></div></div>
-      <p className="eyebrow">SELECT YOUR CONTEXT</p>
-      <h1>Where are you working today?</h1>
-      <p>Each workspace carries its own institution, role scope and permissions. You can switch again from the application header.</p>
-      {query.error ? <p className="auth-error" role="alert">{errors[query.error] ?? "The workspace could not be selected."}</p> : null}
-      <div className="workspace-option-list">
-        {workspaces.map((workspace) => <form action="/api/auth/select-workspace" method="post" key={workspace.membershipId}>
-          <input type="hidden" name="membershipId" value={workspace.membershipId}/>
-          <button className="workspace-option" type="submit">
-            <span className="workspace-option-mark">{workspace.tenant.displayName[0]?.toUpperCase() ?? "V"}</span>
-            <span><strong>{workspace.tenant.displayName}</strong><small>{workspace.label} · {roleSummary(workspace.roles)}</small></span>
-            <b aria-hidden="true">→</b>
-          </button>
-        </form>)}
+  const error = query.error ? errors[query.error] : undefined;
+  return (
+    <IdentityGateway
+      eyebrow="SELECT VERIFIED CONTEXT"
+      title="Choose the membership that should govern this session."
+      description="Each option represents a membership resolved from your verified identity. Veza installs tenant context only after the selected membership is checked again server-side."
+      stage="Workspace selection"
+      aside={<><strong>Check the institution and role before continuing.</strong><span>The active workspace controls which records, actions and institutional terminology are available.</span></>}
+      footer={<form action="/api/auth/sign-out" method="post"><button className="identity-text-link" type="submit">Sign in with another account</button></form>}
+    >
+      {error ? <IdentityStatus tone="danger" title={error.title}>{error.detail}</IdentityStatus> : null}
+      <div className="identity-workspace-list">
+        {workspaces.map((workspace) => (
+          <form action="/api/auth/select-workspace" method="post" key={workspace.membershipId}>
+            <input type="hidden" name="membershipId" value={workspace.membershipId} />
+            <button className="identity-workspace-option" type="submit">
+              <span className="identity-workspace-mark">{workspace.tenant.displayName[0]?.toUpperCase() ?? "V"}</span>
+              <span>
+                <strong>{workspace.tenant.displayName}</strong>
+                <small>{workspace.label} · {roleSummary(workspace.roles)}</small>
+              </span>
+              <b aria-hidden="true">→</b>
+            </button>
+          </form>
+        ))}
       </div>
-      <form action="/api/auth/sign-out" method="post"><button className="workspace-signout" type="submit">Sign in with another account</button></form>
-    </section>
-  </main>;
+    </IdentityGateway>
+  );
 }
