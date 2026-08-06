@@ -22,7 +22,7 @@ export function IdentityRouteError({
       title={title}
       description="No new workspace context was installed. Retry the current step or return to secure sign-in."
       stage="Recoverable error"
-      footer={error.digest ? <>Support reference: <code>{error.digest}</code></> : undefined}
+      {...(error.digest ? { footer: <>Support reference: <code>{error.digest}</code></> } : {})}
     >
       <IdentityStatus tone="danger" title="The service did not confirm this transition">
         Your identity session and institutional access remain unchanged.
