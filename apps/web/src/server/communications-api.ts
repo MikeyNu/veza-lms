@@ -1,6 +1,5 @@
-import { getWebOidcSession } from "./web-session";
+import { requestWorkspaceJson } from "./workspace-json-request";
 
-const baseUrl = process.env.VEZA_API_BASE_URL ?? "http://localhost:4000";
 const maximumBytes = 512 * 1024;
 
 export interface CommunicationsWorkspace {
@@ -14,28 +13,12 @@ export interface CommunicationsWorkspace {
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const session = await getWebOidcSession();
-  if (!session) throw new Error("Workspace authentication is required");
-  const response = await fetch(`${baseUrl}${path}`, {
-    ...init,
-    headers: {
-      authorization: `Bearer ${session.accessToken}`,
-      accept: "application/json",
-      ...(init?.body ? { "content-type": "application/json" } : {}),
-      ...init?.headers,
-    },
-    cache: "no-store",
-    signal: AbortSignal.timeout(20_000),
-  });
-  const declared = Number(response.headers.get("content-length") ?? "0");
-  if (Number.isFinite(declared) && declared > maximumBytes) {
-    throw new Error("Communications response is unexpectedly large");
-  }
-  const text = await response.text();
-  if (text.length > maximumBytes) throw new Error("Communications response is unexpectedly large");
-  const body = JSON.parse(text) as T & { message?: string };
-  if (!response.ok) throw new Error(body.message ?? "Communications request failed");
-  return body;
+  return (await requestWorkspaceJson(path, {
+    service: "Communications service",
+    maximumBytes,
+    timeoutMs: 20_000,
+    ...(init ? { init } : {}),
+  })) as T;
 }
 
 export function loadCommunicationsWorkspace(): Promise<CommunicationsWorkspace> {
@@ -56,11 +39,20 @@ export function mutateCommunications(
   const versionSubmit = operation.match(/^template-submit:([0-9a-f-]{36})$/i);
   const versionApprove = operation.match(/^template-approve:([0-9a-f-]{36})$/i);
   const senderVerify = operation.match(/^sender-verify:([0-9a-f-]{36})$/i);
-  const path = direct[operation]
-    ?? (versionCreate ? `/v1/communications/templates/${versionCreate[1]}/versions` : undefined)
-    ?? (versionSubmit ? `/v1/communications/template-versions/${versionSubmit[1]}/submit` : undefined)
-    ?? (versionApprove ? `/v1/communications/template-versions/${versionApprove[1]}/approve` : undefined)
-    ?? (senderVerify ? `/v1/communications/senders/${senderVerify[1]}/verify` : undefined);
+  const path =
+    direct[operation] ??
+    (versionCreate
+      ? `/v1/communications/templates/${versionCreate[1]}/versions`
+      : undefined) ??
+    (versionSubmit
+      ? `/v1/communications/template-versions/${versionSubmit[1]}/submit`
+      : undefined) ??
+    (versionApprove
+      ? `/v1/communications/template-versions/${versionApprove[1]}/approve`
+      : undefined) ??
+    (senderVerify
+      ? `/v1/communications/senders/${senderVerify[1]}/verify`
+      : undefined);
   if (!path) throw new Error("Communications operation is invalid");
   return request(path, { method: "POST", body: JSON.stringify(input) });
 }
