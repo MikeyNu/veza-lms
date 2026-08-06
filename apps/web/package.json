@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack",
+    "prebuild": "node ../../scripts/ensure-application-prerequisites.mjs",
     "build": "next build",
     "start": "next start",
     "lint": "tsc --noEmit",
