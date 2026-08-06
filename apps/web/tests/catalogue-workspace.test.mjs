@@ -50,14 +50,14 @@ test("catalogue governance client matches the API controller routes", async () =
     "runs/${courseRunId}/lifecycle",
     "enrolments/${enrolmentId}/status",
     "classes/${classSectionId}/staff",
-  ]) assert.match(client, new RegExp(route.replaceAll("$", "\\$")));
+  ]) assert.equal(client.includes(route), true, `Client route is missing: ${route}`);
   for (const route of [
-    /programmes\/versions\/:versionId\/courses/,
-    /blueprints\/versions\/:versionId\/requisites/,
-    /runs\/:runId\/lifecycle/,
-    /enrolments\/:enrolmentId\/status/,
-    /classes\/:classSectionId\/staff/,
-  ]) assert.match(controller, route);
+    "programmes/versions/:versionId/courses",
+    "blueprints/versions/:versionId/requisites",
+    "runs/:runId/lifecycle",
+    "enrolments/:enrolmentId/status",
+    "classes/:classSectionId/staff",
+  ]) assert.equal(controller.includes(route), true, `Controller route is missing: ${route}`);
   assert.doesNotMatch(client, /runs\/\$\{courseRunId\}\/transition/);
   assert.doesNotMatch(client, /enrolments\/\$\{enrolmentId\}\/transition/);
   assert.doesNotMatch(client, /staff-allocations/);
