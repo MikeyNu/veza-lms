@@ -143,7 +143,7 @@ export function InstitutionSetupCentre({ bundle, session, tenantOwner }: { bundl
     {feedback ? <div className={`setup-feedback ${feedback.kind}`} role="status" aria-live="polite">{feedback.message}</div> : null}
     <div className="setup-layout">
       <ActivationRail bundle={bundle} tenantOwner={tenantOwner} operation={operation} tenantStatus={session.tenant.status} onActivate={() => void mutate("activate", "POST", {}, "Tenant activation")}/>
-      <main className="setup-canvas">
+      <div className="setup-canvas">
         {tenantOwner ? <OperationalProfileCard bundle={bundle} operation={operation} onSubmit={submitProfile}/> : null}
         {tenantOwner ? <InstitutionIdentityCard session={session} count={bundle.institutions.length} operation={operation} onSubmit={submitInstitution}/> : null}
         {institution ? <><InstitutionSelector institution={institution} institutions={tenantOwner ? bundle.institutions : []}/><div className="setup-bento">
@@ -152,7 +152,7 @@ export function InstitutionSetupCentre({ bundle, session, tenantOwner }: { bundl
           <OrganisationalUnitCard institution={institution} operation={operation} onSubmit={submitUnit}/>
           <PolicyCard institution={institution} operation={operation} currentPolicies={currentPolicies} requiredPolicies={requiredPolicies} title={title} onSubmit={submitPolicy}/>
         </div></> : <div className="setup-empty"><span>02</span><div><strong>Create the institution boundary first</strong><p>Campuses, academic periods, organisational units and policies all require an institution.</p></div></div>}
-      </main>
+      </div>
       <SetupInspector bundle={bundle} session={session} effectivePolicyCount={currentPolicies.size} publishedPeriodCount={publishedPeriodCount} title={title}/>
     </div>
   </section>;
