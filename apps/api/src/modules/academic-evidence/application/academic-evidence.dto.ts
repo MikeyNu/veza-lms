@@ -218,7 +218,7 @@ export class RevokeCertificateDto {
 export class RequestExportDto {
   @IsIn(["transcript", "gradebook", "enrolments", "people", "analytics"])
   exportType!: "transcript" | "gradebook" | "enrolments" | "people" | "analytics";
-  @IsIn(["csv", "json"]) format!: "csv" | "json";
+  @IsIn(["csv", "json", "pdf"]) format!: "csv" | "json" | "pdf";
   @IsObject() filters!: Record<string, unknown>;
 }
 
