@@ -13,7 +13,8 @@
     "dev": "pnpm build:packages && turbo run dev --parallel",
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck",
-    "test": "node scripts/qa/feature-inventory.mjs && node scripts/qa/crud-lifecycle.mjs && node scripts/qa/workflow-completeness.mjs && turbo run test",
+    "test": "node scripts/qa/toolchain-contract.mjs && node scripts/qa/feature-inventory.mjs && node scripts/qa/crud-lifecycle.mjs && node scripts/qa/workflow-completeness.mjs && turbo run test",
+    "test:toolchain": "node scripts/qa/toolchain-contract.mjs",
     "test:features": "node scripts/qa/feature-inventory.mjs",
     "test:crud": "node scripts/qa/crud-lifecycle.mjs",
     "test:workflows": "node scripts/qa/workflow-completeness.mjs",
@@ -27,6 +28,6 @@
     "@types/node": "^24.0.15",
     "prettier": "^3.6.2",
     "turbo": "^2.10.7",
-    "typescript": "^7.0.2"
+    "typescript": "6.0.2"
   }
 }
