@@ -21,6 +21,7 @@ const requiredRegistrations = [
 ];
 
 const requiredExecutors = [
+  "platformScheduleReconciler.reconcile()",
   "mediaProcessor.processDue()",
   "searchIndexPublisher.processDue()",
   "webhookDispatcher.processDue()",
@@ -37,7 +38,7 @@ test("worker entry point registers every persisted consumer and schedule handler
   }
 });
 
-test("worker polling loop executes media, search, webhook, export and heartbeat capabilities", () => {
+test("worker polling loop reconciles schedules and executes every runtime processor", () => {
   for (const executor of requiredExecutors) {
     assert.ok(main.includes(executor), `Missing worker executor: ${executor}`);
   }
