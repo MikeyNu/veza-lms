@@ -15,26 +15,43 @@ test("access administration is reachable only to institutional administrators", 
   assert.match(nav, /\/admin\/access/);
 });
 
-test("access BFF derives membership context and allowlists every lifecycle operation", async () => {
+test("access BFF derives membership context, validates responses and preserves safe errors", async () => {
   const [route, client] = await Promise.all([
     source("../app/api/access/[operation]/route.ts"),
     source("../src/server/access-directory-api.ts"),
   ]);
   assert.match(route, /isSameOriginRequest/);
-  for (const operation of ["invite", "membership-status", "role-assign", "role-end", "invitation-revoke", "invitation-resend", "invitations-bulk-revoke"]) assert.match(route, new RegExp(operation));
+  assert.match(route, /safeStatus/);
+  for (const operation of ["invite", "membership-status", "role-assign", "role-end", "invitation-revoke", "invitation-resend", "invitations-bulk-revoke"]) {
+    assert.match(route, new RegExp(operation));
+  }
   assert.match(client, /x-veza-membership-id/);
   assert.doesNotMatch(client, /x-veza-tenant-id/);
+  assert.match(client, /function directory/);
+  assert.match(client, /function membership/);
+  assert.match(client, /function invitation/);
+  assert.match(client, /function role/);
+  assert.doesNotMatch(client, /return body as T/);
 });
 
-test("access workspace completes membership, role and invitation journeys", async () => {
+test("access workspace completes membership, role and invitation journeys accessibly", async () => {
   const [workspace, styles] = await Promise.all([
     source("../src/features/admin/access-administration-workspace.tsx"),
     source("../styles/access-administration.css"),
   ]);
-  for (const operation of ["invite", "membership-status", "role-assign", "role-end", "invitation-revoke", "invitation-resend", "invitations-bulk-revoke"]) assert.match(workspace, new RegExp(operation));
+  for (const operation of ["invite", "membership-status", "role-assign", "role-end", "invitation-revoke", "invitation-resend", "invitations-bulk-revoke"]) {
+    assert.match(workspace, new RegExp(operation));
+  }
   assert.match(workspace, /BulkSelectionToolbar/);
-  assert.match(workspace, /minLength=\{20\}/);
-  assert.match(workspace, /tenantOwner/);
+  assert.match(workspace, /name="scope"/);
+  assert.match(workspace, /selectedScope/);
+  assert.doesNotMatch(workspace, /name="scopeType"/);
+  assert.doesNotMatch(workspace, /name="scopeId"/);
+  assert.match(workspace, /const formElement = event\.currentTarget/);
+  assert.match(workspace, /className="access-member-select"/);
+  assert.match(workspace, /aria-pressed/);
+  assert.doesNotMatch(workspace, /<tr[^>]+onClick=/);
   assert.match(styles, /grid-template-columns: minmax\(0, 1fr\) minmax\(20rem, 25rem\)/);
+  assert.match(styles, /\.access-member-select:focus-visible/);
   assert.match(styles, /@media \(max-width: 760px\)/);
 });

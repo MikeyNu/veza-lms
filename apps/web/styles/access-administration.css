@@ -23,10 +23,11 @@
 .access-table-wrap table { width: 100%; border-collapse: collapse; }
 .access-table-wrap th { padding: .72rem .8rem; border-bottom: 1px solid var(--line); color: var(--muted); font-size: .56rem; text-align: left; text-transform: uppercase; letter-spacing: .08em; }
 .access-table-wrap td { padding: .8rem; border-bottom: 1px solid var(--line); font-size: .65rem; vertical-align: top; }
-.access-table-wrap tbody tr { cursor: pointer; }
 .access-table-wrap tbody tr:hover, .access-table-wrap tbody tr.selected { background: var(--surface-selected); }
 .access-table-wrap td strong, .access-table-wrap td small { display: block; }
 .access-table-wrap td small { margin-top: .25rem; color: var(--muted); font-size: .58rem; }
+.access-member-select { width: 100%; min-width: 12rem; padding: 0; border: 0; background: transparent; color: inherit; cursor: pointer; text-align: left; }
+.access-member-select:focus-visible { border-radius: .35rem; outline: 0; box-shadow: var(--veza-focus); }
 .access-status { display: inline-flex; padding: .28rem .45rem; border-radius: 999px; background: var(--surface-subtle); color: var(--muted); font-size: .56rem; font-weight: 760; }
 .access-status.active, .access-status.sent { background: color-mix(in srgb, var(--success) 9%, white); color: #0c7041; }
 .access-status.suspended, .access-status.pending-delivery { background: color-mix(in srgb, var(--warning) 10%, white); color: #8a5700; }
@@ -70,6 +71,5 @@
 .access-route-state section span { display: block; margin-top: .6rem; color: var(--muted); font-size: .68rem; line-height: 1.55; }
 .access-route-state section > div { display: flex; gap: .5rem; margin-top: 1rem; }
 .access-route-state a { min-height: 2.45rem; display: inline-flex; align-items: center; padding: 0 .75rem; border: 1px solid var(--line-strong); border-radius: .55rem; color: var(--ink); font-size: .62rem; font-weight: 760; text-decoration: none; }
-
 @media (max-width: 1040px) { .access-layout, .access-invitation-grid { grid-template-columns: minmax(0, 1fr); } .access-inspector { position: static; max-height: none; } }
 @media (max-width: 760px) { .access-workspace { padding-inline: 1rem; } .access-heading { align-items: stretch; flex-direction: column; } .access-heading nav { width: 100%; } .access-heading nav button { flex: 1; } .access-overview { grid-template-columns: repeat(2, minmax(0, 1fr)); } .access-overview article { border-bottom: 1px solid var(--line); } .access-overview article:nth-child(2n) { border-right: 0; } .access-overview article:nth-last-child(-n + 2) { border-bottom: 0; } .access-invitation-actions { flex-direction: column; } }
