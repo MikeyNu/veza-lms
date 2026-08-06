@@ -4,6 +4,7 @@ import { ConsumerRepository } from "./consumer-repository.js";
 import { ConsumerRuntime } from "./consumer-runtime.js";
 import { sanitizeDeliveryError } from "./delivery-error.js";
 import { EventBridgePublisher, StdoutPublisher } from "./event-publisher.js";
+import { ExportExpiryHandler, ExportProcessor, HttpExportObjectStore } from "./export-processor.js";
 import { MediaProcessor } from "./media-processor.js";
 import { MediaRetentionReconciliationHandler } from "./media-scheduler.js";
 import { CoreMetricRefresher } from "./metric-refresh.js";
@@ -240,6 +241,7 @@ async function main(): Promise<void> {
   scheduler.register("observability.alert-evaluation", new AlertEvaluationHandler(pool));
   scheduler.register("api.runtime-cleanup", new ApiRuntimeCleanupHandler(pool));
   scheduler.register("api.webhook-reconciliation", new WebhookReconciliationHandler(pool));
+  scheduler.register("exports.expiry", new ExportExpiryHandler(pool));
 
   const notificationDispatcher = new NotificationDispatcher(
     pool,
@@ -276,6 +278,20 @@ async function main(): Promise<void> {
     config.retryBaseSeconds,
     config.retryMaximumSeconds,
   );
+  const exportProcessor = new ExportProcessor(
+    pool,
+    new HttpExportObjectStore(
+      config.exportObjectStoreUrl,
+      config.exportObjectStoreToken,
+      config.exportObjectStoreTimeoutMs,
+    ),
+    config.workerId,
+    config.exportBatchSize,
+    config.exportLeaseSeconds,
+    config.exportExpirySeconds,
+    config.retryBaseSeconds,
+    config.retryMaximumSeconds,
+  );
   const heartbeat = new WorkerHeartbeat(pool, config.workerId);
   const shutdown = new AbortController();
   const stop = (signal: string) => {
@@ -295,6 +311,7 @@ async function main(): Promise<void> {
     outboxBatchSize: config.batchSize,
     consumerBatchSize: config.consumerBatchSize,
     schedulerBatchSize: config.schedulerBatchSize,
+    exportBatchSize: config.exportBatchSize,
     leaseSeconds: config.leaseSeconds,
     metricRefreshIntervalMs: config.metricRefreshIntervalMs,
   });
@@ -318,13 +335,14 @@ async function main(): Promise<void> {
           nextSchedulerAt = now + config.schedulerIntervalMs;
         }
 
-        const [outboxClaimed, consumers, notifications, media, search, webhooks] = await Promise.all([
+        const [outboxClaimed, consumers, notifications, media, search, webhooks, exports] = await Promise.all([
           processOutbox(outboxRepository, eventPublisher, config),
           consumerRuntime.processDue(),
           notificationDispatcher.processDue(),
           mediaProcessor.processDue(),
           searchIndexPublisher.processDue(),
           webhookDispatcher.processDue(),
+          exportProcessor.processDue(),
         ]);
         if (consumers.claimed > 0) log("info", "Event consumers processed", consumers);
         if (
@@ -337,6 +355,7 @@ async function main(): Promise<void> {
         if (media.claimed > 0) log("info", "Media processing cycle completed", media);
         if (search.claimed > 0) log("info", "Search indexing cycle completed", search);
         if (webhooks.claimed > 0) log("info", "Webhook delivery cycle completed", webhooks);
+        if (exports.claimed > 0) log("info", "Governed export cycle completed", exports);
         if (
           outboxClaimed === 0 &&
           consumers.claimed === 0 &&
@@ -345,7 +364,8 @@ async function main(): Promise<void> {
           notifications.digestsProcessed === 0 &&
           media.claimed === 0 &&
           search.claimed === 0 &&
-          webhooks.claimed === 0
+          webhooks.claimed === 0 &&
+          exports.claimed === 0
         ) {
           await wait(config.pollIntervalMs, shutdown.signal);
         }
