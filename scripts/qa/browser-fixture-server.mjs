@@ -9,11 +9,13 @@ const institutionId = "10000000-0000-4000-8000-000000000004";
 const campusId = "10000000-0000-4000-8000-000000000005";
 const unitId = "10000000-0000-4000-8000-000000000006";
 const periodId = "10000000-0000-4000-8000-000000000007";
+const roleAssignmentId = "10000000-0000-4000-8000-000000000011";
+const invitationId = "10000000-0000-4000-8000-000000000012";
 
 const workspaceSession = {
   principal: {
     userId,
-    displayName: "Michael Ndlovu",
+    displayName: "Michael Ndhlovu",
     email: "operator@quality.veza.invalid",
   },
   tenant: {
@@ -165,6 +167,73 @@ const readiness = {
   ],
 };
 
+const accessDirectory = {
+  memberships: [
+    {
+      id: membershipId,
+      userId,
+      identity: {
+        displayName: "Michael Ndhlovu",
+        email: "operator@quality.veza.invalid",
+      },
+      status: "active",
+      locale: "en-ZA",
+      timezone: "Africa/Johannesburg",
+      createdAt: "2026-01-10T08:00:00.000Z",
+      roles: [
+        {
+          id: roleAssignmentId,
+          roleKey: "tenant-owner",
+          scopeType: "tenant",
+          scopeId: tenantId,
+          scopeLabel: "Quality Institute tenant",
+          validFrom: "2026-01-10T08:00:00.000Z",
+          validUntil: null,
+        },
+      ],
+    },
+    {
+      id: "10000000-0000-4000-8000-000000000013",
+      userId: "10000000-0000-4000-8000-000000000014",
+      identity: {
+        displayName: "Naledi Mokoena",
+        email: "naledi@quality.veza.invalid",
+      },
+      status: "active",
+      locale: "en-ZA",
+      timezone: "Africa/Johannesburg",
+      createdAt: "2026-03-02T08:30:00.000Z",
+      roles: [
+        {
+          id: "10000000-0000-4000-8000-000000000015",
+          roleKey: "registrar",
+          scopeType: "institution",
+          scopeId: institutionId,
+          scopeLabel: "Quality Institute",
+          validFrom: "2026-03-02T08:30:00.000Z",
+          validUntil: null,
+        },
+      ],
+    },
+  ],
+  invitations: [
+    {
+      id: invitationId,
+      email: "assessor@quality.veza.invalid",
+      roleKey: "assessor",
+      scopeType: "institution",
+      scopeId: institutionId,
+      scopeLabel: "Quality Institute",
+      status: "sent",
+      expiresAt: "2026-08-20T10:00:00.000Z",
+      createdAt: "2026-08-05T10:00:00.000Z",
+    },
+  ],
+  page: {
+    limit: 40,
+  },
+};
+
 function send(response, status, payload) {
   response.statusCode = status;
   response.setHeader("content-type", "application/json; charset=utf-8");
@@ -232,6 +301,10 @@ const server = createServer((request, response) => {
   }
   if (url.pathname === `/v1/institution-setup/institutions/${institutionId}`) {
     send(response, 200, institutionDetail);
+    return;
+  }
+  if (url.pathname === "/v1/access-directory") {
+    send(response, 200, accessDirectory);
     return;
   }
   send(response, 404, { message: "Fixture route was not found." });
