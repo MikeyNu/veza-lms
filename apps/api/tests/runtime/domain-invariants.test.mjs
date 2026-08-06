@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import "./authentication-assurance.test.mjs";
 import { TenantActivationService } from "../../dist/modules/institution-structure/application/tenant-activation.service.js";
 
 const context = {
