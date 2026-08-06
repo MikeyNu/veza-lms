@@ -38,3 +38,27 @@ test("catalogue BFF routes preserve the server trust boundary", async () => {
     assert.doesNotMatch(source, /x-tenant-id/i);
   }
 });
+
+test("catalogue governance client matches the API controller routes", async () => {
+  const [client, controller] = await Promise.all([
+    read("../src/server/catalogue-api.ts"),
+    read("../../api/src/modules/catalogue/http/catalogue-governance.controller.ts"),
+  ]);
+  for (const route of [
+    "programmes/versions/${programmeVersionId}/courses",
+    "blueprints/versions/${blueprintVersionId}/requisites",
+    "runs/${courseRunId}/lifecycle",
+    "enrolments/${enrolmentId}/status",
+    "classes/${classSectionId}/staff",
+  ]) assert.match(client, new RegExp(route.replaceAll("$", "\\$")));
+  for (const route of [
+    /programmes\/versions\/:versionId\/courses/,
+    /blueprints\/versions\/:versionId\/requisites/,
+    /runs\/:runId\/lifecycle/,
+    /enrolments\/:enrolmentId\/status/,
+    /classes\/:classSectionId\/staff/,
+  ]) assert.match(controller, route);
+  assert.doesNotMatch(client, /runs\/\$\{courseRunId\}\/transition/);
+  assert.doesNotMatch(client, /enrolments\/\$\{enrolmentId\}\/transition/);
+  assert.doesNotMatch(client, /staff-allocations/);
+});
