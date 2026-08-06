@@ -210,14 +210,46 @@ test("malformed filter values are rejected before queueing", async () => {
   });
 });
 
-test("expiry scheduler is registered with a real creator and expires ready jobs", async () => {
-  const schedule = await worker.query(
-    `SELECT handler_key,created_by FROM scheduled_jobs
-     WHERE tenant_id IS NULL AND job_key='exports.expiry'`,
+test("platform schedules reconcile with explicit ownership and expiry ready exports", async () => {
+  const reconciled = await worker.query("SELECT app.ensure_platform_schedules() result");
+  assert.ok(Number(reconciled.rows[0].result.globalSchedules) >= 9);
+  assert.ok(Number(reconciled.rows[0].result.tenantSchedules) >= 2);
+
+  const globalSchedules = await worker.query(
+    `SELECT job_key,handler_key,created_by,created_source
+     FROM scheduled_jobs WHERE tenant_id IS NULL ORDER BY job_key`,
   );
-  assert.equal(schedule.rowCount, 1);
-  assert.equal(schedule.rows[0].handler_key, "exports.expiry");
-  assert.equal(schedule.rows[0].created_by, actor);
+  const expectedGlobalJobs = [
+    "api.runtime-cleanup",
+    "api.webhook-reconciliation",
+    "commercial.effective-date-sweep",
+    "communications.digest-preparation",
+    "exports.expiry",
+    "media.retention-reconciliation",
+    "observability.alert-evaluation",
+    "observability.slo-measurement",
+    "support.session-expiry",
+  ];
+  for (const jobKey of expectedGlobalJobs) {
+    const schedule = globalSchedules.rows.find((row) => row.job_key === jobKey);
+    assert.ok(schedule, `Expected global schedule ${jobKey}`);
+    assert.equal(schedule.handler_key, jobKey);
+    assert.equal(schedule.created_source, "system");
+    assert.equal(schedule.created_by, null);
+  }
+
+  const tenantSchedules = await worker.query(
+    `SELECT tenant_id,job_key,created_by,created_source
+     FROM scheduled_jobs
+     WHERE tenant_id IN ($1,$2) AND job_key='search.projection-reconciliation'
+     ORDER BY tenant_id`,
+    [tenantA, tenantB],
+  );
+  assert.equal(tenantSchedules.rowCount, 2);
+  for (const schedule of tenantSchedules.rows) {
+    assert.equal(schedule.created_source, "user");
+    assert.equal(schedule.created_by, actor);
+  }
 
   await withTenant(app, tenantA, async (client) => {
     await client.query("UPDATE export_jobs SET expires_at=now()-interval '1 second' WHERE id=$1", [exportReady]);
