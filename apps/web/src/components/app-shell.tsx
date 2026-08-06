@@ -53,12 +53,14 @@ function SignOutButton({ className }: { className?: string }) {
 function Sidebar({ session, active }: { session: WorkspaceSession; active: NavigationKey }) {
   return (
     <aside className="sidebar" aria-label="Primary workspace">
-      <Link className="brand" href="/" aria-label="Veza home">
-        <span className="brand-mark" aria-hidden="true">V</span>
-        <div className="brand-copy">
-          <span className="brand-name">veza</span>
-          <span className="brand-sub">Learning Cloud</span>
-        </div>
+      <Link className="brand" href="/" aria-label="Veza Learning Cloud home">
+        <img
+          className="brand-logo"
+          src="/branding/veza-logo-white.png"
+          alt="Veza LMS"
+          width="1400"
+          height="611"
+        />
       </Link>
 
       <nav className="nav" aria-label={`${workspaceLabel(session)} navigation`}>
