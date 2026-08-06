@@ -14,18 +14,13 @@ export function LearningOverview() {
           <div>
             <p className="muted">Advanced Product Design</p>
             <h2>Designing for complex systems</h2>
-            <p className="lesson-meta">38 minutes remaining. Progress is based on completed lesson activities.</p>
+            <p className="lesson-meta">Continue from the last completed activity. Approximately 38 minutes remain in this lesson.</p>
             <Link className="dark-button" href="/learning">
               <span className="play"><Icon name="play" /></span>
               Continue learning
             </Link>
           </div>
           <ProgressRing value={72} />
-        </div>
-        <div className="lesson-art" aria-hidden="true">
-          <div className="art-grid" />
-          <div className="art-index">04</div>
-          <div className="art-copy"><b>Complex</b><span>systems</span></div>
         </div>
       </article>
 
