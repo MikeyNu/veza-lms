@@ -1,6 +1,7 @@
 import { access, mkdir, writeFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { dirname, join, resolve } from "node:path";
+import catalogue from "../../qa/features/platform-features.mjs";
 import matrix from "../../qa/workflows/platform-workflows.mjs";
 
 const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
@@ -19,10 +20,38 @@ async function exists(path) {
   }
 }
 
+function validateCompletionFeatures() {
+  const featureIds = new Set();
+  let featureCount = 0;
+  for (const category of catalogue.categories) {
+    for (const feature of category.features) {
+      featureCount += 1;
+      featureIds.add(feature.id);
+    }
+  }
+  invariant(catalogue.categories.length >= 24, `Feature catalogue contains only ${catalogue.categories.length} domains`);
+  invariant(featureCount >= 561, `Feature catalogue contains only ${featureCount} capabilities`);
+  for (const critical of [
+    "identity-journey-hardening.browser-invitation-acceptance-journey",
+    "identity-journey-hardening.password-recovery-identity-provider-handoff",
+    "access-administration-completion.institutional-access-administration-workspace",
+    "access-administration-completion.invitation-token-rotation-and-resend",
+    "bounded-bulk-lifecycle.atomic-people-status-batch",
+    "bounded-bulk-lifecycle.atomic-invitation-revocation-batch",
+    "experience-resilience.shared-workspace-loading-skeleton",
+    "experience-resilience.executable-crud-lifecycle-gate",
+    "experience-resilience.executable-workflow-completeness-gate",
+  ]) {
+    invariant(featureIds.has(critical), `Completion feature is missing from the catalogue: ${critical}`);
+  }
+  return featureCount;
+}
+
 async function main() {
   invariant(matrix.version === 1, "Unsupported workflow matrix version");
   invariant(matrix.status === "authoritative", "Workflow matrix must be authoritative");
   invariant(Array.isArray(matrix.workflows) && matrix.workflows.length >= 12, "Workflow matrix is incomplete");
+  const featureCount = validateCompletionFeatures();
 
   const workflowIds = new Set();
   const stepIds = new Set();
@@ -88,12 +117,13 @@ async function main() {
   await mkdir(artifactRoot, { recursive: true });
   await writeFile(join(artifactRoot, "platform-workflows.json"), `${JSON.stringify(matrix, null, 2)}\n`);
   await writeFile(join(artifactRoot, "summary.json"), `${JSON.stringify({
+    featureCount,
     workflowCount: matrix.workflows.length,
     stepCount: stepIds.size,
     implementationPathCount: allPaths.size,
     workflows: summaries,
   }, null, 2)}\n`);
-  process.stdout.write(`Workflow completeness gate validated ${matrix.workflows.length} workflows and ${stepIds.size} steps.\n`);
+  process.stdout.write(`Workflow completeness gate validated ${featureCount} capabilities, ${matrix.workflows.length} workflows and ${stepIds.size} steps.\n`);
 }
 
 await main();
