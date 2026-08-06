@@ -3,12 +3,12 @@ import { NextResponse, type NextRequest } from "next/server";
 import {
   membershipCookieName,
   secureCookie,
-} from "../../../../../src/server/auth-config";
+} from "../../../../src/server/auth-config";
 import {
   acceptMembershipInvitation,
   InvitationApiError,
-} from "../../../../../src/server/invitation-api";
-import { getWebOidcSession } from "../../../../../src/server/web-session";
+} from "../../../../src/server/invitation-api";
+import { getWebOidcSession } from "../../../../src/server/web-session";
 
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
