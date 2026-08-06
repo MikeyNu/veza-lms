@@ -169,7 +169,7 @@ export function transitionCourseRun(
   input: unknown,
 ): Promise<unknown> {
   if (!uuid.test(courseRunId)) throw new Error("Course run identifier is invalid");
-  return request(`${institutionPath(institutionId)}/runs/${courseRunId}/transition`, {
+  return request(`${institutionPath(institutionId)}/runs/${courseRunId}/lifecycle`, {
     method: "POST",
     body: JSON.stringify(input),
   });
@@ -181,7 +181,7 @@ export function transitionEnrolment(
   input: unknown,
 ): Promise<unknown> {
   if (!uuid.test(enrolmentId)) throw new Error("Enrolment identifier is invalid");
-  return request(`${institutionPath(institutionId)}/enrolments/${enrolmentId}/transition`, {
+  return request(`${institutionPath(institutionId)}/enrolments/${enrolmentId}/status`, {
     method: "POST",
     body: JSON.stringify(input),
   });
@@ -196,7 +196,7 @@ export function linkProgrammeCourse(
     throw new Error("Programme version identifier is invalid");
   }
   return request(
-    `${institutionPath(institutionId)}/programmes/${programmeVersionId}/courses`,
+    `${institutionPath(institutionId)}/programmes/versions/${programmeVersionId}/courses`,
     { method: "POST", body: JSON.stringify(input) },
   );
 }
@@ -210,7 +210,7 @@ export function addCourseRequisite(
     throw new Error("Blueprint version identifier is invalid");
   }
   return request(
-    `${institutionPath(institutionId)}/blueprints/${blueprintVersionId}/requisites`,
+    `${institutionPath(institutionId)}/blueprints/versions/${blueprintVersionId}/requisites`,
     { method: "POST", body: JSON.stringify(input) },
   );
 }
@@ -221,8 +221,8 @@ export function allocateClassStaff(
   input: unknown,
 ): Promise<unknown> {
   if (!uuid.test(classSectionId)) throw new Error("Class section identifier is invalid");
-  return request(
-    `${institutionPath(institutionId)}/classes/${classSectionId}/staff-allocations`,
-    { method: "POST", body: JSON.stringify(input) },
-  );
+  return request(`${institutionPath(institutionId)}/classes/${classSectionId}/staff`, {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
 }
