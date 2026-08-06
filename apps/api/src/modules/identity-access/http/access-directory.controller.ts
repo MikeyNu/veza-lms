@@ -26,6 +26,7 @@ import {
 } from "../application/access-administration.dto.js";
 import { AccessAdministrationService } from "../application/access-administration.service.js";
 import { AccessDirectoryQueryService } from "../application/access-directory-query.service.js";
+import { AccessInvitationLifecycleService } from "../application/access-invitation-lifecycle.service.js";
 
 @Controller("access-directory")
 @UseGuards(AuthenticationGuard, TenantMembershipGuard)
@@ -33,6 +34,7 @@ export class AccessDirectoryController {
   constructor(
     private readonly query: AccessDirectoryQueryService,
     private readonly access: AccessAdministrationService,
+    private readonly invitationLifecycle: AccessInvitationLifecycleService,
     private readonly authorization: TenantAuthorizationService,
   ) {}
 
@@ -88,6 +90,9 @@ export class AccessDirectoryController {
     @Param("invitationId", new ParseUUIDPipe({ version: "4" })) invitationId: string,
     @Body() input: RevokeInvitationDto,
   ) {
-    return this.access.revokeInvitation(request, invitationId, input.reason);
+    return this.invitationLifecycle.bulkRevoke(request, {
+      invitationIds: [invitationId],
+      reason: input.reason,
+    });
   }
 }
