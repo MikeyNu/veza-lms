@@ -28,6 +28,11 @@ interface ActiveInvitationRow extends QueryResultRow {
   readonly scope_id: string;
   readonly status: string;
   readonly expires_at: Date;
+  readonly version: number;
+}
+
+interface InvitationVersionRow extends QueryResultRow {
+  readonly version: number;
 }
 
 function reason(value: string): string {
@@ -54,7 +59,7 @@ export class AccessInvitationLifecycleService {
     const operationId = randomUUID();
     return this.database.withTenantTransaction(context.tenantId, async (client) => {
       const result = await client.query<ActiveInvitationRow>(
-        `SELECT id,email::text,role_key,scope_type,scope_id,status,expires_at
+        `SELECT id,email::text,role_key,scope_type,scope_id,status,expires_at,version
          FROM membership_invitations
          WHERE tenant_id=$1 AND id=$2
          FOR UPDATE`,
@@ -69,12 +74,16 @@ export class AccessInvitationLifecycleService {
       const secret = this.tokens.create();
       const expiresAt = new Date(Date.now() + input.expiresInDays * 86_400_000);
       const normalizedReason = reason(input.reason);
-      await client.query(
+      const updated = await client.query<InvitationVersionRow>(
         `UPDATE membership_invitations
-         SET status='pending-delivery',token_digest=$3,expires_at=$4,updated_at=now()
-         WHERE tenant_id=$1 AND id=$2`,
-        [context.tenantId, invitation.id, secret.tokenDigest, expiresAt],
+         SET status='pending-delivery',token_digest=$3,expires_at=$4,
+             version=version+1,updated_at=now()
+         WHERE tenant_id=$1 AND id=$2 AND version=$5
+         RETURNING version`,
+        [context.tenantId, invitation.id, secret.tokenDigest, expiresAt, invitation.version],
       );
+      const version = updated.rows[0]?.version;
+      if (!version) throw new ConflictException("Invitation changed during token rotation");
       const evidence = {
         operationId,
         email: invitation.email,
@@ -83,6 +92,8 @@ export class AccessInvitationLifecycleService {
         scopeId: invitation.scope_id,
         previousExpiry: invitation.expires_at.toISOString(),
         expiresAt: expiresAt.toISOString(),
+        previousVersion: invitation.version,
+        version,
         reason: normalizedReason,
       };
       await this.audit.append(client, {
@@ -95,6 +106,11 @@ export class AccessInvitationLifecycleService {
         resourceId: invitation.id,
         purpose: normalizedReason,
         correlationId: context.correlationId,
+        beforeState: {
+          status: invitation.status,
+          expiresAt: invitation.expires_at.toISOString(),
+          version: invitation.version,
+        },
         afterState: evidence,
       });
       await this.outbox.append(client, {
@@ -103,7 +119,7 @@ export class AccessInvitationLifecycleService {
         eventVersion: 1,
         aggregateType: "membership-invitation",
         aggregateId: invitation.id,
-        aggregateVersion: 2,
+        aggregateVersion: version,
         actorId: context.actorId,
         correlationId: context.correlationId,
         payload: { ...evidence, invitationId: invitation.id, encryptedToken: secret.encryptedToken },
@@ -113,6 +129,7 @@ export class AccessInvitationLifecycleService {
         operationId,
         status: "pending-delivery" as const,
         expiresAt: expiresAt.toISOString(),
+        version,
       };
     });
   }
@@ -126,7 +143,7 @@ export class AccessInvitationLifecycleService {
     const normalizedReason = reason(input.reason);
     return this.database.withTenantTransaction(context.tenantId, async (client) => {
       const result = await client.query<ActiveInvitationRow>(
-        `SELECT id,email::text,role_key,scope_type,scope_id,status,expires_at
+        `SELECT id,email::text,role_key,scope_type,scope_id,status,expires_at,version
          FROM membership_invitations
          WHERE tenant_id=$1 AND id=ANY($2::uuid[])
          ORDER BY id
@@ -143,19 +160,25 @@ export class AccessInvitationLifecycleService {
         this.assertInvitationAuthority(request, invitation);
       }
 
+      const invitationIds: string[] = [];
       for (const invitation of result.rows) {
-        await client.query(
+        const updated = await client.query<InvitationVersionRow>(
           `UPDATE membership_invitations
-           SET status='revoked',token_digest=NULL,updated_at=now()
-           WHERE tenant_id=$1 AND id=$2`,
-          [context.tenantId, invitation.id],
+           SET status='revoked',token_digest=NULL,version=version+1,updated_at=now()
+           WHERE tenant_id=$1 AND id=$2 AND version=$3
+           RETURNING version`,
+          [context.tenantId, invitation.id, invitation.version],
         );
+        const version = updated.rows[0]?.version;
+        if (!version) throw new ConflictException("An invitation changed during bulk revocation");
         const evidence = {
           operationId,
           email: invitation.email,
           roleKey: invitation.role_key,
           scopeType: invitation.scope_type,
           scopeId: invitation.scope_id,
+          previousVersion: invitation.version,
+          version,
           reason: normalizedReason,
         };
         await this.audit.append(client, {
@@ -168,7 +191,8 @@ export class AccessInvitationLifecycleService {
           resourceId: invitation.id,
           purpose: normalizedReason,
           correlationId: context.correlationId,
-          afterState: evidence,
+          beforeState: { status: invitation.status, version: invitation.version },
+          afterState: { status: "revoked", ...evidence },
           metadata: { operationId, mode: "bulk" },
         });
         await this.outbox.append(client, {
@@ -177,17 +201,18 @@ export class AccessInvitationLifecycleService {
           eventVersion: 1,
           aggregateType: "membership-invitation",
           aggregateId: invitation.id,
-          aggregateVersion: 2,
+          aggregateVersion: version,
           actorId: context.actorId,
           correlationId: context.correlationId,
           payload: { invitationId: invitation.id, ...evidence },
         });
+        invitationIds.push(invitation.id);
       }
       return {
         operationId,
         status: "revoked" as const,
-        revokedCount: result.rows.length,
-        invitationIds: result.rows.map((invitation) => invitation.id),
+        revokedCount: invitationIds.length,
+        invitationIds,
       };
     });
   }
@@ -204,7 +229,9 @@ export class AccessInvitationLifecycleService {
   private resource(scopeType: "tenant" | "institution", scopeId: string): ResourceScope {
     const context = this.context.require();
     if (scopeType === "tenant") {
-      if (scopeId !== context.tenantId) throw new BadRequestException("Tenant invitation scope does not match the active workspace");
+      if (scopeId !== context.tenantId) {
+        throw new BadRequestException("Tenant invitation scope does not match the active workspace");
+      }
       return this.authorization.buildTenantResource();
     }
     return this.authorization.buildInstitutionResource(scopeId);
