@@ -1,26 +1,29 @@
 import { redirect } from "next/navigation";
+import { OperatorIdentityGateway, OperatorStatus } from "../../src/components/operator-identity-gateway";
 import { getOperatorSession } from "../../src/server/operator-session";
 
 export const dynamic = "force-dynamic";
 
 const messages: Readonly<Record<string, string>> = {
-  invalid_callback: "The identity response was incomplete. Start a new secure sign-in.",
+  invalid_callback: "The identity response was incomplete. Start a new secure operator sign-in.",
   provider_error: "The identity provider did not complete operator sign-in.",
-  operator_access_required: "This account must hold the Veza platform-operator role and satisfy the required multi-factor assurance.",
-  authentication_failed: "The secure sign-in exchange could not be completed.",
+  operator_access_required: "This account must hold the Veza platform-operator role and satisfy the configured multi-factor assurance.",
+  authentication_failed: "The secure operator exchange could not be completed. No control-plane session was created.",
 };
 
 export default async function ControlPlaneSignIn({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
   const [session, { error }] = await Promise.all([getOperatorSession(), searchParams]);
   if (session) redirect("/tenants/new");
 
-  return <main className="cp-auth-page"><section className="cp-auth-panel">
-    <div className="cp-brand cp-auth-brand"><span>V</span><div><strong>veza</strong><small>CONTROL PLANE</small></div></div>
-    <p className="section-kicker">PRIVILEGED ACCESS</p>
-    <h1>Operate the fleet without entering tenant content.</h1>
-    <p>Control-plane access requires a verified platform-operator claim, the configured multi-factor assurance, and a separate operator session.</p>
-    {error ? <p className="cp-auth-error" role="alert">{messages[error] ?? "Access could not be verified."}</p> : null}
-    <a className="button-primary cp-auth-action" href="/api/auth/sign-in">Continue with operator SSO</a>
-    <small>All provisioning and entitlement changes produce audit evidence.</small>
-  </section></main>;
+  return (
+    <OperatorIdentityGateway
+      eyebrow="PRIVILEGED OPERATOR ACCESS"
+      title="Enter the fleet control boundary."
+      description="Use the dedicated operator identity client. Veza requires the platform-operator claim and the configured MFA assurance before creating a control-plane session."
+    >
+      {error ? <OperatorStatus>{messages[error] ?? "Operator access could not be verified."}</OperatorStatus> : null}
+      <a className="operator-primary" href="/api/auth/sign-in">Continue with operator SSO <span aria-hidden="true">→</span></a>
+      <aside><strong>Separate by design</strong><p>This session can govern tenancy, commercial policy, release and support elevation. It does not provide a route into tenant learning records.</p></aside>
+    </OperatorIdentityGateway>
+  );
 }
