@@ -5,11 +5,11 @@ import type {
   PeopleImportDryRun,
   PeopleImportRowRecord,
 } from "@veza/contracts";
-import { getWebOidcSession } from "./web-session";
+import { requestWorkspaceJson } from "./workspace-json-request";
 
-const baseUrl = process.env.VEZA_API_BASE_URL ?? "http://localhost:4000";
 const maximumBytes = 2 * 1024 * 1024;
-const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const uuid =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 export interface PeopleFilters {
   readonly search?: string;
@@ -21,44 +21,12 @@ export interface PeopleFilters {
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const session = await getWebOidcSession();
-  if (!session) throw new Error("Workspace authentication is required");
-  const response = await fetch(`${baseUrl}${path}`, {
-    ...init,
-    headers: {
-      authorization: `Bearer ${session.accessToken}`,
-      accept: "application/json",
-      ...(init?.body ? { "content-type": "application/json" } : {}),
-      ...init?.headers,
-    },
-    cache: "no-store",
-    signal: AbortSignal.timeout(15_000),
-  });
-  const length = Number(response.headers.get("content-length") ?? "0");
-  if (Number.isFinite(length) && length > maximumBytes) {
-    throw new Error("People service returned an oversized response");
-  }
-  const text = await response.text();
-  if (new TextEncoder().encode(text).byteLength > maximumBytes) {
-    throw new Error("People service returned an oversized response");
-  }
-  let body: unknown;
-  try {
-    body = text ? JSON.parse(text) : {};
-  } catch {
-    throw new Error("People service returned invalid JSON");
-  }
-  if (!response.ok) {
-    const message =
-      typeof body === "object" &&
-      body !== null &&
-      "message" in body &&
-      typeof body.message === "string"
-        ? body.message
-        : "People operation failed";
-    throw new Error(message.slice(0, 300));
-  }
-  return body as T;
+  return (await requestWorkspaceJson(path, {
+    service: "People service",
+    maximumBytes,
+    timeoutMs: 15_000,
+    ...(init ? { init } : {}),
+  })) as T;
 }
 
 function requireUuid(value: string, label: string): void {
@@ -374,9 +342,11 @@ export function endStaffEngagement(
 export function loadPeopleImportRows(institutionId: string, importId: string) {
   requireUuid(institutionId, "Institution identifier");
   requireUuid(importId, "Import identifier");
-  return request<{ importId: string; status: string; rows: readonly PeopleImportRowRecord[] }>(
-    `/v1/people/institutions/${institutionId}/imports/${importId}/rows`,
-  );
+  return request<{
+    importId: string;
+    status: string;
+    rows: readonly PeopleImportRowRecord[];
+  }>(`/v1/people/institutions/${institutionId}/imports/${importId}/rows`);
 }
 
 export function reconcilePeopleImportRow(
