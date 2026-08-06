@@ -35,7 +35,10 @@ export function EvidenceRoom({ page, filters, session }: { page: AuditEventPage;
         <h1 id="evidence-title">Evidence room</h1>
         <p>Review consequential actions inside the verified <strong>{session.tenant.displayName}</strong> boundary. This surface is read-only.</p>
       </div>
-      <div className="evidence-trust"><span aria-hidden="true">✓</span><div><strong>Tenant scoped</strong><small>Cursor paginated · immutable</small></div></div>
+      <div className="evidence-heading-actions">
+        <Link className="evidence-export-link" href="/evidence/exports">Governed exports</Link>
+        <div className="evidence-trust"><span aria-hidden="true">✓</span><div><strong>Tenant scoped</strong><small>Cursor paginated · immutable</small></div></div>
+      </div>
     </header>
 
     <div className="evidence-layout">
