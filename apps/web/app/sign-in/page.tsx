@@ -1,30 +1,81 @@
+import { secureReturnTo } from "@veza/oidc-bff";
 import { redirect } from "next/navigation";
+import {
+  IdentityGateway,
+  IdentityStatus,
+} from "../../src/components/identity/identity-gateway";
 import { getWebOidcSession } from "../../src/server/web-session";
 
-const errorMessages: Readonly<Record<string, string>> = {
-  invalid_callback: "The sign-in response was incomplete. Start again from this page.",
-  provider_error: "The institution identity provider did not complete sign-in.",
-  access_not_ready: "Your identity is valid, but Veza could not resolve access yet.",
-  authentication_failed: "The secure sign-in exchange could not be completed.",
+const errorMessages: Readonly<Record<string, { readonly title: string; readonly detail: string }>> = {
+  invalid_callback: {
+    title: "The identity response was incomplete",
+    detail: "No workspace was opened. Start a new secure sign-in from this page.",
+  },
+  provider_error: {
+    title: "Your institution did not complete sign-in",
+    detail: "The identity provider returned an error before Veza received a verified identity.",
+  },
+  access_not_ready: {
+    title: "Your identity is valid but access is not ready",
+    detail: "Sign-in succeeded, but Veza could not resolve an active institutional membership.",
+  },
+  authentication_failed: {
+    title: "The secure sign-in exchange failed",
+    detail: "No institutional data was opened. Retry the exchange or use account help below.",
+  },
 };
 
-export default async function SignInPage({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
+export const dynamic = "force-dynamic";
+
+export default async function SignInPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ error?: string; returnTo?: string }>;
+}) {
   const [session, query] = await Promise.all([getWebOidcSession(), searchParams]);
   if (session) redirect("/");
-  return <main className="auth-page">
-    <section className="auth-brand" aria-label="Veza Learning Cloud">
-      <div className="auth-brand-lockup"><span className="brand-mark">V</span><div><strong>veza</strong><small>LEARNING CLOUD</small></div></div>
-      <div className="auth-copy"><p className="eyebrow">YOUR INSTITUTION. ONE LEARNING SYSTEM.</p><h1>Move from administration to learning without losing context.</h1><p>Veza keeps identity, classes, assessments, communication and progress inside one governed institutional workspace.</p></div>
-      <div className="auth-proof"><span>Tenant isolated</span><span>Accessible by design</span><span>Institution branded</span></div>
-    </section>
-    <section className="auth-panel">
-      <div className="auth-form"><p className="eyebrow">WELCOME BACK</p><h2>Sign in to your workspace</h2><p>Use the sign-in method configured by your institution.</p>
-        {query.error ? <p className="auth-error" role="alert">{errorMessages[query.error] ?? "Sign-in could not be completed. Please try again."}</p> : null}
-        <a className="auth-sso" href="/api/auth/sign-in">Continue with institution SSO <span>→</span></a>
-        <div className="auth-divider"><span>or</span></div>
-        <form action="/api/auth/sign-in" method="get" className="auth-email-form"><label>Email address<input name="email" type="email" autoComplete="email" placeholder="you@institution.edu"/></label><button className="auth-secondary" type="submit">Continue with email</button></form>
-        <small>Having trouble? Contact your institution administrator before retrying sign-in. Veza support cannot assign institutional membership.</small>
+
+  const returnTo = secureReturnTo(query.returnTo);
+  const signInParameters = new URLSearchParams();
+  if (returnTo !== "/") signInParameters.set("returnTo", returnTo);
+  const signInPath = `/api/auth/sign-in${signInParameters.size ? `?${signInParameters}` : ""}`;
+  const error = query.error ? errorMessages[query.error] : undefined;
+
+  return (
+    <IdentityGateway
+      eyebrow="SECURE INSTITUTION SIGN-IN"
+      title="Enter the workspace your institution governs."
+      description="Veza uses the identity provider selected by your institution. Your password, MFA method and recovery credentials never pass through this application."
+      stage="Identity gateway"
+      aside={<><strong>Need access instead of account recovery?</strong><span>Your institution administrator controls memberships and role scope. Veza support cannot grant access to institutional records.</span></>}
+      footer={<>By continuing, you enter the identity and access policy configured by your institution. Veza records only the verified identity claims required to resolve your memberships.</>}
+    >
+      {error ? <IdentityStatus tone="danger" title={error.title}>{error.detail}</IdentityStatus> : null}
+      <div className="identity-action-stack">
+        <a className="identity-primary" href={signInPath}>
+          Continue with institution sign-in <span aria-hidden="true">→</span>
+        </a>
       </div>
-    </section>
-  </main>;
+      <div className="identity-divider"><span>or identify your account</span></div>
+      <form action="/api/auth/sign-in" method="get" className="identity-action-stack">
+        {returnTo !== "/" ? <input type="hidden" name="returnTo" value={returnTo} /> : null}
+        <label className="identity-field">
+          <span>Institution email address</span>
+          <input
+            name="email"
+            type="email"
+            autoComplete="email"
+            inputMode="email"
+            placeholder="you@institution.edu"
+            maxLength={320}
+          />
+        </label>
+        <button className="identity-secondary" type="submit">Continue with email hint</button>
+      </form>
+      <div className="identity-compact-actions">
+        <a className="identity-text-link" href="/account-help">Trouble signing in?</a>
+        <a className="identity-text-link" href="/reset-password">Reset password</a>
+      </div>
+    </IdentityGateway>
+  );
 }
