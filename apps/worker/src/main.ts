@@ -20,6 +20,7 @@ import {
 } from "./observability-runtime.js";
 import { OutboxRepository } from "./outbox-repository.js";
 import type { ClaimedOutboxEvent, EventPublisher, PublishResult } from "./outbox.types.js";
+import { PlatformScheduleReconciler } from "./platform-schedule-reconciler.js";
 import { nextAttemptAt, retryDelaySeconds } from "./retry.js";
 import { PlatformGovernanceSweepHandler, WorkerScheduler } from "./scheduler.js";
 import {
@@ -292,6 +293,7 @@ async function main(): Promise<void> {
     config.retryBaseSeconds,
     config.retryMaximumSeconds,
   );
+  const platformScheduleReconciler = new PlatformScheduleReconciler(pool);
   const heartbeat = new WorkerHeartbeat(pool, config.workerId);
   const shutdown = new AbortController();
   const stop = (signal: string) => {
@@ -303,8 +305,11 @@ async function main(): Promise<void> {
 
   let nextMetricRefreshAt = 0;
   let nextSchedulerAt = 0;
+  let nextScheduleReconciliationAt = 0;
   let nextHeartbeatAt = 0;
   await safeHeartbeat(heartbeat, "starting");
+  const initialSchedules = await platformScheduleReconciler.reconcile();
+  nextScheduleReconciliationAt = Date.now() + 60_000;
   log("info", "Worker started", {
     workerId: config.workerId,
     transport: config.transport,
@@ -314,6 +319,7 @@ async function main(): Promise<void> {
     exportBatchSize: config.exportBatchSize,
     leaseSeconds: config.leaseSeconds,
     metricRefreshIntervalMs: config.metricRefreshIntervalMs,
+    platformSchedules: initialSchedules,
   });
 
   try {
@@ -323,6 +329,11 @@ async function main(): Promise<void> {
         if (now >= nextHeartbeatAt) {
           await safeHeartbeat(heartbeat, "ready");
           nextHeartbeatAt = now + 30_000;
+        }
+        if (now >= nextScheduleReconciliationAt) {
+          const schedules = await platformScheduleReconciler.reconcile();
+          log("info", "Platform schedules reconciled", schedules);
+          nextScheduleReconciliationAt = now + 60_000;
         }
         if (now >= nextMetricRefreshAt) {
           const refreshed = await metricRefresher.refreshDue();
