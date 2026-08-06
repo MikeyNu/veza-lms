@@ -7,47 +7,19 @@ import type {
   StudioLibrary,
   StudioWorkspace,
 } from "@veza/contracts";
-import { getWebOidcSession } from "./web-session";
+import { requestWorkspaceJson } from "./workspace-json-request";
 
-const baseUrl = process.env.VEZA_API_BASE_URL ?? "http://localhost:4000";
 const maximumBytes = 4 * 1024 * 1024;
-const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const uuid =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const session = await getWebOidcSession();
-  if (!session) throw new Error("Workspace authentication is required");
-  const response = await fetch(`${baseUrl}${path}`, {
-    ...init,
-    headers: {
-      authorization: `Bearer ${session.accessToken}`,
-      accept: "application/json",
-      ...(init?.body ? { "content-type": "application/json" } : {}),
-      ...init?.headers,
-    },
-    cache: "no-store",
-    signal: AbortSignal.timeout(20_000),
-  });
-  const text = await response.text();
-  if (new TextEncoder().encode(text).byteLength > maximumBytes) {
-    throw new Error("Learning service response is too large");
-  }
-  let body: unknown;
-  try {
-    body = text ? JSON.parse(text) : {};
-  } catch {
-    throw new Error("Learning service returned invalid JSON");
-  }
-  if (!response.ok) {
-    const message =
-      typeof body === "object" &&
-      body !== null &&
-      "message" in body &&
-      typeof body.message === "string"
-        ? body.message
-        : "Learning operation failed";
-    throw new Error(message.slice(0, 400));
-  }
-  return body as T;
+  return (await requestWorkspaceJson(path, {
+    service: "Learning service",
+    maximumBytes,
+    timeoutMs: 20_000,
+    ...(init ? { init } : {}),
+  })) as T;
 }
 
 function requireUuid(value: string, label: string): void {
@@ -210,7 +182,8 @@ export function mutateAcademic(
   operation: string,
   input: Record<string, unknown>,
 ): Promise<unknown> {
-  const institutionId = typeof input.institutionId === "string" ? input.institutionId : undefined;
+  const institutionId =
+    typeof input.institutionId === "string" ? input.institutionId : undefined;
   const map: Readonly<
     Record<string, { method: "POST"; path: (body: Record<string, unknown>) => string }>
   > = {
