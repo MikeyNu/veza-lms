@@ -18,9 +18,9 @@ interface ExportJobRow extends QueryResultRow {
   readonly status: "requested" | "processing" | "ready" | "failed" | "expired";
   readonly checksum: string | null;
   readonly row_count: string | null;
-  readonly requested_at: string;
-  readonly ready_at: string | null;
-  readonly expires_at: string | null;
+  readonly requested_at: string | Date;
+  readonly ready_at: string | Date | null;
+  readonly expires_at: string | Date | null;
   readonly failure_reason: string | null;
   readonly attempts: number;
   readonly object_key: string | null;
@@ -48,12 +48,20 @@ export interface ExportDownload {
   readonly checksum: string;
 }
 
-function boundedMaximumBytes(): number {
-  const value = Number(process.env.EXPORT_DOWNLOAD_MAXIMUM_BYTES ?? 52_428_800);
-  if (!Number.isInteger(value) || value < 1_048_576 || value > 262_144_000) {
-    throw new ServiceUnavailableException("Export download size policy is invalid");
+function boundedInteger(name: string, fallback: number, minimum: number, maximum: number): number {
+  const value = Number(process.env[name] ?? fallback);
+  if (!Number.isInteger(value) || value < minimum || value > maximum) {
+    throw new ServiceUnavailableException(`${name} is invalid`);
   }
   return value;
+}
+
+function boundedMaximumBytes(): number {
+  return boundedInteger("EXPORT_DOWNLOAD_MAXIMUM_BYTES", 52_428_800, 1_048_576, 262_144_000);
+}
+
+function objectStoreTimeoutMs(): number {
+  return boundedInteger("EXPORT_OBJECT_STORE_TIMEOUT_MS", 60_000, 1_000, 300_000);
 }
 
 function objectStoreUrl(): string {
@@ -72,6 +80,13 @@ function objectStoreUrl(): string {
     throw new ServiceUnavailableException("Export object storage must use HTTPS");
   }
   return url.toString();
+}
+
+function iso(value: string | Date | null): string | null {
+  if (value === null) return null;
+  const date = value instanceof Date ? value : new Date(value);
+  if (!Number.isFinite(date.getTime())) throw new BadGatewayException("Export evidence contains an invalid timestamp");
+  return date.toISOString();
 }
 
 function mediaType(format: ExportJobRow["format"]): ExportDownload["mediaType"] {
@@ -106,7 +121,8 @@ export class AcademicExportService {
 
   async status(exportId: string): Promise<ExportStatus> {
     const job = await this.row(exportId);
-    const expired = job.expires_at !== null && new Date(job.expires_at).getTime() <= Date.now();
+    const expiresAt = iso(job.expires_at);
+    const expired = expiresAt !== null && new Date(expiresAt).getTime() <= Date.now();
     const status = expired && job.status === "ready" ? "expired" : job.status;
     return {
       id: job.id,
@@ -115,9 +131,9 @@ export class AcademicExportService {
       status,
       rowCount: job.row_count === null ? null : Number(job.row_count),
       checksum: job.checksum,
-      requestedAt: job.requested_at,
-      readyAt: job.ready_at,
-      expiresAt: job.expires_at,
+      requestedAt: iso(job.requested_at) ?? "",
+      readyAt: iso(job.ready_at),
+      expiresAt,
       failureReason: job.failure_reason,
       attempts: job.attempts,
       downloadPath: status === "ready" ? `/v1/academic-evidence/exports/${job.id}/download` : null,
@@ -127,27 +143,38 @@ export class AcademicExportService {
   async download(exportId: string): Promise<ExportDownload> {
     const context = this.tenantContext.require();
     const job = await this.row(exportId);
-    if (job.status === "expired" || (job.expires_at && new Date(job.expires_at).getTime() <= Date.now())) {
+    const expiresAt = iso(job.expires_at);
+    if (job.status === "expired" || (expiresAt && new Date(expiresAt).getTime() <= Date.now())) {
       throw new GoneException("Export has expired");
     }
     if (job.status !== "ready" || !job.object_key || !job.checksum) {
       throw new ConflictException("Export is not ready for download");
     }
 
-    const response = await fetch(objectStoreUrl(), {
-      method: "GET",
-      headers: {
-        "x-veza-export-id": job.id,
-        "x-veza-tenant-id": context.tenantId,
-        "x-veza-object-key": job.object_key,
-        ...(process.env.EXPORT_OBJECT_STORE_TOKEN?.trim()
-          ? { authorization: `Bearer ${process.env.EXPORT_OBJECT_STORE_TOKEN.trim()}` }
-          : {}),
-      },
-      signal: AbortSignal.timeout(Number(process.env.EXPORT_OBJECT_STORE_TIMEOUT_MS ?? 60_000)),
-      cache: "no-store",
-    });
+    let response: Response;
+    try {
+      response = await fetch(objectStoreUrl(), {
+        method: "GET",
+        headers: {
+          "x-veza-export-id": job.id,
+          "x-veza-tenant-id": context.tenantId,
+          "x-veza-object-key": job.object_key,
+          ...(process.env.EXPORT_OBJECT_STORE_TOKEN?.trim()
+            ? { authorization: `Bearer ${process.env.EXPORT_OBJECT_STORE_TOKEN.trim()}` }
+            : {}),
+        },
+        signal: AbortSignal.timeout(objectStoreTimeoutMs()),
+        cache: "no-store",
+      });
+    } catch {
+      throw new BadGatewayException("Export object store is unavailable");
+    }
     if (!response.ok) throw new BadGatewayException("Export object could not be retrieved");
+    const expectedMediaType = mediaType(job.format);
+    const actualMediaType = response.headers.get("content-type")?.split(";", 1)[0]?.trim();
+    if (actualMediaType && actualMediaType !== expectedMediaType) {
+      throw new BadGatewayException("Export object media type does not match its evidence");
+    }
     const maximumBytes = boundedMaximumBytes();
     const contentLength = Number(response.headers.get("content-length") ?? 0);
     if (Number.isFinite(contentLength) && contentLength > maximumBytes) {
@@ -159,7 +186,7 @@ export class AcademicExportService {
     if (checksum !== job.checksum) throw new BadGatewayException("Export object failed checksum verification");
     return {
       bytes,
-      mediaType: mediaType(job.format),
+      mediaType: expectedMediaType,
       fileName: safeFileName(job),
       checksum,
     };
