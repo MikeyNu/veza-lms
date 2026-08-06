@@ -1,0 +1,162 @@
+/* Dashboard-specific visual QA corrections derived from the approved Veza references. */
+
+.bento {
+  grid-template-columns: minmax(0, 1.55fr) minmax(19rem, 0.65fr);
+  grid-template-areas:
+    "continue next"
+    "progress deadline";
+  gap: 0.875rem;
+}
+
+.panel {
+  border-color: #e4e6ee;
+  border-radius: 0.625rem;
+  box-shadow: none;
+}
+
+.continue-card {
+  min-height: 18rem;
+  padding: 1.35rem;
+  background: #ffffff;
+}
+
+.continue-content {
+  max-width: none;
+  margin-top: 1.45rem;
+  grid-template-columns: minmax(0, 1fr) 4.5rem;
+  align-items: center;
+}
+
+.continue-card h2 {
+  max-width: 34rem;
+  font-size: clamp(1.55rem, 2.4vw, 2.15rem);
+}
+
+.lesson-meta {
+  max-width: 36rem;
+  margin-bottom: 1rem;
+}
+
+.dark-button {
+  min-height: 2.4rem;
+  border-radius: 0.42rem;
+  background: var(--brand);
+}
+
+.dark-button:hover {
+  background: var(--brand-strong);
+}
+
+.lesson-art,
+.art-grid,
+.art-index,
+.art-copy {
+  display: none !important;
+  background-image: none !important;
+}
+
+.next-card,
+.progress-card,
+.deadline-card {
+  padding: 1.15rem;
+}
+
+.deadline-card {
+  border-color: #eadfc8;
+  background: #fffaf1;
+}
+
+.section-heading h2,
+.deadline-card h2 {
+  font-size: 1rem;
+}
+
+.timeline {
+  margin-top: 1.1rem;
+}
+
+.time {
+  min-height: 4.65rem;
+}
+
+.progress-figure,
+.metrics {
+  border-color: #e6e8ef;
+}
+
+.metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.metrics > div {
+  min-width: 0;
+  padding: 0.85rem;
+  border-right: 1px solid #e6e8ef;
+}
+
+.metrics > div:last-child {
+  border-right: 0;
+}
+
+.course-grid,
+.vz-course-cards {
+  gap: 0.75rem;
+}
+
+.course-card,
+.vz-course-cards > a {
+  border-radius: 0.625rem;
+  box-shadow: none;
+}
+
+.course-card:hover,
+.vz-course-cards > a:hover {
+  transform: none;
+  box-shadow: none;
+}
+
+:where(.workspace, .vz-learning-page) {
+  background-image: none !important;
+}
+
+@media (max-width: 1100px) {
+  .bento {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      "continue"
+      "next"
+      "progress"
+      "deadline";
+  }
+}
+
+@media (max-width: 640px) {
+  .continue-card,
+  .next-card,
+  .progress-card,
+  .deadline-card {
+    padding: 1rem;
+  }
+
+  .continue-content {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .ring {
+    display: none;
+  }
+
+  .metrics {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .metrics > div {
+    border-right: 0;
+    border-bottom: 1px solid #e6e8ef;
+  }
+
+  .metrics > div:last-child {
+    border-bottom: 0;
+  }
+}
