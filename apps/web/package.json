@@ -3,8 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --turbopack",
-    "prebuild": "node ../../scripts/ensure-application-prerequisites.mjs",
+    "dev": "node ../../scripts/generate-brand-assets.mjs && next dev --turbopack",
+    "prebuild": "node ../../scripts/generate-brand-assets.mjs && node ../../scripts/ensure-application-prerequisites.mjs",
     "build": "next build",
     "start": "next start",
     "lint": "tsc --noEmit",
