@@ -18,6 +18,12 @@ export interface WorkerConfig {
   readonly schedulerIntervalMs: number;
   readonly metricRefreshIntervalMs: number;
   readonly metricRefreshBatchSize: number;
+  readonly exportBatchSize: number;
+  readonly exportLeaseSeconds: number;
+  readonly exportExpirySeconds: number;
+  readonly exportObjectStoreUrl?: string;
+  readonly exportObjectStoreToken?: string;
+  readonly exportObjectStoreTimeoutMs: number;
   readonly workerId: string;
 }
 
@@ -39,6 +45,24 @@ function boundedInteger(
     throw new Error(`${name} must be an integer between ${minimum} and ${maximum}`);
   }
   return value;
+}
+
+function optionalHttpUrl(name: string): string | undefined {
+  const raw = process.env[name]?.trim();
+  if (!raw) return undefined;
+  let url: URL;
+  try {
+    url = new URL(raw);
+  } catch {
+    throw new Error(`${name} must be a valid HTTP URL`);
+  }
+  if (url.protocol !== "http:" && url.protocol !== "https:") {
+    throw new Error(`${name} must use HTTP or HTTPS`);
+  }
+  if (process.env.NODE_ENV === "production" && url.protocol !== "https:") {
+    throw new Error(`${name} must use HTTPS in production`);
+  }
+  return url.toString();
 }
 
 export function loadWorkerConfig(): WorkerConfig {
@@ -83,6 +107,25 @@ export function loadWorkerConfig(): WorkerConfig {
     throw new Error("EVENTBRIDGE_REQUEST_TIMEOUT_MS must be shorter than the outbox lease");
   }
 
+  const exportLeaseSeconds = boundedInteger("EXPORT_LEASE_SECONDS", 300, 30, 3_600);
+  const exportObjectStoreTimeoutMs = boundedInteger(
+    "EXPORT_OBJECT_STORE_TIMEOUT_MS",
+    60_000,
+    1_000,
+    300_000,
+  );
+  if (exportObjectStoreTimeoutMs >= exportLeaseSeconds * 1_000) {
+    throw new Error("EXPORT_OBJECT_STORE_TIMEOUT_MS must be shorter than the export lease");
+  }
+  const exportObjectStoreUrl = optionalHttpUrl("EXPORT_OBJECT_STORE_URL");
+  if (process.env.NODE_ENV === "production" && !exportObjectStoreUrl) {
+    throw new Error("EXPORT_OBJECT_STORE_URL is required in production");
+  }
+  const exportObjectStoreToken = process.env.EXPORT_OBJECT_STORE_TOKEN?.trim();
+  if (exportObjectStoreToken && exportObjectStoreToken.length > 4096) {
+    throw new Error("EXPORT_OBJECT_STORE_TOKEN is unexpectedly long");
+  }
+
   return {
     databaseUrl: required("WORKER_DATABASE_URL"),
     transport,
@@ -106,6 +149,12 @@ export function loadWorkerConfig(): WorkerConfig {
       86_400_000,
     ),
     metricRefreshBatchSize: boundedInteger("METRIC_REFRESH_BATCH_SIZE", 25, 1, 250),
+    exportBatchSize: boundedInteger("EXPORT_BATCH_SIZE", 5, 1, 25),
+    exportLeaseSeconds,
+    exportExpirySeconds: boundedInteger("EXPORT_EXPIRY_SECONDS", 86_400, 300, 2_592_000),
+    ...(exportObjectStoreUrl ? { exportObjectStoreUrl } : {}),
+    ...(exportObjectStoreToken ? { exportObjectStoreToken } : {}),
+    exportObjectStoreTimeoutMs,
     workerId,
   };
 }
