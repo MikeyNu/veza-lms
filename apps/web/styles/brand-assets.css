@@ -1,0 +1,29 @@
+.brand {
+  min-height: 5.75rem;
+  padding-inline: 1.35rem;
+}
+
+.brand-logo {
+  display: block;
+  width: 8.4rem;
+  height: auto;
+  object-fit: contain;
+  object-position: left center;
+}
+
+.brand-mark,
+.brand-copy,
+.brand-name,
+.brand-sub {
+  display: none;
+}
+
+@media (max-width: 1100px) {
+  .brand {
+    padding-inline: 1.1rem;
+  }
+
+  .brand-logo {
+    width: 7.7rem;
+  }
+}
