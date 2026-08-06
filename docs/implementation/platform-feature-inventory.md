@@ -1,73 +1,95 @@
 # Veza Learning Cloud feature inventory
 
-Status: authoritative implementation inventory.
+Status: authoritative implementation inventory
 
-This inventory lists platform capabilities at atomic feature level. Broad labels such as assessment, people management or tenant administration are not treated as single features. Each small operation, workflow transition, access control, evidence rule, browser surface and operational safeguard is recorded separately.
+This inventory records platform capabilities at atomic level. Broad labels such as assessment, people management or tenant administration are not treated as single features. Commands, queries, lifecycle transitions, access controls, evidence rules, browser surfaces, worker execution and operational safeguards are recorded independently.
 
 ## Inventory summary
 
-- Total capabilities: **515**
-- Domains: **20**
-- Implemented surfaces: **514**
-- Declared gaps: **1**
-- Current declared gap: governed PDF export
+- Total capabilities: **561**
+- Domains: **24**
+- Declared gaps: **0**
+- Governed aggregate models: **56**
+- End-to-end workflows: **12**
 
-The exact feature records live in `qa/features/catalogue`. They are loaded by `qa/features/platform-features.mjs` and validated by `scripts/qa/feature-inventory.mjs`.
+The exact feature records live in `qa/features/catalogue`. They are loaded by `qa/features/platform-features.mjs` and validated by `scripts/qa/feature-inventory.mjs` plus `scripts/qa/workflow-completeness.mjs`.
 
 | Domain | Capabilities | Catalogue file |
 | --- | ---: | --- |
-| Identity, authentication and access | 31 | `qa/features/catalogue/01-foundations.json` |
-| Institution foundation, structure and activation | 23 | `qa/features/catalogue/01-foundations.json` |
-| People, identities, relationships and privacy | 35 | `qa/features/catalogue/01-foundations.json` |
-| Catalogue, curriculum and academic governance | 25 | `qa/features/catalogue/02-learning-core.json` |
-| Delivery, scheduling, enrolment and completion | 24 | `qa/features/catalogue/02-learning-core.json` |
-| Studio authoring, content governance and media preparation | 30 | `qa/features/catalogue/02-learning-core.json` |
-| Learner dashboard and course participation | 15 | `qa/features/catalogue/03-learning-operations.json` |
-| Assignments, sessions, submissions and uploads | 27 | `qa/features/catalogue/03-learning-operations.json` |
-| Rubrics, marking, moderation, gradebook and result release | 26 | `qa/features/catalogue/03-learning-operations.json` |
-| Credentials, analytics and governed exports | 24 | `qa/features/catalogue/04-evidence-communications.json` |
-| Communications, notifications and provider feedback | 21 | `qa/features/catalogue/04-evidence-communications.json` |
-| Governed storage, media delivery, retention and deletion | 23 | `qa/features/catalogue/04-evidence-communications.json` |
-| Terminology and localisation | 10 | `qa/features/catalogue/05-platform-services.json` |
-| Search, cache, APIs and service integrations | 19 | `qa/features/catalogue/05-platform-services.json` |
-| Tenant provisioning, lifecycle, support and data governance | 28 | `qa/features/catalogue/05-platform-services.json` |
-| Commercial policy, feature flags and release governance | 23 | `qa/features/catalogue/06-control-runtime.json` |
-| Event schemas, outbox, consumers, schedules and workers | 27 | `qa/features/catalogue/06-control-runtime.json` |
-| Observability, security and operational assurance | 29 | `qa/features/catalogue/06-control-runtime.json` |
-| Web application, BFF and shared interface system | 49 | `qa/features/catalogue/07-experience-engineering.json` |
-| Build, deployment, database change and recovery | 26 | `qa/features/catalogue/07-experience-engineering.json` |
+| Identity, authentication and access | 31 | `01-foundations.json` |
+| Institution foundation, structure and activation | 23 | `01-foundations.json` |
+| People, identities, relationships and privacy | 35 | `01-foundations.json` |
+| Catalogue, curriculum and academic governance | 25 | `02-learning-core.json` |
+| Delivery, scheduling, enrolment and completion | 24 | `02-learning-core.json` |
+| Studio authoring, content governance and media preparation | 30 | `02-learning-core.json` |
+| Learner dashboard and course participation | 15 | `03-learning-operations.json` |
+| Assignments, sessions, submissions and uploads | 27 | `03-learning-operations.json` |
+| Rubrics, marking, moderation, gradebook and result release | 26 | `03-learning-operations.json` |
+| Credentials, analytics and governed exports | 25 | `04-evidence-communications.json` |
+| Communications, notifications and provider feedback | 21 | `04-evidence-communications.json` |
+| Governed storage, media delivery, retention and deletion | 23 | `04-evidence-communications.json` |
+| Terminology and localisation | 10 | `05-platform-services.json` |
+| Search, cache, APIs and service integrations | 19 | `05-platform-services.json` |
+| Tenant provisioning, lifecycle, support and data governance | 28 | `05-platform-services.json` |
+| Commercial policy, feature flags and release governance | 23 | `06-control-runtime.json` |
+| Event schemas, outbox, consumers, schedules and workers | 27 | `06-control-runtime.json` |
+| Observability, security and operational assurance | 29 | `06-control-runtime.json` |
+| Web application, BFF and shared interface system | 49 | `07-experience-engineering.json` |
+| Build, deployment, database change and recovery | 26 | `07-experience-engineering.json` |
+| Institutional and operator identity journeys | 14 | `08-platform-completion.json` |
+| Institutional access administration completion | 12 | `08-platform-completion.json` |
+| Bounded bulk lifecycle operations | 8 | `08-platform-completion.json` |
+| Shared loading, error and workflow resilience | 11 | `08-platform-completion.json` |
 
 ## Architecture rules applied
 
 1. Browser requests never provide a trusted tenant identifier.
 2. Tenant context is resolved from validated membership and enforced again through PostgreSQL row-level security.
-3. Application, control-plane, worker and migration database identities remain separate.
-4. Consequential mutations are transactional and append audit and outbox evidence.
-5. Approved, published, released and issued records are immutable and corrected through superseding evidence.
-6. Privileged actions require explicit authorization and MFA assurance.
-7. Feature and entitlement evaluation is performed by trusted server-side code.
-8. Database recovery uses backup restoration followed by forward remediation.
-9. Browser surfaces use the shared Veza interface system and preserve accessible semantics.
+3. OIDC owns passwords, MFA and account recovery. Veza never collects institutional passwords.
+4. Application, control-plane, worker and migration database identities remain separate.
+5. Consequential mutations are transactional and append audit and outbox evidence.
+6. Approved, published, released and issued records are immutable and corrected through superseding evidence.
+7. Privileged actions require explicit authorization and the required authentication assurance.
+8. Feature and entitlement evaluation is performed by trusted server-side code.
+9. Database recovery uses backup restoration followed by forward remediation.
+10. Browser surfaces use shared Veza interaction patterns and preserve accessible task order at desktop and mobile widths.
 
-## What the inventory gate verifies
+## Feature, CRUD and workflow gates
 
-The executable gate validates that:
+The quality system now validates three related inventories:
 
-- every feature ID is unique and belongs to its declared domain
-- every domain has implementation surfaces and verification owners
-- critical capabilities such as assignment-session start, tenant activation, MFA and PDF export cannot disappear silently
-- every referenced implementation and test path exists
-- the catalogue does not shrink below the accepted capability floor
-- every NestJS controller operation is discovered
-- every web and control-plane page is discovered
-- every BFF route and supported HTTP method is discovered
-- every worker source capability is discovered
-- duplicate discovered routes or feature IDs fail the build
-- machine-readable QA artifacts are produced for audit and release review
+- `scripts/qa/feature-inventory.mjs` discovers API operations, BFF routes, browser pages and worker source capabilities.
+- `scripts/qa/crud-lifecycle.mjs` requires explicit create, read, amendment, lifecycle, retirement, deletion and bulk-operation decisions for 56 governed aggregates.
+- `scripts/qa/workflow-completeness.mjs` verifies 12 complete user journeys with entry conditions, terminal outcomes, implementation paths, test owners and degraded states.
+
+The CRUD registry prohibits destructive hard deletion for governed academic, identity and people records. Published or issued evidence is retired, revoked, expired, ended or superseded according to its aggregate lifecycle.
+
+## Bounded bulk policy
+
+Bulk actions are implemented only where the records share one safe invariant and the command can preserve authorization and evidence:
+
+- People records support bounded atomic active or inactive status changes with per-record expected versions, MFA, audit and outbox evidence. Merged and deceased records are excluded.
+- Active membership invitations support bounded atomic revocation. Each selected invitation is rechecked for active state and delegation authority.
+
+Bulk operation is intentionally prohibited for curriculum approval, certificate issuance or revocation, person merge, learner-result release, enrolment transfer or reinstatement, support elevation and other record-specific decisions.
+
+## Identity and access completion
+
+The institutional application now includes:
+
+- a shared multi-panel identity gateway
+- OIDC-only sign-in with an optional email hint
+- account-help and password-recovery handoff to configured trusted identity-provider URLs
+- invitation rendering, sign-in return, atomic acceptance and workspace installation
+- workspace selection and access-pending states
+- route-level skeletons and recoverable error boundaries
+- an institutional access-administration workspace for invitation creation, resend, revocation, membership status, role assignment and role termination
+
+The control plane uses a separate multi-panel operator gateway and communicates the separate OIDC client, platform role, MFA assurance and tenant-content boundary.
 
 ## Assignment-session runtime evidence
 
-The assignment-session suite directly exercises the production `LearnerSubmissionService` boundary. It verifies:
+The assignment-session suite exercises the production learner submission boundary. It verifies:
 
 - an authenticated learner can start an individual assignment session only through an owned active enrolment
 - a group assignment requires a current group membership
@@ -77,14 +99,40 @@ The assignment-session suite directly exercises the production `LearnerSubmissio
 - late submission state is computed from the persisted due date
 - successful start and finalisation append matching audit and outbox evidence
 
-## PDF export finding
+## Governed export lifecycle
 
-The current academic export request supports CSV and JSON. It records a queued export job and completion evidence, but there is no PDF format in the request contract and no worker PDF renderer. The catalogue therefore marks PDF export as a gap instead of presenting it as implemented.
+PDF, CSV and JSON exports use one asynchronous governed lifecycle:
 
-A production-ready PDF capability must include deterministic rendering, worker execution, governed object persistence, checksum evidence, expiry, authorised retrieval and failure remediation. Merely adding `pdf` to the request enum would not satisfy the architecture.
+- authorised request and validated filters
+- lease-safe worker claim
+- tenant-scoped payload generation
+- deterministic rendering
+- governed object persistence
+- SHA-256 completion evidence
+- authorised status and download routes
+- checksum verification before bytes are returned
+- bounded retry and terminal failure evidence
+- automatic object expiry with retained metadata evidence
+
+Browser clients cannot assert export completion. Only the worker can transition a persisted export to ready.
+
+## Browser QA scope
+
+The browser harness covers public, OIDC-only and workspace routes across Chromium, Firefox and WebKit at desktop and mobile widths. It checks:
+
+- expected redirect boundaries
+- one main landmark and one page heading
+- labelled controls and duplicate IDs
+- keyboard reachability and visible focus
+- horizontal overflow
+- local password non-collection
+- console, page and request failures
+- deterministic screenshots and optional pixel comparison
+
+The visual identity diagrams are implemented as responsive CSS and inline SVG instead of generated bitmap artwork. This avoids additional asset weight, preserves sharpness at every viewport and keeps the visual tied to live interface semantics. No generated raster asset was necessary for these screens.
 
 ## Acceptance rule
 
-A feature is not accepted because its page, route, database table or source-text test exists. Production acceptance requires the applicable runtime, PostgreSQL, browser, accessibility, visual, security, migration and smoke evidence for the exact commit.
+A page, route, table or source-text test alone does not establish production acceptance. The exact release commit must pass the applicable runtime, PostgreSQL, browser, accessibility, visual, security, migration, backup and smoke evidence.
 
-GitHub currently creates the quality jobs but does not allocate runners because the repository owner account is locked by a billing issue. Remote pass evidence cannot be claimed until that external lock is resolved and the required jobs complete successfully.
+GitHub currently creates the quality jobs but has previously refused to allocate runners because the repository owner account is locked by a billing issue. Remote pass evidence must not be claimed until the external lock is resolved and the required jobs complete for the exact commit.
