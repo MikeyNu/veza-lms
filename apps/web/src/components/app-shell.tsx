@@ -56,7 +56,7 @@ function Sidebar({ session, active }: { session: WorkspaceSession; active: Navig
       <Link className="brand" href="/" aria-label="Veza home">
         <span className="brand-mark" aria-hidden="true">V</span>
         <div className="brand-copy">
-          <span className="brand-name">Veza</span>
+          <span className="brand-name">veza</span>
           <span className="brand-sub">Learning Cloud</span>
         </div>
       </Link>
@@ -66,20 +66,20 @@ function Sidebar({ session, active }: { session: WorkspaceSession; active: Navig
       </nav>
 
       <div className="side-bottom">
-        <Link className="support-link" href="/help">
-          <span><Icon name="help" /></span>
-          <div><strong>Help and support</strong><small>Guides, policy and support cases</small></div>
-          <Icon name="arrow" />
-        </Link>
-
         <div className="profile">
           <span className="avatar">{initials(session.principal.displayName)}</span>
           <div>
-            <strong>{session.principal.displayName ?? session.principal.email ?? "Veza user"}</strong>
+            <strong>{session.tenant.displayName}</strong>
             <small>{workspaceLabel(session)}</small>
           </div>
           <SignOutButton className="profile-signout" />
         </div>
+
+        <Link className="support-link" href="/help">
+          <span><Icon name="help" /></span>
+          <div><strong>Help &amp; Support</strong><small>Guides, policy and support cases</small></div>
+          <Icon name="arrow" />
+        </Link>
       </div>
     </aside>
   );
@@ -112,26 +112,30 @@ function Topbar({ session, active }: { session: WorkspaceSession; active: Naviga
   return (
     <header className="topbar">
       <MobileNavigation session={session} active={active} />
+      <CommandSearch />
+
       <Link
         className="institution"
         href="/select-workspace"
         aria-label={`Switch institution. Current institution: ${session.tenant.displayName}`}
       >
-        <span className="institution-logo">{session.tenant.displayName[0]?.toUpperCase() ?? "V"}</span>
+        <span className="institution-logo" aria-hidden="true">▥</span>
         <span><small>Institution</small><strong>{session.tenant.displayName}</strong></span>
         <b className="chev" aria-hidden="true">⌄</b>
       </Link>
 
-      <CommandSearch />
-
       <div className="top-actions">
-        <Link className="topbar-tool" href="/help"><Icon name="help" /><span>Help</span></Link>
-        <Link className="topbar-tool" href="/communicate"><Icon name="bell" /><span>Notifications</span></Link>
+        <Link className="topbar-tool" href="/communicate" aria-label="Notifications">
+          <Icon name="bell" /><span>Notifications</span>
+        </Link>
         {action ? (
           <Link className="primary-button" href={action.href}>
             <span aria-hidden="true">+</span><span>{action.label}</span>
           </Link>
         ) : null}
+        <Link className="topbar-tool" href="/profile" aria-label="Open profile">
+          <span className="avatar">{initials(session.principal.displayName)}</span>
+        </Link>
       </div>
     </header>
   );
