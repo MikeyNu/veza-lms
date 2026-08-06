@@ -1,0 +1,152 @@
+{
+  "categories": [
+    {
+      "id": "identity-access",
+      "title": "Identity, authentication and access",
+      "boundary": "public, tenant and control plane",
+      "sources": [
+        "packages/oidc-bff/src",
+        "apps/api/src/platform/authentication",
+        "apps/api/src/modules/identity-access",
+        "apps/web/app/api/auth"
+      ],
+      "tests": [
+        "apps/api/tests/access-administration.test.mjs",
+        "apps/api/tests/runtime/authentication-assurance.test.mjs",
+        "packages/oidc-bff/tests/runtime-oidc.test.mjs",
+        "apps/web/tests/foundation.test.mjs"
+      ],
+      "verification": "runtime and contract",
+      "features": [
+        { "id": "identity-access.oidc-authorization-code-sign-in-with-pkce", "name": "OIDC authorization-code sign-in with PKCE", "status": "implemented" },
+        { "id": "identity-access.signed-id-token-verification-against-remote-jwks", "name": "Signed ID-token verification against remote JWKS", "status": "implemented" },
+        { "id": "identity-access.oidc-state-validation", "name": "OIDC state validation", "status": "implemented" },
+        { "id": "identity-access.oidc-nonce-validation", "name": "OIDC nonce validation", "status": "implemented" },
+        { "id": "identity-access.oidc-authorized-party-validation", "name": "OIDC authorized-party validation", "status": "implemented" },
+        { "id": "identity-access.encrypted-httponly-browser-sessions", "name": "Encrypted HttpOnly browser sessions", "status": "implemented" },
+        { "id": "identity-access.browser-session-expiry-enforcement", "name": "Browser session expiry enforcement", "status": "implemented" },
+        { "id": "identity-access.same-origin-checks-for-authentication-mutations", "name": "Same-origin checks for authentication mutations", "status": "implemented" },
+        { "id": "identity-access.secure-local-return-to-handling", "name": "Secure local return-to handling", "status": "implemented" },
+        { "id": "identity-access.sign-out-and-session-cookie-clearing", "name": "Sign-out and session-cookie clearing", "status": "implemented" },
+        { "id": "identity-access.authenticated-principal-resolution", "name": "Authenticated principal resolution", "status": "implemented" },
+        { "id": "identity-access.platform-operator-principal-inspection", "name": "Platform-operator principal inspection", "status": "implemented" },
+        { "id": "identity-access.workspace-option-discovery", "name": "Workspace option discovery", "status": "implemented" },
+        { "id": "identity-access.workspace-membership-selection", "name": "Workspace membership selection", "status": "implemented" },
+        { "id": "identity-access.workspace-session-resolution", "name": "Workspace session resolution", "status": "implemented" },
+        { "id": "identity-access.access-pending-handling-when-no-active-membership-exists", "name": "Access-pending handling when no active membership exists", "status": "implemented" },
+        { "id": "identity-access.tenant-owner-invitation", "name": "Tenant-owner invitation", "status": "implemented" },
+        { "id": "identity-access.external-invitation-acceptance", "name": "External invitation acceptance", "status": "implemented" },
+        { "id": "identity-access.access-directory-listing", "name": "Access-directory listing", "status": "implemented" },
+        { "id": "identity-access.membership-invitation-creation", "name": "Membership invitation creation", "status": "implemented" },
+        { "id": "identity-access.invitation-revocation", "name": "Invitation revocation", "status": "implemented" },
+        { "id": "identity-access.role-assignment", "name": "Role assignment", "status": "implemented" },
+        { "id": "identity-access.role-assignment-termination", "name": "Role-assignment termination", "status": "implemented" },
+        { "id": "identity-access.membership-status-transition", "name": "Membership status transition", "status": "implemented" },
+        { "id": "identity-access.tenant-membership-guard", "name": "Tenant membership guard", "status": "implemented" },
+        { "id": "identity-access.tenant-permission-guard", "name": "Tenant permission guard", "status": "implemented" },
+        { "id": "identity-access.institution-scoped-authorization", "name": "Institution-scoped authorization", "status": "implemented" },
+        { "id": "identity-access.mfa-guard-for-privileged-actions", "name": "MFA guard for privileged actions", "status": "implemented" },
+        { "id": "identity-access.platform-operator-role-assurance", "name": "Platform-operator role assurance", "status": "implemented" },
+        { "id": "identity-access.configurable-platform-operator-authentication-method-assurance", "name": "Configurable platform-operator authentication-method assurance", "status": "implemented" },
+        { "id": "identity-access.service-account-external-authentication", "name": "Service-account external authentication", "status": "implemented" }
+      ]
+    },
+    {
+      "id": "institution-structure",
+      "title": "Institution foundation, structure and activation",
+      "boundary": "tenant application plane",
+      "sources": [
+        "apps/api/src/modules/institution-structure",
+        "apps/web/app/admin/institution-setup",
+        "apps/web/src/features/institution-setup"
+      ],
+      "tests": [
+        "apps/api/tests/institution-invariants.test.mjs",
+        "apps/api/tests/institution-scope.test.mjs",
+        "apps/api/tests/runtime/domain-invariants.test.mjs",
+        "apps/api/tests/runtime/institution-concurrency.test.mjs",
+        "apps/web/tests/institution-setup.test.mjs",
+        "qa/browser/institution-setup-fixture.mjs"
+      ],
+      "verification": "runtime, PostgreSQL integration and browser",
+      "features": [
+        { "id": "institution-structure.institution-setup-overview", "name": "Institution setup overview", "status": "implemented" },
+        { "id": "institution-structure.operational-setup-profile-creation-and-update", "name": "Operational setup profile creation and update", "status": "implemented" },
+        { "id": "institution-structure.institution-creation", "name": "Institution creation", "status": "implemented" },
+        { "id": "institution-structure.institution-detail-retrieval", "name": "Institution detail retrieval", "status": "implemented" },
+        { "id": "institution-structure.campus-creation", "name": "Campus creation", "status": "implemented" },
+        { "id": "institution-structure.primary-campus-assignment", "name": "Primary-campus assignment", "status": "implemented" },
+        { "id": "institution-structure.concurrent-primary-campus-conflict-prevention", "name": "Concurrent primary-campus conflict prevention", "status": "implemented" },
+        { "id": "institution-structure.organisational-unit-creation", "name": "Organisational unit creation", "status": "implemented" },
+        { "id": "institution-structure.hierarchical-organisational-units", "name": "Hierarchical organisational units", "status": "implemented" },
+        { "id": "institution-structure.academic-period-creation", "name": "Academic period creation", "status": "implemented" },
+        { "id": "institution-structure.nested-academic-periods", "name": "Nested academic periods", "status": "implemented" },
+        { "id": "institution-structure.academic-period-publication", "name": "Academic period publication", "status": "implemented" },
+        { "id": "institution-structure.institutional-policy-approval", "name": "Institutional policy approval", "status": "implemented" },
+        { "id": "institution-structure.effective-dated-institutional-policies", "name": "Effective-dated institutional policies", "status": "implemented" },
+        { "id": "institution-structure.activation-readiness-calculation", "name": "Activation readiness calculation", "status": "implemented" },
+        { "id": "institution-structure.tenant-activation", "name": "Tenant activation", "status": "implemented" },
+        { "id": "institution-structure.activation-under-tenant-row-lock", "name": "Activation under tenant row lock", "status": "implemented" },
+        { "id": "institution-structure.activation-race-detection", "name": "Activation race detection", "status": "implemented" },
+        { "id": "institution-structure.school-safeguarding-policy-requirement", "name": "School safeguarding-policy requirement", "status": "implemented" },
+        { "id": "institution-structure.read-only-readiness-evidence", "name": "Read-only readiness evidence", "status": "implemented" },
+        { "id": "institution-structure.tenant-owner-full-institution-administration", "name": "Tenant-owner full institution administration", "status": "implemented" },
+        { "id": "institution-structure.institution-admin-scoped-administration", "name": "Institution-admin scoped administration", "status": "implemented" },
+        { "id": "institution-structure.authenticated-institution-setup-browser-workflow", "name": "Authenticated institution setup browser workflow", "status": "implemented" }
+      ]
+    },
+    {
+      "id": "people-relationships",
+      "title": "People, identities, relationships and privacy",
+      "boundary": "tenant application plane",
+      "sources": [
+        "apps/api/src/modules/people",
+        "apps/web/app/people",
+        "apps/web/src/features/people"
+      ],
+      "tests": [
+        "apps/api/tests/people-institution-integration.test.mjs",
+        "apps/web/tests/people-institution-integration.test.mjs",
+        "apps/api/tests"
+      ],
+      "verification": "integration and contract",
+      "features": [
+        { "id": "people-relationships.institution-scoped-people-directory", "name": "Institution-scoped people directory", "status": "implemented" },
+        { "id": "people-relationships.person-creation", "name": "Person creation", "status": "implemented" },
+        { "id": "people-relationships.person-detail-retrieval", "name": "Person detail retrieval", "status": "implemented" },
+        { "id": "people-relationships.person-profile-update", "name": "Person profile update", "status": "implemented" },
+        { "id": "people-relationships.person-lifecycle-status-transition", "name": "Person lifecycle status transition", "status": "implemented" },
+        { "id": "people-relationships.learner-profile-creation-and-update", "name": "Learner profile creation and update", "status": "implemented" },
+        { "id": "people-relationships.staff-profile-creation-and-update", "name": "Staff profile creation and update", "status": "implemented" },
+        { "id": "people-relationships.person-contact-point-creation", "name": "Person contact-point creation", "status": "implemented" },
+        { "id": "people-relationships.person-address-creation", "name": "Person address creation", "status": "implemented" },
+        { "id": "people-relationships.person-identifier-creation", "name": "Person identifier creation", "status": "implemented" },
+        { "id": "people-relationships.organisational-assignment-creation", "name": "Organisational assignment creation", "status": "implemented" },
+        { "id": "people-relationships.staff-engagement-creation", "name": "Staff engagement creation", "status": "implemented" },
+        { "id": "people-relationships.staff-engagement-termination", "name": "Staff engagement termination", "status": "implemented" },
+        { "id": "people-relationships.relationship-creation", "name": "Relationship creation", "status": "implemented" },
+        { "id": "people-relationships.relationship-acceptance", "name": "Relationship acceptance", "status": "implemented" },
+        { "id": "people-relationships.relationship-termination", "name": "Relationship termination", "status": "implemented" },
+        { "id": "people-relationships.relationship-revocation", "name": "Relationship revocation", "status": "implemented" },
+        { "id": "people-relationships.guardian-and-sponsor-relationship-modelling", "name": "Guardian and sponsor relationship modelling", "status": "implemented" },
+        { "id": "people-relationships.consent-recording", "name": "Consent recording", "status": "implemented" },
+        { "id": "people-relationships.disclosure-restriction-recording", "name": "Disclosure restriction recording", "status": "implemented" },
+        { "id": "people-relationships.identity-invitation-for-a-person", "name": "Identity invitation for a person", "status": "implemented" },
+        { "id": "people-relationships.existing-identity-linkage", "name": "Existing identity linkage", "status": "implemented" },
+        { "id": "people-relationships.related-person-invitation", "name": "Related-person invitation", "status": "implemented" },
+        { "id": "people-relationships.people-import-dry-run", "name": "People import dry run", "status": "implemented" },
+        { "id": "people-relationships.people-import-row-inspection", "name": "People import row inspection", "status": "implemented" },
+        { "id": "people-relationships.people-import-reconciliation", "name": "People import reconciliation", "status": "implemented" },
+        { "id": "people-relationships.people-import-duplicate-resolution", "name": "People import duplicate resolution", "status": "implemented" },
+        { "id": "people-relationships.people-import-commit", "name": "People import commit", "status": "implemented" },
+        { "id": "people-relationships.duplicate-candidate-review", "name": "Duplicate candidate review", "status": "implemented" },
+        { "id": "people-relationships.duplicate-decision-recording", "name": "Duplicate decision recording", "status": "implemented" },
+        { "id": "people-relationships.person-merge", "name": "Person merge", "status": "implemented" },
+        { "id": "people-relationships.tenant-safe-person-reference-enforcement", "name": "Tenant-safe person reference enforcement", "status": "implemented" },
+        { "id": "people-relationships.data-subject-request-creation", "name": "Data subject request creation", "status": "implemented" },
+        { "id": "people-relationships.data-subject-request-inspection", "name": "Data subject request inspection", "status": "implemented" },
+        { "id": "people-relationships.immutable-merge-and-relationship-evidence", "name": "Immutable merge and relationship evidence", "status": "implemented" }
+      ]
+    }
+  ]
+}
