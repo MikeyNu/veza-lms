@@ -1,0 +1,21 @@
+{
+  "name": "Veza Learning Cloud",
+  "short_name": "Veza",
+  "description": "The operating system for modern learning institutions.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#061a35",
+  "icons": [
+    {
+      "src": "/branding/veza-app-icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/branding/veza-app-icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
