@@ -34,7 +34,7 @@ BEGIN
     (NULL,'api.runtime-cleanup','api.runtime-cleanup','{}'::jsonb,3600,now(),'active',NULL,'system'),
     (NULL,'api.webhook-reconciliation','api.webhook-reconciliation','{}'::jsonb,60,now(),'active',NULL,'system'),
     (NULL,'exports.expiry','exports.expiry','{}'::jsonb,3600,now(),'active',NULL,'system')
-  ON CONFLICT (job_key) WHERE tenant_id IS NULL DO UPDATE
+  ON CONFLICT (tenant_id, job_key) DO UPDATE
   SET handler_key = EXCLUDED.handler_key,
       payload = EXCLUDED.payload,
       interval_seconds = EXCLUDED.interval_seconds,
