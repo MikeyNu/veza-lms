@@ -1,0 +1,91 @@
+{
+  "categories": [
+    {
+      "id": "terminology-localisation",
+      "title": "Terminology and localisation",
+      "boundary": "institution application plane",
+      "sources": ["apps/api/src/modules/terminology", "apps/web/app/admin/terminology"],
+      "tests": ["apps/api/tests/platform-administration-contracts.test.mjs", "apps/web/tests/platform-administration-workspaces.test.mjs"],
+      "verification": "contract and source",
+      "features": [
+        {"id":"terminology-localisation.terminology-version-listing","name":"Terminology version listing","status":"implemented"},
+        {"id":"terminology-localisation.effective-terminology-resolution","name":"Effective terminology resolution","status":"implemented"},
+        {"id":"terminology-localisation.locale-specific-terminology-resolution","name":"Locale-specific terminology resolution","status":"implemented"},
+        {"id":"terminology-localisation.terminology-version-detail","name":"Terminology version detail","status":"implemented"},
+        {"id":"terminology-localisation.terminology-version-creation","name":"Terminology version creation","status":"implemented"},
+        {"id":"terminology-localisation.terminology-review-submission","name":"Terminology review submission","status":"implemented"},
+        {"id":"terminology-localisation.terminology-approval","name":"Terminology approval","status":"implemented"},
+        {"id":"terminology-localisation.mfa-protected-terminology-approval","name":"MFA-protected terminology approval","status":"implemented"},
+        {"id":"terminology-localisation.effective-dated-terminology","name":"Effective-dated terminology","status":"implemented"},
+        {"id":"terminology-localisation.institution-terminology-administration-workspace","name":"Institution terminology administration workspace","status":"implemented"}
+      ]
+    },
+    {
+      "id": "search-cache-integrations",
+      "title": "Search, cache, APIs and service integrations",
+      "boundary": "tenant and public API",
+      "sources": ["apps/api/src/platform/search", "apps/api/src/platform/cache", "apps/api/src/platform/api-standards", "apps/web/app/api/search"],
+      "tests": ["apps/api/tests/foundation.test.mjs", "apps/api/tests/platform-administration-contracts.test.mjs", "scripts/qa/http-contract.mjs", "scripts/qa/bff-contract.mjs"],
+      "verification": "runtime contract and source",
+      "features": [
+        {"id":"search-cache-integrations.permission-aware-tenant-search","name":"Permission-aware tenant search","status":"implemented"},
+        {"id":"search-cache-integrations.search-query-validation","name":"Search query validation","status":"implemented"},
+        {"id":"search-cache-integrations.search-projection-consumption","name":"Search projection consumption","status":"implemented"},
+        {"id":"search-cache-integrations.command-search-interface","name":"Command search interface","status":"implemented"},
+        {"id":"search-cache-integrations.cache-health","name":"Cache health","status":"implemented"},
+        {"id":"search-cache-integrations.cache-namespace-invalidation","name":"Cache namespace invalidation","status":"implemented"},
+        {"id":"search-cache-integrations.cache-epoch-versioning","name":"Cache epoch versioning","status":"implemented"},
+        {"id":"search-cache-integrations.public-openapi-document","name":"Public OpenAPI document","status":"implemented"},
+        {"id":"search-cache-integrations.internal-openapi-document","name":"Internal OpenAPI document","status":"implemented"},
+        {"id":"search-cache-integrations.rfc-9457-problem-responses","name":"RFC 9457 problem responses","status":"implemented"},
+        {"id":"search-cache-integrations.opaque-cursor-pagination-policy","name":"Opaque cursor pagination policy","status":"implemented"},
+        {"id":"search-cache-integrations.idempotency-key-api-policy","name":"Idempotency-key API policy","status":"implemented"},
+        {"id":"search-cache-integrations.optimistic-concurrency-policy","name":"Optimistic concurrency policy","status":"implemented"},
+        {"id":"search-cache-integrations.api-deprecation-policy","name":"API deprecation policy","status":"implemented"},
+        {"id":"search-cache-integrations.service-account-creation","name":"Service-account creation","status":"implemented"},
+        {"id":"search-cache-integrations.service-account-secret-rotation","name":"Service-account secret rotation","status":"implemented"},
+        {"id":"search-cache-integrations.service-account-activation-and-suspension","name":"Service-account activation and suspension","status":"implemented"},
+        {"id":"search-cache-integrations.oauth-client-credentials-token-issuance","name":"OAuth client-credentials token issuance","status":"implemented"},
+        {"id":"search-cache-integrations.service-account-scope-enforcement","name":"Service-account scope enforcement","status":"implemented"}
+      ]
+    },
+    {
+      "id": "tenant-control-plane",
+      "title": "Tenant provisioning, lifecycle, support and data governance",
+      "boundary": "control plane",
+      "sources": ["apps/api/src/modules/tenant-entitlements", "apps/api/src/modules/platform-operations", "apps/control-plane/app"],
+      "tests": ["apps/api/tests/platform-administration-contracts.test.mjs", "apps/api/tests/platform-audit.test.mjs", "apps/control-plane/tests", "apps/api/tests/runtime/idempotency-retry.test.mjs"],
+      "verification": "runtime, contract and source",
+      "features": [
+        {"id":"tenant-control-plane.tenant-list","name":"Tenant list","status":"implemented"},
+        {"id":"tenant-control-plane.tenant-detail","name":"Tenant detail","status":"implemented"},
+        {"id":"tenant-control-plane.idempotent-tenant-provisioning","name":"Idempotent tenant provisioning","status":"implemented"},
+        {"id":"tenant-control-plane.tenant-operational-profile-update","name":"Tenant operational profile update","status":"implemented"},
+        {"id":"tenant-control-plane.tenant-lifecycle-transition","name":"Tenant lifecycle transition","status":"implemented"},
+        {"id":"tenant-control-plane.tenant-suspension","name":"Tenant suspension","status":"implemented"},
+        {"id":"tenant-control-plane.tenant-reactivation","name":"Tenant reactivation","status":"implemented"},
+        {"id":"tenant-control-plane.tenant-offboarding","name":"Tenant offboarding","status":"implemented"},
+        {"id":"tenant-control-plane.tenant-closure","name":"Tenant closure","status":"implemented"},
+        {"id":"tenant-control-plane.tenant-export-request","name":"Tenant export request","status":"implemented"},
+        {"id":"tenant-control-plane.tenant-export-completion","name":"Tenant export completion","status":"implemented"},
+        {"id":"tenant-control-plane.retention-hold-creation","name":"Retention hold creation","status":"implemented"},
+        {"id":"tenant-control-plane.retention-hold-release","name":"Retention hold release","status":"implemented"},
+        {"id":"tenant-control-plane.tenant-deletion-scheduling","name":"Tenant deletion scheduling","status":"implemented"},
+        {"id":"tenant-control-plane.tenant-deletion-cancellation","name":"Tenant deletion cancellation","status":"implemented"},
+        {"id":"tenant-control-plane.tenant-entitlement-override","name":"Tenant entitlement override","status":"implemented"},
+        {"id":"tenant-control-plane.tenant-usage-threshold","name":"Tenant usage threshold","status":"implemented"},
+        {"id":"tenant-control-plane.tenant-billing-linkage","name":"Tenant billing linkage","status":"implemented"},
+        {"id":"tenant-control-plane.operations-overview","name":"Operations overview","status":"implemented"},
+        {"id":"tenant-control-plane.support-overview","name":"Support overview","status":"implemented"},
+        {"id":"tenant-control-plane.support-case-creation","name":"Support case creation","status":"implemented"},
+        {"id":"tenant-control-plane.customer-approval-recording","name":"Customer approval recording","status":"implemented"},
+        {"id":"tenant-control-plane.support-elevation-start","name":"Support elevation start","status":"implemented"},
+        {"id":"tenant-control-plane.time-bound-support-session","name":"Time-bound support session","status":"implemented"},
+        {"id":"tenant-control-plane.support-session-termination","name":"Support session termination","status":"implemented"},
+        {"id":"tenant-control-plane.support-case-resolution","name":"Support case resolution","status":"implemented"},
+        {"id":"tenant-control-plane.security-incident-recording","name":"Security incident recording","status":"implemented"},
+        {"id":"tenant-control-plane.control-plane-audit-evidence","name":"Control-plane audit evidence","status":"implemented"}
+      ]
+    }
+  ]
+}
