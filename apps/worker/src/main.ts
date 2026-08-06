@@ -4,15 +4,33 @@ import { ConsumerRepository } from "./consumer-repository.js";
 import { ConsumerRuntime } from "./consumer-runtime.js";
 import { sanitizeDeliveryError } from "./delivery-error.js";
 import { EventBridgePublisher, StdoutPublisher } from "./event-publisher.js";
+import { MediaProcessor } from "./media-processor.js";
+import { MediaRetentionReconciliationHandler } from "./media-scheduler.js";
 import { CoreMetricRefresher } from "./metric-refresh.js";
 import { NotificationDispatcher } from "./notification-dispatcher.js";
 import { NotificationProviderRegistry } from "./notification-provider.js";
 import { NotificationRouter } from "./notification-router.js";
 import { NotificationDigestPreparationHandler } from "./notification-scheduler.js";
+import {
+  AlertEvaluationHandler,
+  ApiRuntimeCleanupHandler,
+  SloMeasurementHandler,
+  WorkerHeartbeat,
+} from "./observability-runtime.js";
 import { OutboxRepository } from "./outbox-repository.js";
 import type { ClaimedOutboxEvent, EventPublisher, PublishResult } from "./outbox.types.js";
 import { nextAttemptAt, retryDelaySeconds } from "./retry.js";
 import { PlatformGovernanceSweepHandler, WorkerScheduler } from "./scheduler.js";
+import {
+  SearchIndexPublisher,
+  SearchProjectionEventHandler,
+  SearchProjectionScheduleHandler,
+} from "./search-runtime.js";
+import {
+  WebhookDispatcher,
+  WebhookReconciliationHandler,
+  WebhookRouter,
+} from "./webhook-runtime.js";
 
 function log(
   level: "info" | "warn" | "error",
@@ -150,6 +168,20 @@ async function processOutbox(
   return events.length;
 }
 
+async function safeHeartbeat(
+  heartbeat: WorkerHeartbeat,
+  status: "starting" | "ready" | "degraded" | "stopping",
+): Promise<void> {
+  try {
+    await heartbeat.beat(status);
+  } catch (error) {
+    log("warn", "Worker heartbeat update failed", {
+      status,
+      error: sanitizeDeliveryError(error),
+    });
+  }
+}
+
 async function main(): Promise<void> {
   const config = loadWorkerConfig();
   const pool = new Pool({
@@ -174,6 +206,8 @@ async function main(): Promise<void> {
     config.retryMaximumSeconds,
   );
   consumerRuntime.register("communications.notification-router", new NotificationRouter(pool));
+  consumerRuntime.register("search.projection-events", new SearchProjectionEventHandler(pool));
+  consumerRuntime.register("api.webhook-router", new WebhookRouter(pool));
 
   const scheduler = new WorkerScheduler(
     pool,
@@ -194,6 +228,19 @@ async function main(): Promise<void> {
     "commercial.effective-date-sweep",
     new PlatformGovernanceSweepHandler(pool, "apply_due_commercial_policy"),
   );
+  scheduler.register(
+    "media.retention-reconciliation",
+    new MediaRetentionReconciliationHandler(pool),
+  );
+  scheduler.register(
+    "search.projection-reconciliation",
+    new SearchProjectionScheduleHandler(pool),
+  );
+  scheduler.register("observability.slo-measurement", new SloMeasurementHandler(pool));
+  scheduler.register("observability.alert-evaluation", new AlertEvaluationHandler(pool));
+  scheduler.register("api.runtime-cleanup", new ApiRuntimeCleanupHandler(pool));
+  scheduler.register("api.webhook-reconciliation", new WebhookReconciliationHandler(pool));
+
   const notificationDispatcher = new NotificationDispatcher(
     pool,
     new NotificationProviderRegistry(),
@@ -208,6 +255,28 @@ async function main(): Promise<void> {
     config.workerId,
     config.metricRefreshBatchSize,
   );
+  const mediaProcessor = new MediaProcessor(
+    pool,
+    config.workerId,
+    config.consumerBatchSize,
+    config.retryBaseSeconds,
+    config.retryMaximumSeconds,
+  );
+  const searchIndexPublisher = new SearchIndexPublisher(
+    pool,
+    config.workerId,
+    config.consumerBatchSize,
+    config.retryBaseSeconds,
+    config.retryMaximumSeconds,
+  );
+  const webhookDispatcher = new WebhookDispatcher(
+    pool,
+    config.workerId,
+    config.consumerBatchSize,
+    config.retryBaseSeconds,
+    config.retryMaximumSeconds,
+  );
+  const heartbeat = new WorkerHeartbeat(pool, config.workerId);
   const shutdown = new AbortController();
   const stop = (signal: string) => {
     log("info", "Worker shutdown requested", { signal });
@@ -218,6 +287,8 @@ async function main(): Promise<void> {
 
   let nextMetricRefreshAt = 0;
   let nextSchedulerAt = 0;
+  let nextHeartbeatAt = 0;
+  await safeHeartbeat(heartbeat, "starting");
   log("info", "Worker started", {
     workerId: config.workerId,
     transport: config.transport,
@@ -232,6 +303,10 @@ async function main(): Promise<void> {
     while (!shutdown.signal.aborted) {
       try {
         const now = Date.now();
+        if (now >= nextHeartbeatAt) {
+          await safeHeartbeat(heartbeat, "ready");
+          nextHeartbeatAt = now + 30_000;
+        }
         if (now >= nextMetricRefreshAt) {
           const refreshed = await metricRefresher.refreshDue();
           log("info", "Core metric refresh cycle completed", { refreshed });
@@ -243,10 +318,13 @@ async function main(): Promise<void> {
           nextSchedulerAt = now + config.schedulerIntervalMs;
         }
 
-        const [outboxClaimed, consumers, notifications] = await Promise.all([
+        const [outboxClaimed, consumers, notifications, media, search, webhooks] = await Promise.all([
           processOutbox(outboxRepository, eventPublisher, config),
           consumerRuntime.processDue(),
           notificationDispatcher.processDue(),
+          mediaProcessor.processDue(),
+          searchIndexPublisher.processDue(),
+          webhookDispatcher.processDue(),
         ]);
         if (consumers.claimed > 0) log("info", "Event consumers processed", consumers);
         if (
@@ -256,21 +334,29 @@ async function main(): Promise<void> {
         ) {
           log("info", "Notification delivery cycle completed", notifications);
         }
+        if (media.claimed > 0) log("info", "Media processing cycle completed", media);
+        if (search.claimed > 0) log("info", "Search indexing cycle completed", search);
+        if (webhooks.claimed > 0) log("info", "Webhook delivery cycle completed", webhooks);
         if (
           outboxClaimed === 0 &&
           consumers.claimed === 0 &&
           notifications.intentsPrepared === 0 &&
           notifications.deliveriesProcessed === 0 &&
-          notifications.digestsProcessed === 0
+          notifications.digestsProcessed === 0 &&
+          media.claimed === 0 &&
+          search.claimed === 0 &&
+          webhooks.claimed === 0
         ) {
           await wait(config.pollIntervalMs, shutdown.signal);
         }
       } catch (error) {
         log("error", "Worker polling cycle failed", { error: sanitizeDeliveryError(error) });
+        await safeHeartbeat(heartbeat, "degraded");
         await wait(config.pollIntervalMs, shutdown.signal);
       }
     }
   } finally {
+    await safeHeartbeat(heartbeat, "stopping");
     await pool.end();
     log("info", "Worker stopped");
   }
