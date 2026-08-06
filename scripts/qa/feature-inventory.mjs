@@ -1,8 +1,9 @@
 import { access, mkdir, readdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join, relative, resolve, sep } from "node:path";
+import { fileURLToPath } from "node:url";
 import catalogue from "../../qa/features/platform-features.mjs";
 
-const repositoryRoot = resolve(new URL("..", import.meta.url).pathname, "..");
+const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const artifactRoot = join(repositoryRoot, "qa-artifacts", "features");
 const ignoredDirectories = new Set(["node_modules", "dist", ".next", ".turbo", ".git", "coverage", "qa-artifacts"]);
 const allowedStatuses = new Set(["implemented", "gap"]);
@@ -12,6 +13,21 @@ const criticalFeatureIds = new Set([
   "credentials-analytics-exports.pdf-export-lifecycle",
   "identity-access.mfa-guard-for-privileged-actions",
   "institution-structure.tenant-activation",
+]);
+const requiredWorkerRuntimeEvidence = new Map([
+  ["Transactional outbox publisher", "processOutbox(outboxRepository"],
+  ["Notification intent dispatcher", "notificationDispatcher.processDue()"],
+  ["Media processor", "mediaProcessor.processDue()"],
+  ["Search projection publisher", "searchIndexPublisher.processDue()"],
+  ["Webhook dispatcher", "webhookDispatcher.processDue()"],
+  ["Governed export processor", "exportProcessor.processDue()"],
+  ["Metric refresher", "metricRefresher.refreshDue()"],
+  ["Schedule reconciler", "platformScheduleReconciler.reconcile()"],
+  ["Worker heartbeat", "safeHeartbeat(heartbeat"],
+  ["Export expiry schedule", 'scheduler.register("exports.expiry"'],
+  ["SLO measurement schedule", 'scheduler.register("observability.slo-measurement"'],
+  ["Alert evaluation schedule", 'scheduler.register("observability.alert-evaluation"'],
+  ["API cleanup schedule", 'scheduler.register("api.runtime-cleanup"'],
 ]);
 
 function invariant(condition, message) {
@@ -147,11 +163,34 @@ async function workerCapabilities() {
   }));
 }
 
+async function validateWorkerRuntime() {
+  const main = await readFile(join(repositoryRoot, "apps", "worker", "src", "main.ts"), "utf8");
+  const evidence = [];
+  for (const [capability, token] of requiredWorkerRuntimeEvidence) {
+    invariant(main.includes(token), `Worker runtime is not wired for ${capability}`);
+    evidence.push({ capability, token });
+  }
+  return evidence;
+}
+
+async function validateMigrationOrder() {
+  const directory = join(repositoryRoot, "apps", "api", "database", "migrations");
+  const migrations = (await readdir(directory)).filter((name) => name.endsWith(".sql")).sort();
+  const ownership = migrations.indexOf("0038_aaa_system_schedule_ownership.sql");
+  const media = migrations.indexOf("0038_media_storage_platform.sql");
+  const exports = migrations.indexOf("0052_governed_document_exports.sql");
+  const schedules = migrations.indexOf("0053_platform_schedule_reconciliation.sql");
+  invariant(ownership >= 0 && ownership < media, "System schedule ownership must precede historical system schedules");
+  invariant(exports >= 0 && exports < schedules, "Export schema must precede platform schedule reconciliation");
+  return { ownership, media, exports, schedules };
+}
+
 async function validateCatalogue() {
   invariant(catalogue.version === 1, "Unsupported feature catalogue version");
-  invariant(Array.isArray(catalogue.categories) && catalogue.categories.length >= 15, "Feature catalogue is unexpectedly small");
+  invariant(Array.isArray(catalogue.categories) && catalogue.categories.length >= 20, "Feature catalogue is unexpectedly small");
   const ids = new Set();
   const pathChecks = [];
+  const gaps = [];
   let featureCount = 0;
   for (const category of catalogue.categories) {
     invariant(category.id && category.title && category.boundary, `Feature category is incomplete: ${JSON.stringify(category)}`);
@@ -165,19 +204,25 @@ async function validateCatalogue() {
       invariant(feature.id.startsWith(`${category.id}.`), `Feature ${feature.id} is outside its category namespace`);
       invariant(allowedStatuses.has(feature.status), `Feature ${feature.id} has unsupported status ${feature.status}`);
       invariant(!/[—]/.test(`${feature.name}${feature.note ?? ""}`), `Feature ${feature.id} contains a prohibited em dash`);
+      if (feature.status === "gap") gaps.push({ category: category.id, ...feature });
       ids.add(feature.id);
     }
   }
-  invariant(featureCount >= 500, `Feature catalogue contains only ${featureCount} capabilities`);
+  invariant(featureCount >= 516, `Feature catalogue contains only ${featureCount} capabilities`);
+  invariant(gaps.length === 0, `Feature catalogue contains unresolved gaps: ${gaps.map((gap) => gap.id).join(", ")}`);
   for (const id of criticalFeatureIds) invariant(ids.has(id), `Critical feature is missing from the catalogue: ${id}`);
   for (const item of pathChecks) {
     invariant(await exists(join(repositoryRoot, item.path)), `Feature category ${item.category} references missing path ${item.path}`);
   }
-  return { featureCount };
+  return { featureCount, gaps };
 }
 
 async function main() {
-  const { featureCount } = await validateCatalogue();
+  const [{ featureCount, gaps }, workerRuntimeEvidence, migrationOrder] = await Promise.all([
+    validateCatalogue(),
+    validateWorkerRuntime(),
+    validateMigrationOrder(),
+  ]);
   const [apiOperations, webPages, controlPages, webBff, controlBff, workers] = await Promise.all([
     controllerOperations(),
     applicationPages(join(repositoryRoot, "apps", "web", "app"), "web"),
@@ -198,7 +243,6 @@ async function main() {
   invariant(webBff.length >= 20, `Only ${webBff.length} web BFF operations were discovered`);
   invariant(workers.length >= 10, `Only ${workers.length} worker capabilities were discovered`);
 
-  const gaps = catalogue.categories.flatMap((category) => category.features.filter((feature) => feature.status === "gap").map((feature) => ({ category: category.id, ...feature })));
   await mkdir(artifactRoot, { recursive: true });
   await writeFile(join(artifactRoot, "catalogue.json"), `${JSON.stringify(catalogue, null, 2)}\n`);
   await writeFile(join(artifactRoot, "discovered-surfaces.json"), `${JSON.stringify(surfaces, null, 2)}\n`);
@@ -207,6 +251,8 @@ async function main() {
     categoryCount: catalogue.categories.length,
     gapCount: gaps.length,
     gaps,
+    workerRuntimeEvidence,
+    migrationOrder,
     discovered: {
       apiOperations: apiOperations.length,
       webPages: webPages.length,
@@ -217,7 +263,7 @@ async function main() {
       total: surfaces.length,
     },
   }, null, 2)}\n`);
-  console.log(`Feature inventory validated: ${featureCount} capabilities, ${surfaces.length} implementation surfaces, ${gaps.length} declared gaps.`);
+  console.log(`Feature inventory validated: ${featureCount} capabilities, ${surfaces.length} implementation surfaces, ${workerRuntimeEvidence.length} wired worker capabilities, no declared gaps.`);
 }
 
 await main();
