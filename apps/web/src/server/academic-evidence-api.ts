@@ -1,20 +1,18 @@
 import type { AnalyticsMetric, CertificateVerification } from "@veza/contracts";
-import { getWebOidcSession } from "./web-session";
+import { requestWorkspaceJson } from "./workspace-json-request";
 
 const baseUrl = process.env.VEZA_API_BASE_URL ?? "http://localhost:4000";
-const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const maximumBytes = 2 * 1024 * 1024;
+const maximumPublicBytes = 128 * 1024;
+const uuid =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 async function authenticated<T>(path: string): Promise<T> {
-  const session = await getWebOidcSession();
-  if (!session) throw new Error("Workspace authentication is required");
-  const response = await fetch(`${baseUrl}${path}`, {
-    headers: { authorization: `Bearer ${session.accessToken}`, accept: "application/json" },
-    cache: "no-store",
-    signal: AbortSignal.timeout(20_000),
-  });
-  const body = (await response.json()) as T & { message?: string };
-  if (!response.ok) throw new Error(body.message ?? "Academic evidence query failed");
-  return body;
+  return (await requestWorkspaceJson(path, {
+    service: "Academic evidence service",
+    maximumBytes,
+    timeoutMs: 20_000,
+  })) as T;
 }
 
 export interface AcademicEvidenceWorkspace {
@@ -68,13 +66,26 @@ export function loadInstitutionAnalytics(
   return authenticated(`/v1/academic-evidence/analytics?institutionId=${institutionId}`);
 }
 
-export async function verifyCertificatePublic(code: string): Promise<CertificateVerification> {
+export async function verifyCertificatePublic(
+  code: string,
+): Promise<CertificateVerification> {
   if (!/^[A-Z0-9]{8,40}$/i.test(code)) return { valid: false };
-  const response = await fetch(`${baseUrl}/v1/public/certificates/${encodeURIComponent(code)}`, {
-    cache: "no-store",
-    signal: AbortSignal.timeout(10_000),
-  });
+  const response = await fetch(
+    `${baseUrl}/v1/public/certificates/${encodeURIComponent(code)}`,
+    {
+      cache: "no-store",
+      signal: AbortSignal.timeout(10_000),
+    },
+  );
   if (response.status === 404) return { valid: false };
-  const body = (await response.json()) as CertificateVerification;
-  return response.ok ? body : { valid: false };
+  const text = await response.text();
+  if (new TextEncoder().encode(text).byteLength > maximumPublicBytes) {
+    return { valid: false };
+  }
+  try {
+    const body = JSON.parse(text) as CertificateVerification;
+    return response.ok ? body : { valid: false };
+  } catch {
+    return { valid: false };
+  }
 }
