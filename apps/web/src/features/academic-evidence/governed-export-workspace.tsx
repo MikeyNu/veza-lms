@@ -11,13 +11,14 @@ function value(row: Readonly<Record<string, unknown>>, key: string): string {
 }
 
 function date(value?: string): string {
-  return value
-    ? new Intl.DateTimeFormat("en-ZA", {
-        dateStyle: "medium",
-        timeStyle: value.includes("T") ? "short" : undefined,
-        timeZone: "Africa/Johannesburg",
-      }).format(new Date(value))
-    : "Not available";
+  if (!value) return "Not available";
+  const timestamp = new Date(value);
+  if (!Number.isFinite(timestamp.getTime())) return "Invalid timestamp";
+  return new Intl.DateTimeFormat("en-ZA", {
+    dateStyle: "medium",
+    ...(value.includes("T") ? { timeStyle: "short" as const } : {}),
+    timeZone: "Africa/Johannesburg",
+  }).format(timestamp);
 }
 
 function statusLabel(status: string): string {
