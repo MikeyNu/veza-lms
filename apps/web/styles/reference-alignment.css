@@ -1,0 +1,419 @@
+/* Canonical visual alignment layer derived from the approved Veza reference screens. */
+
+html,
+body,
+.shell,
+.main-area,
+.app-main {
+  background-image: none !important;
+}
+
+body {
+  background: var(--canvas);
+}
+
+.vz-learning-page {
+  gap: 1.25rem;
+  padding: 1.5rem clamp(1.25rem, 2.2vw, 2.25rem) 2.25rem;
+}
+
+.vz-page-heading {
+  align-items: center;
+  padding-bottom: 1rem;
+}
+
+.vz-page-heading h1 {
+  font-size: clamp(1.75rem, 2.5vw, 2.25rem);
+  line-height: 1.1;
+  letter-spacing: -0.035em;
+}
+
+.vz-page-heading p {
+  color: var(--brand-strong);
+  letter-spacing: 0.08em;
+}
+
+.vz-page-heading span {
+  margin-top: 0.4rem;
+  font-size: 0.875rem;
+  line-height: 1.45;
+}
+
+.vz-page-heading > small {
+  padding: 0.45rem 0.7rem;
+  border: 1px solid var(--line);
+  border-radius: var(--veza-radius-control);
+  background: var(--surface);
+}
+
+.vz-next-grid {
+  grid-template-columns: minmax(0, 1.45fr) minmax(19rem, 0.55fr);
+  gap: 1rem;
+}
+
+.vz-primary-next {
+  min-height: 15rem;
+  padding: 1.75rem;
+  border-color: var(--line);
+  border-radius: var(--radius);
+  background: linear-gradient(135deg, #18163f 0%, #2c236e 58%, #4b2ee8 100%);
+  box-shadow: var(--veza-shadow-panel);
+}
+
+.vz-primary-next h2 {
+  max-width: 42rem;
+  margin: 0.65rem 0 0.35rem;
+  font-size: clamp(1.9rem, 3vw, 2.65rem);
+}
+
+.vz-primary-next p {
+  margin-bottom: 1.25rem;
+}
+
+.vz-primary-next a {
+  min-height: 2.4rem;
+  padding: 0 0.9rem;
+  border: 1px solid rgb(255 255 255 / 0.35);
+  border-radius: var(--veza-radius-control);
+  background: white;
+  color: var(--brand-strong);
+  font-size: 0.78rem;
+}
+
+.vz-today-list {
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.vz-today-list a {
+  grid-template-columns: 4.75rem minmax(0, 1fr);
+  padding: 0.95rem 1rem;
+}
+
+.vz-today-list a:last-child {
+  border-bottom: 0;
+}
+
+.vz-today-list a:hover {
+  background: var(--surface-subtle);
+}
+
+.vz-course-register {
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.vz-course-register > header {
+  margin-bottom: 0.85rem;
+}
+
+.vz-course-register > header h2 {
+  font-size: 1.2rem;
+}
+
+.vz-course-register > header > span {
+  min-width: 1.8rem;
+  height: 1.8rem;
+  border-radius: 999px;
+  color: var(--brand-strong);
+  font-size: 0.72rem;
+}
+
+.vz-course-cards {
+  grid-template-columns: repeat(auto-fit, minmax(15.5rem, 1fr));
+  gap: 0.75rem;
+}
+
+.vz-course-cards > a {
+  padding: 1rem;
+  border-radius: var(--radius);
+  box-shadow: var(--veza-shadow-panel);
+}
+
+.vz-course-cards > a:hover {
+  transform: none;
+  border-color: color-mix(in srgb, var(--brand) 36%, var(--line));
+  box-shadow: 0 4px 14px rgb(45 35 110 / 0.08);
+}
+
+.vz-course-cards h3 {
+  margin: 0.65rem 0 0.25rem;
+  font-size: 1rem;
+}
+
+.vz-course-cards p,
+.vz-course-cards small,
+.vz-course-cards footer {
+  font-size: 0.76rem;
+}
+
+.vz-course-progress {
+  height: 0.25rem;
+  background: #ececf4;
+}
+
+.vz-course-progress > span {
+  background: var(--brand);
+}
+
+.vz-course-shell {
+  grid-template-columns: 17rem minmax(0, 1fr) 19rem;
+  gap: 0;
+  align-items: stretch;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.vz-module-rail,
+.vz-course-context {
+  position: static;
+  top: auto;
+}
+
+.vz-module-rail {
+  border: 0;
+  border-right: 1px solid var(--line);
+  border-radius: 0;
+  background: #fbfbfe;
+}
+
+.vz-module-rail header {
+  padding: 0.9rem 1rem;
+  background: transparent;
+}
+
+.vz-module-rail header strong {
+  font-size: 0.78rem;
+}
+
+.vz-module-rail header span {
+  color: var(--success);
+  font-size: 0.7rem;
+}
+
+.vz-module-rail button {
+  gap: 0.65rem;
+  padding: 0.72rem 0.85rem;
+  border-top-color: transparent;
+}
+
+.vz-module-rail button:hover {
+  background: var(--surface-subtle);
+}
+
+.vz-module-rail button.active {
+  background: var(--surface-selected);
+  color: var(--brand-strong);
+}
+
+.vz-module-rail button > span {
+  width: 1.35rem;
+  height: 1.35rem;
+  border-color: var(--line-strong);
+  font-size: 0.64rem;
+}
+
+.vz-module-rail button.active > span {
+  border-color: color-mix(in srgb, var(--brand) 35%, var(--line));
+  background: white;
+  color: var(--brand-strong);
+}
+
+.vz-module-rail button strong {
+  font-size: 0.74rem;
+}
+
+.vz-module-rail button small {
+  font-size: 0.66rem;
+}
+
+.vz-lesson-player {
+  min-height: calc(100vh - 8rem);
+  border: 0;
+  border-radius: 0;
+  background: white;
+}
+
+.vz-lesson-player > header {
+  padding: 1.25rem 1.5rem;
+}
+
+.vz-lesson-player > header small {
+  color: var(--brand-strong);
+  font-weight: 800;
+  letter-spacing: 0.07em;
+}
+
+.vz-lesson-player h2 {
+  margin: 0.25rem 0 0.35rem;
+  font-size: clamp(1.45rem, 2.3vw, 2rem);
+}
+
+.vz-lesson-player > header p {
+  max-width: 48rem;
+  font-size: 0.83rem;
+  line-height: 1.5;
+}
+
+.vz-lesson-player > header button,
+.vz-lesson-player > footer button,
+.vz-room-tools button {
+  min-height: 2.25rem;
+  padding: 0 0.8rem;
+  border-color: color-mix(in srgb, var(--brand) 38%, var(--line));
+  color: var(--brand-strong);
+  font-size: 0.72rem;
+}
+
+.vz-lesson-player > footer button:not(:disabled) {
+  background: var(--brand);
+  color: white;
+}
+
+.vz-lesson-content {
+  max-width: 52rem;
+  padding: 1.5rem;
+  font-size: 0.9rem;
+  line-height: 1.65;
+}
+
+.vz-lesson-content h2 {
+  margin: 1.75rem 0 0.65rem;
+  font-size: 1.25rem;
+}
+
+.vz-lesson-content blockquote {
+  border-left-color: var(--brand);
+  background: var(--surface-subtle);
+}
+
+.vz-lesson-callout,
+.vz-activity-block {
+  border-color: color-mix(in srgb, var(--brand) 18%, var(--line));
+  background: var(--surface-selected);
+}
+
+.vz-course-context {
+  display: block;
+  border-left: 1px solid var(--line);
+  background: #fcfcff;
+}
+
+.vz-course-context section {
+  margin: 0;
+  padding: 1rem;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  border-radius: 0;
+  background: transparent;
+}
+
+.vz-course-context section > span {
+  margin-bottom: 0.55rem;
+  color: var(--ink);
+  font-size: 0.72rem;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.vz-course-context section > strong {
+  color: var(--ink);
+  font-size: 1.55rem;
+}
+
+.vz-course-context p {
+  margin: 0.5rem 0 0;
+  padding-top: 0.65rem;
+  font-size: 0.75rem;
+}
+
+.vz-room-tools {
+  flex-wrap: wrap;
+}
+
+.vz-room-tools label {
+  font-size: 0.75rem;
+}
+
+.vz-tab-bar button.active,
+.vz-metric-grid > button.active,
+.vz-editor-canvas > article.selected {
+  border-color: var(--brand);
+  color: var(--brand-strong);
+}
+
+.vz-editor-canvas > article.selected,
+.vz-metric-grid > button.active {
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--brand) 12%, transparent);
+}
+
+.vz-studio-actions button,
+.vz-governance-form button,
+.vz-editor-bar button.primary,
+.vz-device-switch button.active {
+  background: var(--brand-strong);
+}
+
+@media (max-width: 1260px) {
+  .vz-course-shell {
+    grid-template-columns: 15rem minmax(0, 1fr);
+  }
+
+  .vz-course-context {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    border-top: 1px solid var(--line);
+    border-left: 0;
+  }
+
+  .vz-course-context section {
+    border-right: 1px solid var(--line);
+    border-bottom: 0;
+  }
+}
+
+@media (max-width: 860px) {
+  .vz-next-grid,
+  .vz-course-shell {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .vz-module-rail {
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .vz-course-context {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .vz-course-context section {
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+  }
+}
+
+@media (max-width: 620px) {
+  .vz-learning-page {
+    padding: 1rem;
+  }
+
+  .vz-page-heading {
+    align-items: flex-start;
+  }
+
+  .vz-primary-next {
+    min-height: 13rem;
+    padding: 1.25rem;
+  }
+
+  .vz-course-cards {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
