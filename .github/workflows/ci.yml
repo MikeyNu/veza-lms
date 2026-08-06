@@ -4,40 +4,103 @@ on:
   pull_request:
   push:
     branches: [main]
+  workflow_dispatch:
 
 permissions:
   contents: read
+  security-events: write
 
 concurrency:
-  group: quality-${{ github.ref }}
+  group: quality-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  NODE_VERSION: 24.18.0
+  PNPM_VERSION: 11.15.1
+  TEST_COOKIE_KEY: BwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwc=
+
 jobs:
-  verify:
-    name: Source, contracts and production builds
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
+  formatting-linting:
+    name: 1. Formatting and linting
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
+      - uses: actions/checkout@v6
+      - uses: pnpm/action-setup@v6
         with:
-          version: 11.15.1
+          version: ${{ env.PNPM_VERSION }}
           run_install: false
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
-          node-version: 24.18.0
+          node-version: ${{ env.NODE_VERSION }}
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm format:check
       - run: pnpm lint
-      - run: pnpm typecheck
-      - run: pnpm test
-      - run: pnpm build
 
-  database-integration:
-    name: PostgreSQL identities, RLS, people workflows, worker leases and institution invariants
-    runs-on: ubuntu-latest
-    timeout-minutes: 25
+  type-checking:
+    name: 2. Type checking
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v6
+      - uses: pnpm/action-setup@v6
+        with:
+          version: ${{ env.PNPM_VERSION }}
+          run_install: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm typecheck
+
+  unit-tests:
+    name: 3. Unit and domain invariant tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v6
+      - uses: pnpm/action-setup@v6
+        with:
+          version: ${{ env.PNPM_VERSION }}
+          run_install: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build:packages
+      - run: pnpm test
+      - run: pnpm --filter @veza/api build
+      - run: node --test apps/api/tests/runtime/domain-invariants.test.mjs
+
+  contract-tests:
+    name: 4. Contracts, BFF and authentication tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v6
+      - uses: pnpm/action-setup@v6
+        with:
+          version: ${{ env.PNPM_VERSION }}
+          run_install: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @veza/contracts test
+      - run: pnpm --filter @veza/oidc-bff build
+      - run: pnpm --filter @veza/oidc-bff test
+      - run: node --test packages/oidc-bff/tests/runtime-oidc.test.mjs
+      - run: node --test apps/web/tests/*.test.mjs
+      - run: node --test apps/control-plane/tests/*.test.mjs
+
+  postgresql-rls:
+    name: 5. PostgreSQL repositories, RLS and concurrency
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
     services:
       postgres:
         image: postgres:17-alpine
@@ -59,39 +122,462 @@ jobs:
       CONTROL_PLANE_DATABASE_URL: postgresql://veza_control:veza_control@localhost:5432/veza
       WORKER_DATABASE_URL: postgresql://veza_worker:veza_worker@localhost:5432/veza
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
+      - uses: actions/checkout@v6
+      - uses: pnpm/action-setup@v6
         with:
-          version: 11.15.1
+          version: ${{ env.PNPM_VERSION }}
           run_install: false
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
-          node-version: 24.18.0
+          node-version: ${{ env.NODE_VERSION }}
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm --filter @veza/api db:bootstrap:test
       - run: pnpm --filter @veza/api db:migrate
+      - name: Prove runtime database identities
+        run: |
+          test "$(psql "$MIGRATION_DATABASE_URL" -Atc 'select current_user')" = "veza_migrator"
+          test "$(psql "$DATABASE_URL" -Atc 'select current_user')" = "veza_app"
+          test "$(psql "$CONTROL_PLANE_DATABASE_URL" -Atc 'select current_user')" = "veza_control"
+          test "$(psql "$WORKER_DATABASE_URL" -Atc 'select current_user')" = "veza_worker"
+          test "$(psql "$DATABASE_URL" -Atc "select rolbypassrls from pg_roles where rolname = current_user")" = "f"
       - run: pnpm --filter @veza/worker test:integration
       - run: pnpm --filter @veza/api test:integration
+      - run: node --test apps/api/tests/runtime/cross-tenant.property.test.mjs
+      - run: node --test apps/api/tests/runtime/institution-concurrency.test.mjs
+      - run: node --test apps/api/tests/runtime/idempotency-retry.test.mjs
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: postgresql-rls-${{ github.sha }}
+          path: qa-artifacts/postgresql
+          if-no-files-found: ignore
+          retention-days: 14
 
-  terraform:
-    name: Terraform formatting and environment validation
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
+  migration-validation:
+    name: 6. Migration, backup, restore and remediation
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: veza_bootstrap
+          POSTGRES_PASSWORD: veza_bootstrap
+          POSTGRES_DB: veza
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U veza_bootstrap -d veza"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    env:
+      BOOTSTRAP_DATABASE_URL: postgresql://veza_bootstrap:veza_bootstrap@localhost:5432/veza
+      MIGRATION_DATABASE_URL: postgresql://veza_migrator:veza_migrator@localhost:5432/veza
+      DATABASE_URL: postgresql://veza_app:veza_app@localhost:5432/veza
+      CONTROL_PLANE_DATABASE_URL: postgresql://veza_control:veza_control@localhost:5432/veza
+      WORKER_DATABASE_URL: postgresql://veza_worker:veza_worker@localhost:5432/veza
+      QA_ARTIFACT_DIR: qa-artifacts/backup-restore
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
+      - uses: pnpm/action-setup@v6
+        with:
+          version: ${{ env.PNPM_VERSION }}
+          run_install: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: node scripts/qa/migration-validation.mjs
+      - run: pnpm --filter @veza/api db:bootstrap:test
+      - run: pnpm --filter @veza/api db:migrate
+      - name: Verify repeatable forward runner
+        run: |
+          mkdir -p qa-artifacts
+          before="$(psql "$MIGRATION_DATABASE_URL" -Atc 'select count(*) from schema_migrations')"
+          pnpm --filter @veza/api db:migrate | tee qa-artifacts/migration-second-run.log
+          after="$(psql "$MIGRATION_DATABASE_URL" -Atc 'select count(*) from schema_migrations')"
+          test "$before" = "$after"
+      - run: scripts/qa/postgres-backup-restore.sh
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: migration-validation-${{ github.sha }}
+          path: qa-artifacts
+          if-no-files-found: error
+          retention-days: 14
+
+  browser-accessibility:
+    name: 7. Browser, accessibility and visual regression
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    env:
+      NODE_ENV: production
+      PORT: 3000
+      VEZA_ENABLE_DESIGN_SYSTEM_CATALOGUE: "true"
+      VEZA_API_BASE_URL: http://127.0.0.1:4000
+      OIDC_ISSUER_URL: http://127.0.0.1:4444
+      OIDC_AUTHORIZATION_URL: http://127.0.0.1:4444/authorize
+      OIDC_TOKEN_URL: http://127.0.0.1:4444/token
+      OIDC_JWKS_URL: http://127.0.0.1:4444/jwks
+      OIDC_WEB_CLIENT_ID: veza-web-qe
+      OIDC_WEB_REDIRECT_URI: http://127.0.0.1:3000/api/auth/callback
+      OIDC_WEB_SESSION_ENCRYPTION_KEY: ${{ env.TEST_COOKIE_KEY }}
+      QA_ARTIFACT_DIR: qa-artifacts/browser
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - uses: pnpm/action-setup@v6
+        with:
+          version: ${{ env.PNPM_VERSION }}
+          run_install: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: |
+            qa/browser/requirements.txt
+            packages/ui/tests/visual-requirements.txt
+      - run: pnpm install --frozen-lockfile
+      - run: python -m pip install --requirement qa/browser/requirements.txt --requirement packages/ui/tests/visual-requirements.txt
+      - run: python -m playwright install --with-deps chromium firefox webkit
+      - run: pnpm --filter @veza/ui test:a11y
+      - run: pnpm --filter @veza/ui test:visual
+      - run: pnpm --filter @veza/web build
+      - name: Start head browser target
+        run: |
+          mkdir -p qa-artifacts/browser
+          pnpm --filter @veza/web start > qa-artifacts/browser/web-head.log 2>&1 &
+          echo $! > qa-artifacts/browser/web-head.pid
+          for attempt in $(seq 1 60); do
+            if curl --fail --silent http://127.0.0.1:3000/design-system >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat qa-artifacts/browser/web-head.log
+          exit 1
+      - run: BASE_URL=http://127.0.0.1:3000 node scripts/qa/bff-contract.mjs
+      - run: python scripts/qa/browser-quality.py audit --base-url http://127.0.0.1:3000
+      - name: Build base revision for browser visual comparison
+        if: github.event_name == 'pull_request'
+        run: |
+          git worktree add --detach /tmp/veza-base "${{ github.event.pull_request.base.sha }}"
+          cd /tmp/veza-base
+          pnpm install --frozen-lockfile
+          VEZA_ENABLE_DESIGN_SYSTEM_CATALOGUE=true pnpm --filter @veza/web build
+          PORT=3001 \
+          NODE_ENV=production \
+          VEZA_ENABLE_DESIGN_SYSTEM_CATALOGUE=true \
+          VEZA_API_BASE_URL=http://127.0.0.1:4000 \
+          OIDC_ISSUER_URL=http://127.0.0.1:4444 \
+          OIDC_AUTHORIZATION_URL=http://127.0.0.1:4444/authorize \
+          OIDC_TOKEN_URL=http://127.0.0.1:4444/token \
+          OIDC_JWKS_URL=http://127.0.0.1:4444/jwks \
+          OIDC_WEB_CLIENT_ID=veza-web-qe \
+          OIDC_WEB_REDIRECT_URI=http://127.0.0.1:3001/api/auth/callback \
+          OIDC_WEB_SESSION_ENCRYPTION_KEY="${TEST_COOKIE_KEY}" \
+          pnpm --filter @veza/web start > "${GITHUB_WORKSPACE}/qa-artifacts/browser/web-base.log" 2>&1 &
+          echo $! > "${GITHUB_WORKSPACE}/qa-artifacts/browser/web-base.pid"
+          for attempt in $(seq 1 60); do
+            if curl --fail --silent http://127.0.0.1:3001/design-system >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat "${GITHUB_WORKSPACE}/qa-artifacts/browser/web-base.log"
+          exit 1
+      - name: Compare browser output with base revision
+        if: github.event_name == 'pull_request'
+        run: python scripts/qa/browser-quality.py compare --base-url http://127.0.0.1:3000 --reference-url http://127.0.0.1:3001
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: browser-accessibility-${{ github.sha }}
+          path: qa-artifacts/browser
+          if-no-files-found: error
+          retention-days: 14
+
+  production-builds:
+    name: 8. Production builds
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v6
+      - uses: pnpm/action-setup@v6
+        with:
+          version: ${{ env.PNPM_VERSION }}
+          run_install: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+      - uses: actions/upload-artifact@v6
+        with:
+          name: production-build-${{ github.sha }}
+          path: |
+            apps/api/dist
+            apps/web/.next
+            apps/control-plane/.next
+            apps/worker/dist
+            packages/*/dist
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 7
+
+  dependency-secret-scanning:
+    name: 9. Dependency and secret scanning
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - uses: pnpm/action-setup@v6
+        with:
+          version: ${{ env.PNPM_VERSION }}
+          run_install: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm audit --audit-level high
+      - run: node scripts/qa/secret-scan.mjs
+      - uses: gitleaks/gitleaks-action@v2.3.8
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/dependency-review-action@v5
+        if: github.event_name == 'pull_request'
+        with:
+          fail-on-severity: high
+
+  container-iac-scanning:
+    name: 10. Container and infrastructure scanning
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v6
       - uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: 1.10.5
-      - name: Check Terraform formatting
-        run: terraform fmt -check -recursive infra/terraform
-      - name: Validate state bootstrap
+      - run: docker compose config --quiet
+      - run: terraform fmt -check -recursive infra/terraform
+      - name: Validate Terraform modules
         run: |
           terraform -chdir=infra/terraform/bootstrap init -backend=false -input=false
           terraform -chdir=infra/terraform/bootstrap validate -no-color
-      - name: Validate isolated environments
-        run: |
           for environment in preview development staging production disaster-recovery; do
             terraform -chdir="infra/terraform/environments/${environment}" init -backend=false -input=false
             terraform -chdir="infra/terraform/environments/${environment}" validate -no-color
           done
+      - uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: config
+          scan-ref: infra/terraform
+          severity: HIGH,CRITICAL
+          exit-code: "1"
+      - uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: postgres:17-alpine
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: "1"
+      - uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: redis:8-alpine
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: "1"
+
+  preview-deployment:
+    name: 11. Ephemeral preview deployment
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    needs:
+      - production-builds
+      - migration-validation
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: veza_bootstrap
+          POSTGRES_PASSWORD: veza_bootstrap
+          POSTGRES_DB: veza
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U veza_bootstrap -d veza"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    env:
+      NODE_ENV: production
+      API_PORT: 4000
+      PORT: 3000
+      BOOTSTRAP_DATABASE_URL: postgresql://veza_bootstrap:veza_bootstrap@localhost:5432/veza
+      MIGRATION_DATABASE_URL: postgresql://veza_migrator:veza_migrator@localhost:5432/veza
+      DATABASE_URL: postgresql://veza_app:veza_app@localhost:5432/veza
+      CONTROL_PLANE_DATABASE_URL: postgresql://veza_control:veza_control@localhost:5432/veza
+      WORKER_DATABASE_URL: postgresql://veza_worker:veza_worker@localhost:5432/veza
+      OIDC_ISSUER_URL: http://127.0.0.1:4444
+      OIDC_AUDIENCE: https://api.veza.invalid
+      OIDC_JWKS_URL: http://127.0.0.1:4444/jwks
+      PLATFORM_OPERATOR_REQUIRED_AMR: mfa
+      INVITATION_TOKEN_ENCRYPTION_KEY: ${{ env.TEST_COOKIE_KEY }}
+      INVITATION_TOKEN_KEY_VERSION: qe-v1
+      OIDC_AUTHORIZATION_URL: http://127.0.0.1:4444/authorize
+      OIDC_TOKEN_URL: http://127.0.0.1:4444/token
+      OIDC_WEB_CLIENT_ID: veza-web-qe
+      OIDC_WEB_REDIRECT_URI: http://127.0.0.1:3000/api/auth/callback
+      OIDC_WEB_SESSION_ENCRYPTION_KEY: ${{ env.TEST_COOKIE_KEY }}
+      VEZA_API_BASE_URL: http://127.0.0.1:4000
+      VEZA_ENABLE_DESIGN_SYSTEM_CATALOGUE: "true"
+    steps:
+      - uses: actions/checkout@v6
+      - uses: pnpm/action-setup@v6
+        with:
+          version: ${{ env.PNPM_VERSION }}
+          run_install: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - uses: actions/download-artifact@v6
+        with:
+          name: production-build-${{ github.sha }}
+          path: .
+      - run: pnpm --filter @veza/api db:bootstrap:test
+      - run: pnpm --filter @veza/api db:migrate
+      - name: Start preview services
+        run: |
+          mkdir -p qa-artifacts/preview
+          pnpm --filter @veza/api start > qa-artifacts/preview/api.log 2>&1 &
+          echo $! > qa-artifacts/preview/api.pid
+          pnpm --filter @veza/web start > qa-artifacts/preview/web.log 2>&1 &
+          echo $! > qa-artifacts/preview/web.pid
+          for attempt in $(seq 1 60); do
+            if curl --fail --silent http://127.0.0.1:4000/v1/health/ready >/dev/null &&
+               curl --fail --silent http://127.0.0.1:3000/design-system >/dev/null; then
+              break
+            fi
+            sleep 1
+          done
+          curl --fail --silent http://127.0.0.1:4000/v1/health/ready > qa-artifacts/preview/api-readiness.json
+          curl --fail --silent http://127.0.0.1:3000/design-system > /dev/null
+          node -e 'const fs=require("node:fs"); fs.writeFileSync("qa-artifacts/preview/manifest.json", JSON.stringify({commit:process.env.GITHUB_SHA, api:"http://127.0.0.1:4000", web:"http://127.0.0.1:3000", createdAt:new Date().toISOString()}, null, 2)+"\n")'
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: preview-deployment-${{ github.sha }}
+          path: qa-artifacts/preview
+          if-no-files-found: error
+          retention-days: 7
+
+  smoke-tests:
+    name: 12. Smoke, load, upload and failure-mode tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    needs:
+      - production-builds
+      - preview-deployment
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: veza_bootstrap
+          POSTGRES_PASSWORD: veza_bootstrap
+          POSTGRES_DB: veza
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U veza_bootstrap -d veza"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    env:
+      NODE_ENV: production
+      API_PORT: 4000
+      PORT: 3000
+      BOOTSTRAP_DATABASE_URL: postgresql://veza_bootstrap:veza_bootstrap@localhost:5432/veza
+      MIGRATION_DATABASE_URL: postgresql://veza_migrator:veza_migrator@localhost:5432/veza
+      DATABASE_URL: postgresql://veza_app:veza_app@localhost:5432/veza
+      CONTROL_PLANE_DATABASE_URL: postgresql://veza_control:veza_control@localhost:5432/veza
+      WORKER_DATABASE_URL: postgresql://veza_worker:veza_worker@localhost:5432/veza
+      OIDC_ISSUER_URL: http://127.0.0.1:4444
+      OIDC_AUDIENCE: https://api.veza.invalid
+      OIDC_JWKS_URL: http://127.0.0.1:4444/jwks
+      PLATFORM_OPERATOR_REQUIRED_AMR: mfa
+      INVITATION_TOKEN_ENCRYPTION_KEY: ${{ env.TEST_COOKIE_KEY }}
+      INVITATION_TOKEN_KEY_VERSION: qe-v1
+      OIDC_AUTHORIZATION_URL: http://127.0.0.1:4444/authorize
+      OIDC_TOKEN_URL: http://127.0.0.1:4444/token
+      OIDC_WEB_CLIENT_ID: veza-web-qe
+      OIDC_WEB_REDIRECT_URI: http://127.0.0.1:3000/api/auth/callback
+      OIDC_WEB_SESSION_ENCRYPTION_KEY: ${{ env.TEST_COOKIE_KEY }}
+      VEZA_API_BASE_URL: http://127.0.0.1:4000
+      VEZA_ENABLE_DESIGN_SYSTEM_CATALOGUE: "true"
+      VEZA_OBJECT_STORAGE_INGEST_URL: http://127.0.0.1:4900/ingest
+      VEZA_OBJECT_STORAGE_INGEST_TOKEN: qe-ingest-token
+    steps:
+      - uses: actions/checkout@v6
+      - uses: pnpm/action-setup@v6
+        with:
+          version: ${{ env.PNPM_VERSION }}
+          run_install: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - uses: actions/download-artifact@v6
+        with:
+          name: production-build-${{ github.sha }}
+          path: .
+      - run: pnpm --filter @veza/api db:bootstrap:test
+      - run: pnpm --filter @veza/api db:migrate
+      - name: Start smoke target
+        run: |
+          mkdir -p qa-artifacts/smoke
+          pnpm --filter @veza/api start > qa-artifacts/smoke/api.log 2>&1 &
+          echo $! > qa-artifacts/smoke/api.pid
+          pnpm --filter @veza/web start > qa-artifacts/smoke/web.log 2>&1 &
+          echo $! > qa-artifacts/smoke/web.pid
+          for attempt in $(seq 1 60); do
+            if curl --fail --silent http://127.0.0.1:4000/v1/health/ready >/dev/null &&
+               curl --fail --silent http://127.0.0.1:3000/design-system >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat qa-artifacts/smoke/api.log
+          cat qa-artifacts/smoke/web.log
+          exit 1
+      - run: BASE_URL=http://127.0.0.1:4000 node scripts/qa/http-contract.mjs
+      - run: BASE_URL=http://127.0.0.1:3000 node scripts/qa/bff-contract.mjs
+      - run: BASE_URL=http://127.0.0.1:3000 node scripts/qa/upload-reconnect.mjs
+      - run: BASE_URL=http://127.0.0.1:4000 LOAD_REQUESTS=500 LOAD_CONCURRENCY=25 LOAD_MAXIMUM_P95_MS=500 node scripts/qa/load-smoke.mjs | tee qa-artifacts/smoke/load.json
+      - name: Verify dependency failure behaviour
+        run: |
+          API_PORT=4001 \
+          DATABASE_URL=postgresql://veza_app:veza_app@127.0.0.1:5999/veza \
+          CONTROL_PLANE_DATABASE_URL=postgresql://veza_control:veza_control@127.0.0.1:5999/veza \
+          WORKER_DATABASE_URL=postgresql://veza_worker:veza_worker@127.0.0.1:5999/veza \
+          pnpm --filter @veza/api start > qa-artifacts/smoke/api-dependency-failure.log 2>&1 &
+          echo $! > qa-artifacts/smoke/api-dependency-failure.pid
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent http://127.0.0.1:4001/v1/health/live >/dev/null; then break; fi
+            sleep 1
+          done
+          BASE_URL=http://127.0.0.1:4001 node scripts/qa/dependency-failure.mjs
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: smoke-tests-${{ github.sha }}
+          path: qa-artifacts/smoke
+          if-no-files-found: error
+          retention-days: 14
