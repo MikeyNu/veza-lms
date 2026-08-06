@@ -17,12 +17,14 @@ const requiredRegistrations = [
   'scheduler.register("observability.alert-evaluation"',
   'scheduler.register("api.runtime-cleanup"',
   'scheduler.register("api.webhook-reconciliation"',
+  'scheduler.register("exports.expiry"',
 ];
 
 const requiredExecutors = [
   "mediaProcessor.processDue()",
   "searchIndexPublisher.processDue()",
   "webhookDispatcher.processDue()",
+  "exportProcessor.processDue()",
   'safeHeartbeat(heartbeat, "starting")',
   'safeHeartbeat(heartbeat, "ready")',
   'safeHeartbeat(heartbeat, "degraded")',
@@ -35,7 +37,7 @@ test("worker entry point registers every persisted consumer and schedule handler
   }
 });
 
-test("worker polling loop executes media, search, webhook and heartbeat capabilities", () => {
+test("worker polling loop executes media, search, webhook, export and heartbeat capabilities", () => {
   for (const executor of requiredExecutors) {
     assert.ok(main.includes(executor), `Missing worker executor: ${executor}`);
   }
