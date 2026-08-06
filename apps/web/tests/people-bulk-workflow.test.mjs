@@ -8,7 +8,6 @@ test("people directory exposes only eligible lifecycle records to bulk selection
   const workspace = await source("../src/features/people/people-workspace.tsx");
   assert.match(workspace, /person\.status === "active" \|\| person\.status === "inactive"/);
   assert.match(workspace, /disabled=\{!eligibleForBulk\}/);
-  assert.match(workspace, /expectedVersion: person\.version/);
   assert.match(workspace, /Select all eligible visible people/);
   assert.doesNotMatch(workspace, /institutionalIdentifiers\[0\] \?\? "—"/);
 });
@@ -26,12 +25,13 @@ test("bulk people BFF is same-origin and never forwards tenant identity", async 
   assert.match(client, /isReceipt/);
 });
 
-test("bulk confirmation is explicit, reasoned and responsive", async () => {
+test("bulk confirmation is explicit, versioned, reasoned and responsive", async () => {
   const [actions, toolbar, styles] = await Promise.all([
     source("../src/features/people/people-bulk-actions.tsx"),
     source("../src/components/data/bulk-selection-toolbar.tsx"),
     source("../styles/bulk-actions.css"),
   ]);
+  assert.match(actions, /expectedVersion: person\.version/);
   assert.match(actions, /minLength=\{20\}/);
   assert.match(actions, /This command is atomic/);
   assert.match(actions, /Deceased and merged records are never eligible/);
