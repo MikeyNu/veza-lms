@@ -1,0 +1,75 @@
+.access-workspace { width: min(100%, var(--veza-content-max)); margin: 0 auto; padding: clamp(1rem, 2.5vw, 2.5rem); }
+.access-heading { display: flex; align-items: end; justify-content: space-between; gap: 1rem; padding-bottom: 1.25rem; border-bottom: 1px solid var(--line); }
+.access-heading p, .access-directory header p, .access-inspector header p, .access-invite-panel header p { margin: 0; color: var(--brand-strong); font-size: .58rem; font-weight: 820; letter-spacing: .12em; }
+.access-heading h1 { margin: .45rem 0 0; font-size: clamp(1.9rem, 3.4vw, 2.8rem); line-height: 1.05; letter-spacing: -.045em; }
+.access-heading > div > span { display: block; margin-top: .55rem; color: var(--muted); font-size: .68rem; line-height: 1.55; }
+.access-heading nav { display: flex; padding: .26rem; border-radius: .68rem; background: var(--surface-subtle); }
+.access-heading nav button { min-height: 2.35rem; padding: 0 .75rem; border: 0; border-radius: .52rem; background: transparent; color: var(--muted); font-size: .65rem; font-weight: 760; cursor: pointer; }
+.access-heading nav button.active { background: var(--brand-strong); color: #fff; }
+.access-heading nav b { margin-left: .3rem; font-size: .58rem; }
+.access-overview { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); margin-top: 1rem; overflow: hidden; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); }
+.access-overview article { min-height: 6rem; padding: 1rem; border-right: 1px solid var(--line); }
+.access-overview article:last-child { border-right: 0; }
+.access-overview span, .access-overview strong, .access-overview small { display: block; }
+.access-overview span { color: var(--muted); font-size: .58rem; }
+.access-overview strong { margin-top: .55rem; font-size: 1.35rem; }
+.access-overview small { margin-top: .25rem; color: var(--muted); font-size: .58rem; }
+.access-layout, .access-invitation-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(20rem, 25rem); gap: 1rem; margin-top: 1rem; align-items: start; }
+.access-directory, .access-inspector, .access-invite-panel { border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); }
+.access-directory > header, .access-inspector > header, .access-invite-panel > header { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; padding: 1rem; border-bottom: 1px solid var(--line); }
+.access-directory h2, .access-inspector h2, .access-invite-panel h2 { margin: .4rem 0 0; font-size: 1rem; letter-spacing: -.02em; }
+.access-directory header > span, .access-inspector header > span, .access-invite-panel header > span { color: var(--muted); font-size: .6rem; line-height: 1.5; }
+.access-table-wrap { overflow-x: auto; scrollbar-gutter: stable; }
+.access-table-wrap table { width: 100%; border-collapse: collapse; }
+.access-table-wrap th { padding: .72rem .8rem; border-bottom: 1px solid var(--line); color: var(--muted); font-size: .56rem; text-align: left; text-transform: uppercase; letter-spacing: .08em; }
+.access-table-wrap td { padding: .8rem; border-bottom: 1px solid var(--line); font-size: .65rem; vertical-align: top; }
+.access-table-wrap tbody tr { cursor: pointer; }
+.access-table-wrap tbody tr:hover, .access-table-wrap tbody tr.selected { background: var(--surface-selected); }
+.access-table-wrap td strong, .access-table-wrap td small { display: block; }
+.access-table-wrap td small { margin-top: .25rem; color: var(--muted); font-size: .58rem; }
+.access-status { display: inline-flex; padding: .28rem .45rem; border-radius: 999px; background: var(--surface-subtle); color: var(--muted); font-size: .56rem; font-weight: 760; }
+.access-status.active, .access-status.sent { background: color-mix(in srgb, var(--success) 9%, white); color: #0c7041; }
+.access-status.suspended, .access-status.pending-delivery { background: color-mix(in srgb, var(--warning) 10%, white); color: #8a5700; }
+.access-inspector { position: sticky; top: 5.5rem; max-height: calc(100vh - 6.5rem); overflow-y: auto; }
+.access-inspector > header { display: block; }
+.access-inspector > dl { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); margin: 0; }
+.access-inspector > dl div { padding: .78rem 1rem; border-bottom: 1px solid var(--line); }
+.access-inspector dt { color: var(--muted); font-size: .54rem; text-transform: uppercase; }
+.access-inspector dd { margin: .28rem 0 0; font-size: .64rem; }
+.access-inspector > section { padding: 1rem; border-bottom: 1px solid var(--line); }
+.access-inspector h3 { margin: 0 0 .75rem; font-size: .72rem; }
+.access-role-list { display: grid; gap: .55rem; padding: 0; margin: 0; list-style: none; }
+.access-role-list li { padding: .72rem; border: 1px solid var(--line); border-radius: .62rem; }
+.access-role-list strong, .access-role-list span, .access-role-list small { display: block; }
+.access-role-list span, .access-role-list small { margin-top: .2rem; color: var(--muted); font-size: .58rem; }
+.access-role-list details { margin-top: .55rem; }
+.access-role-list summary, .access-invitation-actions summary { color: var(--brand-strong); font-size: .59rem; font-weight: 760; cursor: pointer; }
+.access-form { display: grid; gap: .68rem; padding: 1rem; }
+.access-form.compact { padding: 0; }
+.access-form label { display: grid; gap: .35rem; color: var(--ink-soft); font-size: .61rem; font-weight: 720; }
+.access-form input, .access-form select, .access-form textarea, .access-role-list textarea, .access-invitation-actions textarea, .access-invitation-actions select, .access-bulk-confirmation textarea { width: 100%; min-height: 2.5rem; padding: .55rem .65rem; border: 1px solid var(--line-strong); border-radius: .55rem; background: var(--surface); color: var(--ink); font: inherit; }
+.access-form textarea, .access-role-list textarea, .access-invitation-actions textarea, .access-bulk-confirmation textarea { resize: vertical; }
+.access-form button, .access-role-list button, .access-invitation-actions button, .access-bulk-confirmation button, .access-route-state button { min-height: 2.45rem; padding: 0 .75rem; border: 1px solid var(--brand-strong); border-radius: .55rem; background: var(--brand-strong); color: #fff; font-size: .62rem; font-weight: 780; cursor: pointer; }
+.access-invitation-actions { display: flex; gap: .5rem; }
+.access-invitation-actions details { min-width: 5rem; }
+.access-invitation-actions form { display: grid; gap: .45rem; width: 14rem; margin-top: .45rem; }
+.access-error, .access-notice { padding: .68rem .75rem; border-radius: .58rem; font-size: .62rem; line-height: 1.5; }
+.access-error { color: var(--critical); background: var(--veza-critical-surface); }
+.access-notice { margin: 1rem 0 0; color: #0c7041; background: color-mix(in srgb, var(--success) 7%, white); }
+.access-empty-copy { padding: 1rem; color: var(--muted); font-size: .64rem; }
+.access-bulk-confirmation { display: grid; gap: .6rem; margin: .75rem; padding: .8rem; border-left: 3px solid var(--brand); background: var(--surface-subtle); }
+.access-bulk-confirmation strong { font-size: .69rem; }
+.access-bulk-confirmation p { margin: 0; color: var(--muted); font-size: .6rem; line-height: 1.5; }
+.access-bulk-confirmation > div { display: flex; justify-content: flex-end; gap: .45rem; }
+.access-bulk-confirmation button.secondary { border-color: var(--line-strong); background: var(--surface); color: var(--ink); }
+.access-route-state { min-height: 100svh; display: grid; place-items: center; padding: 1.5rem; background: var(--canvas); }
+.access-route-state > div, .access-route-state > section { width: min(100%, 70rem); display: grid; gap: 1rem; }
+.access-route-state section { max-width: 34rem; padding: 1.5rem; border-left: 4px solid var(--brand); background: var(--surface); }
+.access-route-state section p { margin: 0; color: var(--brand-strong); font-size: .58rem; font-weight: 820; letter-spacing: .12em; }
+.access-route-state section h1 { margin: .45rem 0 0; font-size: 1.8rem; }
+.access-route-state section span { display: block; margin-top: .6rem; color: var(--muted); font-size: .68rem; line-height: 1.55; }
+.access-route-state section > div { display: flex; gap: .5rem; margin-top: 1rem; }
+.access-route-state a { min-height: 2.45rem; display: inline-flex; align-items: center; padding: 0 .75rem; border: 1px solid var(--line-strong); border-radius: .55rem; color: var(--ink); font-size: .62rem; font-weight: 760; text-decoration: none; }
+
+@media (max-width: 1040px) { .access-layout, .access-invitation-grid { grid-template-columns: minmax(0, 1fr); } .access-inspector { position: static; max-height: none; } }
+@media (max-width: 760px) { .access-workspace { padding-inline: 1rem; } .access-heading { align-items: stretch; flex-direction: column; } .access-heading nav { width: 100%; } .access-heading nav button { flex: 1; } .access-overview { grid-template-columns: repeat(2, minmax(0, 1fr)); } .access-overview article { border-bottom: 1px solid var(--line); } .access-overview article:nth-child(2n) { border-right: 0; } .access-overview article:nth-last-child(-n + 2) { border-bottom: 0; } .access-invitation-actions { flex-direction: column; } }
