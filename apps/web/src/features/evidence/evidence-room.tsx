@@ -52,7 +52,7 @@ export function EvidenceRoom({ page, filters, session }: { page: AuditEventPage;
         <div className="evidence-boundary"><strong>Evidence boundary</strong><p>Actor, resource, correlation and before/after facts are returned only through the selected membership and tenant RLS context.</p></div>
       </aside>
 
-      <main className="evidence-stream" aria-label="Audit event stream">
+      <section className="evidence-stream" aria-label="Audit event stream">
         <div className="evidence-stream-heading"><div><p className="eyebrow">EVENT STREAM</p><h2>{page.items.length === 0 ? "No matching evidence" : `${page.items.length} events loaded`}</h2></div><span>{page.page.limit} per page</span></div>
         {page.items.length === 0 ? <div className="evidence-empty"><span aria-hidden="true">◎</span><h3>No events match these filters</h3><p>Clear one or more filters, or verify that the action occurred inside this institution workspace.</p></div> : <ol className="evidence-list">
           {page.items.map((item) => <li key={item.id} className="evidence-event">
@@ -65,7 +65,7 @@ export function EvidenceRoom({ page, filters, session }: { page: AuditEventPage;
           </li>)}
         </ol>}
         {page.page.nextCursor ? <div className="evidence-pagination"><Link href={nextHref(filters, page.page.nextCursor)}>Load older evidence <span aria-hidden="true">→</span></Link></div> : null}
-      </main>
+      </section>
     </div>
   </section>;
 }
