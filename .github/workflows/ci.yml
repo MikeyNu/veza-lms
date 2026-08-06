@@ -224,7 +224,7 @@ jobs:
       OIDC_JWKS_URL: http://127.0.0.1:4444/jwks
       OIDC_WEB_CLIENT_ID: veza-web-qe
       OIDC_WEB_REDIRECT_URI: http://127.0.0.1:3000/api/auth/callback
-      OIDC_WEB_SESSION_ENCRYPTION_KEY: ${{ env.TEST_COOKIE_KEY }}
+      OIDC_WEB_SESSION_ENCRYPTION_KEY: BwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwc=
       QA_ARTIFACT_DIR: qa-artifacts/browser
     steps:
       - uses: actions/checkout@v6
@@ -429,13 +429,13 @@ jobs:
       OIDC_AUDIENCE: https://api.veza.invalid
       OIDC_JWKS_URL: http://127.0.0.1:4444/jwks
       PLATFORM_OPERATOR_REQUIRED_AMR: mfa
-      INVITATION_TOKEN_ENCRYPTION_KEY: ${{ env.TEST_COOKIE_KEY }}
+      INVITATION_TOKEN_ENCRYPTION_KEY: BwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwc=
       INVITATION_TOKEN_KEY_VERSION: qe-v1
       OIDC_AUTHORIZATION_URL: http://127.0.0.1:4444/authorize
       OIDC_TOKEN_URL: http://127.0.0.1:4444/token
       OIDC_WEB_CLIENT_ID: veza-web-qe
       OIDC_WEB_REDIRECT_URI: http://127.0.0.1:3000/api/auth/callback
-      OIDC_WEB_SESSION_ENCRYPTION_KEY: ${{ env.TEST_COOKIE_KEY }}
+      OIDC_WEB_SESSION_ENCRYPTION_KEY: BwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwc=
       VEZA_API_BASE_URL: http://127.0.0.1:4000
       VEZA_ENABLE_DESIGN_SYSTEM_CATALOGUE: "true"
     steps:
@@ -514,13 +514,13 @@ jobs:
       OIDC_AUDIENCE: https://api.veza.invalid
       OIDC_JWKS_URL: http://127.0.0.1:4444/jwks
       PLATFORM_OPERATOR_REQUIRED_AMR: mfa
-      INVITATION_TOKEN_ENCRYPTION_KEY: ${{ env.TEST_COOKIE_KEY }}
+      INVITATION_TOKEN_ENCRYPTION_KEY: BwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwc=
       INVITATION_TOKEN_KEY_VERSION: qe-v1
       OIDC_AUTHORIZATION_URL: http://127.0.0.1:4444/authorize
       OIDC_TOKEN_URL: http://127.0.0.1:4444/token
       OIDC_WEB_CLIENT_ID: veza-web-qe
       OIDC_WEB_REDIRECT_URI: http://127.0.0.1:3000/api/auth/callback
-      OIDC_WEB_SESSION_ENCRYPTION_KEY: ${{ env.TEST_COOKIE_KEY }}
+      OIDC_WEB_SESSION_ENCRYPTION_KEY: BwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwc=
       VEZA_API_BASE_URL: http://127.0.0.1:4000
       VEZA_ENABLE_DESIGN_SYSTEM_CATALOGUE: "true"
       VEZA_OBJECT_STORAGE_INGEST_URL: http://127.0.0.1:4900/ingest
