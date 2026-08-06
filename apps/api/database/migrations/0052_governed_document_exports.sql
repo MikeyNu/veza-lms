@@ -19,6 +19,41 @@ ALTER TABLE export_jobs
   ),
   ADD CONSTRAINT export_jobs_failed_evidence_check CHECK (
     status <> 'failed' OR failure_reason IS NOT NULL
+  ),
+  ADD CONSTRAINT export_jobs_lease_owner_check CHECK (
+    lease_owner IS NULL OR length(lease_owner) BETWEEN 3 AND 160
+  ),
+  ADD CONSTRAINT export_jobs_filter_contract_check CHECK (
+    (
+      NOT filters ? 'learnerPersonId'
+      OR (
+        jsonb_typeof(filters->'learnerPersonId') = 'string'
+        AND filters->>'learnerPersonId' ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$'
+      )
+    )
+    AND (
+      NOT filters ? 'courseRunId'
+      OR (
+        jsonb_typeof(filters->'courseRunId') = 'string'
+        AND filters->>'courseRunId' ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$'
+      )
+    )
+    AND (
+      NOT filters ? 'includeCorrected'
+      OR jsonb_typeof(filters->'includeCorrected') = 'boolean'
+    )
+    AND (
+      NOT filters ? 'status'
+      OR jsonb_typeof(filters->'status') = 'string'
+    )
+    AND (
+      NOT filters ? 'metricKey'
+      OR jsonb_typeof(filters->'metricKey') = 'string'
+    )
+    AND (
+      export_type <> 'transcript'
+      OR filters ? 'learnerPersonId'
+    )
   );
 
 CREATE INDEX export_jobs_worker_queue_idx
@@ -49,7 +84,10 @@ AS $$
         job.status = 'requested' AND job.next_attempt_at <= now()
       ) OR (
         job.status = 'processing'
-        AND job.leased_at < now() - make_interval(secs => greatest(30,p_lease_seconds))
+        AND (
+          job.leased_at IS NULL
+          OR job.leased_at < now() - make_interval(secs => greatest(30,p_lease_seconds))
+        )
       )
     ORDER BY job.next_attempt_at, job.requested_at, job.id
     FOR UPDATE SKIP LOCKED
@@ -94,10 +132,10 @@ BEGIN
     FROM institutions
     WHERE tenant_id = job.tenant_id AND id = job.institution_id;
   END IF;
-  IF coalesce(job.filters->>'learnerPersonId','') ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$' THEN
+  IF job.filters ? 'learnerPersonId' THEN
     learner_filter := (job.filters->>'learnerPersonId')::uuid;
   END IF;
-  IF coalesce(job.filters->>'courseRunId','') ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$' THEN
+  IF job.filters ? 'courseRunId' THEN
     course_run_filter := (job.filters->>'courseRunId')::uuid;
   END IF;
 
@@ -398,9 +436,11 @@ GRANT EXECUTE ON FUNCTION app.expire_export_jobs() TO veza_worker;
 
 INSERT INTO scheduled_jobs (
   tenant_id,job_key,handler_key,payload,interval_seconds,next_run_at,status,created_by
-) VALUES (
-  NULL,'exports.expiry','exports.expiry','{}'::jsonb,3600,now(),'active',NULL
 )
+SELECT NULL,'exports.expiry','exports.expiry','{}'::jsonb,3600,now(),'active',users.id
+FROM users
+ORDER BY users.created_at,users.id
+LIMIT 1
 ON CONFLICT (tenant_id,job_key) DO UPDATE
 SET handler_key=EXCLUDED.handler_key,status='active',updated_at=now();
 
