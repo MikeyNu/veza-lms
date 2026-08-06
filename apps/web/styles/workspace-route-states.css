@@ -1,0 +1,20 @@
+.workspace-route-state { min-height: 100svh; background: var(--canvas); color: var(--ink); }
+.workspace-route-loading { display: grid; grid-template-columns: 15.5rem minmax(0, 1fr); }
+.workspace-route-loading > aside { min-height: 100svh; padding: 1.4rem 1rem; background: var(--sidebar); }
+.workspace-route-nav-skeletons { display: grid; gap: .55rem; margin-top: 2rem; }
+.workspace-route-loading > section { width: min(100%, var(--veza-content-max)); margin: 0 auto; padding: clamp(1rem, 2.5vw, 2.5rem); }
+.workspace-route-loading header { display: grid; gap: .72rem; padding-bottom: 1.4rem; border-bottom: 1px solid var(--line); }
+.workspace-route-metric-skeletons { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .8rem; margin-top: 1rem; }
+.workspace-route-body-skeletons { display: grid; gap: .9rem; margin-top: 1rem; }
+.workspace-route-error { display: grid; place-items: center; padding: 1.5rem; }
+.workspace-route-error > section { width: min(100%, 35rem); padding: clamp(1.25rem, 3vw, 2rem); border: 1px solid var(--line); border-left: 4px solid var(--brand); border-radius: var(--radius); background: var(--surface); }
+.workspace-route-error p { margin: 0; color: var(--brand-strong); font-size: .6rem; font-weight: 830; letter-spacing: .13em; }
+.workspace-route-error h1 { margin: .58rem 0 0; font-size: clamp(1.65rem, 4vw, 2.35rem); line-height: 1.05; letter-spacing: -.045em; }
+.workspace-route-error span { display: block; margin-top: .78rem; color: var(--muted); font-size: .69rem; line-height: 1.6; }
+.workspace-route-error > section > div { display: flex; flex-wrap: wrap; gap: .55rem; margin-top: 1.15rem; }
+.workspace-route-error button, .workspace-route-error a { min-height: 2.55rem; display: inline-flex; align-items: center; justify-content: center; padding: 0 .85rem; border-radius: .58rem; font-size: .64rem; font-weight: 780; text-decoration: none; cursor: pointer; }
+.workspace-route-error button { border: 1px solid var(--brand-strong); background: var(--brand-strong); color: #fff; }
+.workspace-route-error a { border: 1px solid var(--line-strong); background: var(--surface); color: var(--ink); }
+.workspace-route-error small { display: block; margin-top: 1rem; color: var(--muted); font-size: .56rem; }
+@media (max-width: 760px) { .workspace-route-loading { grid-template-columns: minmax(0, 1fr); } .workspace-route-loading > aside { min-height: 4.2rem; padding: 1rem; } .workspace-route-nav-skeletons { display: none; } .workspace-route-metric-skeletons { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (prefers-reduced-motion: reduce) { .workspace-route-loading * { animation: none !important; } }
