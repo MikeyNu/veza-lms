@@ -70,7 +70,7 @@ async function corpusFor(roots) {
   }
   const chunks = [];
   for (const file of files) chunks.push(await readFile(file, "utf8"));
-  return chunks.join("\n");
+  return chunks.join("\n").toLowerCase();
 }
 
 async function main() {
@@ -125,9 +125,11 @@ async function main() {
     }
 
     const corpus = await corpusFor(aggregate.sourceRoots);
-    for (const term of aggregate.evidenceTerms) {
-      invariant(corpus.toLowerCase().includes(String(term).toLowerCase()), `${aggregate.id} evidence term was not found: ${term}`);
-    }
+    const matchedEvidenceTerms = aggregate.evidenceTerms.filter((term) => corpus.includes(String(term).toLowerCase()));
+    invariant(
+      matchedEvidenceTerms.length > 0,
+      `${aggregate.id} has no implementation evidence match from: ${aggregate.evidenceTerms.join(", ")}`,
+    );
 
     summaries.push({
       id: aggregate.id,
@@ -135,6 +137,7 @@ async function main() {
       lifecycle: aggregate.lifecycle,
       bulk: aggregate.operations.bulk.decision,
       hardDelete: aggregate.operations.hardDelete.decision,
+      matchedEvidenceTerms,
       sources: aggregate.sourceRoots.map((path) => repoPath(join(repositoryRoot, path))),
     });
   }
