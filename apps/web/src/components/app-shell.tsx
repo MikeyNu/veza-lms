@@ -13,6 +13,7 @@ import {
 } from "../server/demo-mode";
 import { CommandSearch } from "./command-search";
 import { Icon } from "./icon";
+import { NotificationPopover } from "./notification-popover";
 
 function initials(name: string | undefined): string {
   if (!name) return "VZ";
@@ -151,17 +152,16 @@ function Topbar({ session, active }: { session: WorkspaceSession; active: Naviga
       </Link>
 
       <div className="top-actions">
-        <DemoRoleSwitcher session={session} />
-        <Link className="topbar-tool" href="/communicate" aria-label="Notifications">
-          <Icon name="bell" /><span>Notifications</span>
-        </Link>
+        <NotificationPopover demo={demoModeEnabled()} />
         {action ? (
           <Link className="primary-button" href={action.href}>
             <span aria-hidden="true">+</span><span>{action.label}</span>
           </Link>
         ) : null}
-        <Link className="topbar-tool" href="/profile" aria-label="Open profile">
+        <span className="topbar-divider" aria-hidden="true" />
+        <Link className="topbar-tool profile-trigger" href="/profile" aria-label="Open profile">
           <span className="avatar">{initials(session.principal.displayName)}</span>
+          <span className="profile-chevron" aria-hidden="true">⌄</span>
         </Link>
       </div>
     </header>
@@ -184,6 +184,7 @@ export function AppShell({
         <Topbar session={session} active={active} />
         <main className="app-main">{children}</main>
       </div>
+      {demoModeEnabled() ? <div className="demo-inspection-dock"><DemoRoleSwitcher session={session} /></div> : null}
     </div>
   );
 }
