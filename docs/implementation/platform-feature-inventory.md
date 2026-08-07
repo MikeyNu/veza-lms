@@ -58,9 +58,11 @@ The exact feature records live in `qa/features/catalogue`. They are loaded by `q
 
 The quality system now validates three related inventories:
 
-- `scripts/qa/feature-inventory.mjs` discovers API operations, BFF routes, browser pages and worker source capabilities.
+- `scripts/qa/feature-inventory.mjs` discovers API operations, BFF routes, browser pages and worker source capabilities. Implemented browser capabilities may declare an `entryPoint`; the gate resolves the actual Next.js page tree and fails when that declared route does not exist. This prevents a navigation control or source component from being counted as a complete browser feature when its destination is missing.
 - `scripts/qa/crud-lifecycle.mjs` requires explicit create, read, amendment, lifecycle, retirement, deletion and bulk-operation decisions for 56 governed aggregates.
 - `scripts/qa/workflow-completeness.mjs` verifies 12 complete user journeys with entry conditions, terminal outcomes, implementation paths, test owners and degraded states.
+
+The browser entry point catalogue currently binds core workspaces such as profile self-service, communications, learning, assessment, evidence, insights, people, Studio, workspace selection and institution setup to real application routes. Dynamic routes are validated against their canonical route pattern rather than a fabricated example identifier.
 
 The CRUD registry prohibits destructive hard deletion for governed academic, identity and people records. Published or issued evidence is retired, revoked, expired, ended or superseded according to its aggregate lifecycle.
 
@@ -84,8 +86,13 @@ The institutional application now includes:
 - workspace selection and access-pending states
 - route-level skeletons and recoverable error boundaries
 - an institutional access-administration workspace for invitation creation, resend, revocation, membership status, role assignment and role termination
+- a personal `/profile` workspace for authenticated identity details, current membership, institution switching, communications preferences, account guidance and sign-out while password and MFA controls remain with the identity provider
 
 The control plane uses a separate multi-panel operator gateway and communicates the separate OIDC client, platform role, MFA assurance and tenant-content boundary.
+
+## Communications experience boundary
+
+The institutional communications surface is role-adaptive. Tenant owners and institution administrators use the operational communications workspace for templates, sender trust, delivery diagnostics and suppressions. Other workspace members use a principal-scoped recipient workspace that queries notifications only when the notification intent targets the current authenticated user or a person currently linked to that user. Recipient delivery preferences are written against the authenticated actor through the existing same-origin BFF and cannot nominate another user identifier.
 
 ## Assignment-session runtime evidence
 
