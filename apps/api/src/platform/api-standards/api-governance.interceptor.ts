@@ -5,24 +5,41 @@ import {
   Injectable,
   type NestInterceptor,
 } from "@nestjs/common";
+import type { TenantId, UserId } from "@veza/contracts";
 import type { FastifyReply, FastifyRequest } from "fastify";
+import type { QueryResultRow } from "pg";
 import { from, mergeMap, tap, type Observable } from "rxjs";
 import { CacheService, type RateLimitDecision } from "../cache/cache.service.js";
 import { DatabaseService } from "../database/database.service.js";
 import { TenantContext } from "../request-context/tenant-context.js";
 
 interface GovernanceRequest extends FastifyRequest {
-  readonly principal?: { readonly userId: string };
+  readonly principal?: { readonly userId: UserId };
 }
 
-interface QuotaPolicy {
+interface QuotaPolicy extends Readonly<Record<string, unknown>> {
   readonly requestLimit: number;
   readonly windowSeconds: number;
   readonly policyId: string;
 }
 
+interface QuotaPolicyRow extends QueryResultRow {
+  readonly id: string;
+  readonly route_pattern: string;
+  readonly request_limit: string | number;
+  readonly window_seconds: string | number;
+}
+
+interface DeprecationRow extends QueryResultRow {
+  readonly route_pattern: string;
+  readonly deprecated_at: Date | string;
+  readonly sunset_at: Date | string | null;
+  readonly successor_url: string | null;
+  readonly documentation_url: string;
+}
+
 function route(request: GovernanceRequest): string {
-  return request.routeOptions?.url ?? request.url.split("?")[0];
+  return request.routeOptions?.url ?? request.url.split("?")[0] ?? request.url;
 }
 
 function method(request: GovernanceRequest): string {
@@ -68,19 +85,19 @@ export class ApiGovernanceInterceptor implements NestInterceptor {
   private async govern(
     request: GovernanceRequest,
     reply: FastifyReply,
-    tenantId: string,
-    userId: string | undefined,
+    tenantId: TenantId,
+    userId: UserId | undefined,
   ): Promise<RateLimitDecision> {
     const routeKey = route(request);
     const methodKey = method(request);
     const subjectId = userId ?? tenantId;
     const cacheKey = `${methodKey}:${routeKey}:${subjectId}`.replace(/[^A-Za-z0-9._:-]+/g, "-").slice(0, 160);
-    const policy = await this.cache.rememberJson(
+    const policy = await this.cache.rememberJson<QuotaPolicy>(
       "api-quota-policy",
       cacheKey,
       60,
       async () => this.loadPolicy(tenantId, routeKey, methodKey, userId),
-    ) as unknown as QuotaPolicy;
+    );
     const decision = await this.cache.rateLimit(
       `api:${policy.policyId}:${subjectId}`,
       policy.requestLimit,
@@ -98,13 +115,13 @@ export class ApiGovernanceInterceptor implements NestInterceptor {
   }
 
   private async loadPolicy(
-    tenantId: string,
+    tenantId: TenantId,
     routeKey: string,
     methodKey: string,
-    userId: string | undefined,
-  ): Promise<QuotaPolicy & Readonly<Record<string, unknown>>> {
+    userId: UserId | undefined,
+  ): Promise<QuotaPolicy> {
     const result = await this.database.withTenantTransaction(tenantId, (client) =>
-      client.query(
+      client.query<QuotaPolicyRow>(
         `SELECT id, subject_type, subject_id, route_pattern,
                 request_limit, window_seconds
          FROM api_quota_policies
@@ -139,7 +156,7 @@ export class ApiGovernanceInterceptor implements NestInterceptor {
     routeKey: string,
     methodKey: string,
   ): Promise<void> {
-    const result = await this.database.controlPlaneQuery(
+    const result = await this.database.controlPlaneQuery<DeprecationRow>(
       `SELECT route_pattern, deprecated_at, sunset_at,
               successor_url, documentation_url
        FROM api_deprecation_registry
