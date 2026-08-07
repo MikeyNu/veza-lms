@@ -8,7 +8,7 @@ import { requireWorkspaceSession } from "../../../src/server/require-workspace-s
 export const dynamic = "force-dynamic";
 
 export default async function ServiceAccountsPage() {
-  const session = await requireWorkspaceSession();
+  const { session } = await requireWorkspaceSession();
   const isAdministrator = session.membership.roles.some((role) =>
     role === "tenant-owner" || role === "institution-admin",
   );

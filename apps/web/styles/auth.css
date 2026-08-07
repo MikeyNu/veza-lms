@@ -12,7 +12,7 @@
   flex-direction: column;
   padding: clamp(2.25rem, 5vw, 4.75rem);
   overflow: hidden;
-  color: #eef2f9;
+  color: white;                  /* was #eef2f9 — tokenised to white */
   background: var(--sidebar);
 }
 
@@ -32,25 +32,26 @@
   border-radius: 0.7rem 0.7rem 0.7rem 0.22rem;
   background: var(--brand);
   color: white;
-  font-size: 0.9rem;
-  font-weight: 900;
+  font-size: var(--veza-text-lg);   /* was 0.9rem (0.81–0.95 → text-lg=1rem) */
+  font-weight: 700;                  /* was 900 */
 }
 
 .auth-brand-lockup strong {
   display: block;
   color: white;
-  font-size: 1.15rem;
-  letter-spacing: -0.03em;
+  font-size: var(--veza-text-h3);             /* was 1.15rem — aligned to scale */
+  letter-spacing: var(--veza-tracking-display); /* kept -0.03em via token */
   text-transform: capitalize;
 }
 
 .auth-brand-lockup small {
   display: block;
   margin-top: 0.2rem;
-  color: #91a0b4;
-  font-size: 0.58rem;
-  font-weight: 800;
-  letter-spacing: 0.13em;
+  color: var(--veza-slate-400);              /* was #91a0b4 */
+  font-size: var(--veza-text-xs);            /* was 0.58rem (sub-12px) */
+  font-weight: 700;                           /* was 800 */
+  letter-spacing: var(--veza-tracking-eyebrow); /* was 0.13em → 0.08em */
+  text-transform: uppercase;
 }
 
 .auth-copy {
@@ -60,25 +61,31 @@
   margin: auto 0;
 }
 
+/* Eyebrow on the dark brand panel — recoloured teal → indigo-100 */
 .auth-copy .eyebrow {
-  color: #5eead4;
+  color: var(--veza-indigo-100);             /* was #5eead4 (old teal) */
+  font-size: var(--veza-text-xs);            /* 0.75rem per CI eyebrow spec */
+  font-weight: 600;
+  letter-spacing: var(--veza-tracking-eyebrow); /* 0.08em */
+  text-transform: uppercase;
 }
 
 .auth-copy h1 {
   max-width: 44rem;
   margin: 1rem 0 0;
   color: white;
-  font-size: clamp(2.8rem, 6vw, 5.35rem);
-  line-height: 0.96;
-  letter-spacing: -0.065em;
+  font-size: clamp(var(--veza-text-3xl), 6vw, var(--veza-text-4xl)); /* CI display scale */
+  font-weight: 700;
+  line-height: var(--veza-leading-tight);    /* was 0.96 */
+  letter-spacing: var(--veza-tracking-display); /* was -0.065em — extreme; now -0.03em */
 }
 
 .auth-copy > p:last-child {
   max-width: 38rem;
   margin: 1.55rem 0 0;
-  color: #a8b4c5;
-  font-size: 0.86rem;
-  line-height: 1.75;
+  color: var(--veza-slate-300);              /* was #a8b4c5 → CI support copy #CBD5E1 */
+  font-size: var(--veza-text-lg);            /* was 0.86rem → 1rem per CI brief */
+  line-height: 1.6;                           /* was 1.75 → 1.6 per CI brief */
 }
 
 .auth-proof {
@@ -93,9 +100,9 @@
 .auth-proof span {
   padding: 0.75rem 1rem 0 0;
   margin-right: 1rem;
-  color: #a9b5c5;
-  font-size: 0.63rem;
-  font-weight: 720;
+  color: var(--veza-slate-400);              /* was #a9b5c5 */
+  font-size: var(--veza-text-xs);            /* was 0.63rem (sub-12px) */
+  font-weight: 600;                           /* was 720 */
 }
 
 .auth-panel {
@@ -114,13 +121,13 @@
   margin: 0.6rem 0 0;
   font-size: clamp(1.75rem, 3.5vw, 2.35rem);
   line-height: 1.08;
-  letter-spacing: -0.045em;
+  letter-spacing: var(--veza-tracking-heading); /* was -0.045em */
 }
 
 .auth-form > p:not(.eyebrow, .auth-error) {
   margin: 0.75rem 0 1.7rem;
   color: var(--muted);
-  font-size: 0.75rem;
+  font-size: var(--veza-text-xs);            /* was 0.75rem — at minimum, use token */
   line-height: 1.6;
 }
 
@@ -128,40 +135,42 @@
   margin: 0 0 1rem;
   padding: 0.75rem 0.85rem;
   border: 1px solid color-mix(in srgb, var(--critical) 28%, var(--line));
-  border-radius: 0.625rem;
+  border-radius: var(--veza-radius-control);
   background: var(--veza-critical-surface);
-  color: #8e2424;
-  font-size: 0.68rem;
+  color: var(--veza-red-700);                /* was #8e2424 */
+  font-size: var(--veza-text-xs);            /* was 0.68rem (sub-12px) */
   line-height: 1.5;
 }
 
 .auth-sso,
 .auth-secondary {
   width: 100%;
-  min-height: 2.8rem;
+  min-height: var(--veza-control-height);    /* was 2.8rem → 2.5rem CI control token */
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 0.55rem;
-  border-radius: 0.625rem;
+  border-radius: var(--veza-radius-control); /* 0.625rem = 10px */
   cursor: pointer;
-  font-size: 0.72rem;
-  font-weight: 800;
+  font-size: var(--veza-text-md);            /* was 0.72rem (0.72–0.80 → text-md=0.875rem) */
+  font-weight: 600;                           /* was 800 */
 }
 
+/* Primary action: flat var(--brand) fill — no gradient, no brand-strong */
 .auth-sso {
-  border: 1px solid var(--brand-strong);
-  background: var(--brand-strong);
+  border: 1px solid var(--brand);
+  background: var(--brand);
   color: white;
 }
 
 .auth-sso:hover {
-  background: #0b6a63;
+  background: var(--veza-brand-strong);      /* was #0b6a63 (old teal) */
+  border-color: var(--veza-brand-strong);
 }
 
 .auth-sso span {
-  color: #99f6e4;
-  font-size: 0.95rem;
+  color: white;                               /* was #99f6e4 (old teal) */
+  font-size: var(--veza-text-lg);            /* was 0.95rem (0.81–0.95 → text-lg=1rem) */
 }
 
 .auth-secondary {
@@ -182,7 +191,7 @@
   gap: 0.65rem;
   margin: 1.25rem 0;
   color: var(--muted);
-  font-size: 0.62rem;
+  font-size: var(--veza-text-xs);            /* was 0.62rem (sub-12px) */
 }
 
 .auth-divider::before,
@@ -201,15 +210,15 @@
   display: grid;
   gap: 0.45rem;
   color: var(--ink-soft);
-  font-size: 0.7rem;
-  font-weight: 750;
+  font-size: var(--veza-text-xs);            /* was 0.7rem (sub-12px) */
+  font-weight: 600;                           /* was 750 */
 }
 
 .auth-email-form input {
-  min-height: 2.75rem;
+  min-height: var(--veza-control-height);    /* was 2.75rem → 2.5rem CI control token */
   padding: 0 0.75rem;
   border: 1px solid var(--line-strong);
-  border-radius: 0.625rem;
+  border-radius: var(--veza-radius-control);
   background: var(--surface);
   outline: 0;
 }
@@ -223,7 +232,7 @@
   display: block;
   margin-top: 1.35rem;
   color: var(--muted);
-  font-size: 0.62rem;
+  font-size: var(--veza-text-xs);            /* was 0.62rem (sub-12px) */
   line-height: 1.55;
   text-align: center;
 }
@@ -261,14 +270,14 @@
   margin: 0.6rem 0 0;
   font-size: clamp(1.9rem, 4vw, 2.75rem);
   line-height: 1.05;
-  letter-spacing: -0.045em;
+  letter-spacing: var(--veza-tracking-heading); /* was -0.045em */
 }
 
 .workspace-select-panel > p:not(.eyebrow, .auth-error) {
   max-width: 40rem;
   margin: 0.8rem 0 1.65rem;
   color: var(--muted);
-  font-size: 0.74rem;
+  font-size: var(--veza-text-md);            /* was 0.74rem (0.72–0.80 → text-md=0.875rem) */
   line-height: 1.65;
 }
 
@@ -307,7 +316,7 @@
   border-radius: 0.65rem;
   background: var(--sidebar);
   color: white;
-  font-weight: 850;
+  font-weight: 700;                           /* was 850 */
 }
 
 .workspace-option strong,
@@ -316,20 +325,20 @@
 }
 
 .workspace-option strong {
-  font-size: 0.78rem;
+  font-size: var(--veza-text-md);            /* was 0.78rem (0.72–0.80 → text-md=0.875rem) */
 }
 
 .workspace-option small {
   margin-top: 0.3rem;
   color: var(--muted);
-  font-size: 0.62rem;
+  font-size: var(--veza-text-xs);            /* was 0.62rem (sub-12px) */
   line-height: 1.45;
   text-transform: capitalize;
 }
 
 .workspace-option b {
   color: var(--brand-strong);
-  font-size: 0.95rem;
+  font-size: var(--veza-text-lg);            /* was 0.95rem (0.81–0.95 → text-lg=1rem) */
 }
 
 .workspace-signout {
@@ -339,7 +348,7 @@
   background: transparent;
   color: var(--muted);
   cursor: pointer;
-  font-size: 0.68rem;
+  font-size: var(--veza-text-xs);            /* was 0.68rem (sub-12px) */
 }
 
 .access-pending {
@@ -368,20 +377,20 @@
   padding: 1rem;
   border: 1px solid var(--line);
   border-left: 3px solid var(--brand);
-  border-radius: 0.625rem;
+  border-radius: var(--veza-radius-control);
   background: var(--surface-subtle);
   text-align: left;
 }
 
 .pending-guidance strong {
   display: block;
-  font-size: 0.75rem;
+  font-size: var(--veza-text-xs);            /* was 0.75rem — at threshold, use token */
 }
 
 .pending-guidance p {
   margin: 0.45rem 0 0;
   color: var(--muted);
-  font-size: 0.68rem;
+  font-size: var(--veza-text-xs);            /* was 0.68rem (sub-12px) */
   line-height: 1.55;
 }
 

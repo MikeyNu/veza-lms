@@ -47,12 +47,15 @@ async function outputIsCurrent(prerequisite) {
 }
 
 function buildPackage(packageName) {
-  const executable = process.platform === "win32" ? "pnpm.cmd" : "pnpm";
+  const onWindows = process.platform === "win32";
+  const executable = onWindows ? "pnpm.cmd" : "pnpm";
   return new Promise((resolve, reject) => {
     const child = spawn(executable, ["--filter", packageName, "build"], {
       cwd: workspaceRoot,
       env: process.env,
       stdio: "inherit",
+      // Node >= 20.12 refuses to spawn .cmd shims without a shell (EINVAL).
+      shell: onWindows,
     });
     child.once("error", reject);
     child.once("exit", (code, signal) => {

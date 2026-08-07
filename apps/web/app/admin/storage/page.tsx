@@ -8,7 +8,7 @@ import { loadStorageAdministration } from "../../../src/server/storage-api";
 export const dynamic = "force-dynamic";
 
 export default async function StorageAdministrationPage() {
-  const session = await requireWorkspaceSession();
+  const { session } = await requireWorkspaceSession();
   const isAdministrator = session.membership.roles.some((role) =>
     role === "tenant-owner" || role === "institution-admin",
   );

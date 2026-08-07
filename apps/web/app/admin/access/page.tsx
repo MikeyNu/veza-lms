@@ -9,7 +9,7 @@ import { requireWorkspaceSession } from "../../../src/server/require-workspace-s
 export const dynamic = "force-dynamic";
 
 export default async function AccessAdministrationPage() {
-  const session = await requireWorkspaceSession();
+  const { session } = await requireWorkspaceSession();
   const administrator = session.membership.roles.some((role) => role === "tenant-owner" || role === "institution-admin");
   if (!administrator) redirect("/");
   const [directory, setup] = await Promise.all([loadAccessDirectory(), loadTenantSetupBundle()]);
