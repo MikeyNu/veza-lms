@@ -93,7 +93,13 @@ export async function loadTenantFleet(accessToken: string, filters: TenantFleetF
   const payload = await request(accessToken, `?${query.toString()}`);
   if (!isRecord(payload) || !Array.isArray(payload.items) || !isRecord(payload.page) || !integer(payload.page.limit) || payload.page.limit < 1 || payload.page.limit > 100) throw new Error("Tenant fleet page did not match the API contract");
   if (payload.page.nextCursor !== undefined && !string(payload.page.nextCursor)) throw new Error("Tenant fleet cursor did not match the API contract");
-  return { items: payload.items.map(item), page: { limit: payload.page.limit, ...(payload.page.nextCursor ? { nextCursor: payload.page.nextCursor } : {}) };
+  return {
+    items: payload.items.map(item),
+    page: {
+      limit: payload.page.limit,
+      ...(payload.page.nextCursor ? { nextCursor: payload.page.nextCursor } : {}),
+    },
+  };
 }
 
 export async function loadTenantDetail(accessToken: string, tenantId: TenantId): Promise<TenantFleetItem> {
