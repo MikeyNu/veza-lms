@@ -25,7 +25,7 @@ export function operationalReason(value: string): string {
   return reason;
 }
 
-export function canonicalHash(value: Readonly<Record<string, unknown>>): string {
+export function canonicalHash(value: object): string {
   return createHash("sha256").update(JSON.stringify(value), "utf8").digest("hex");
 }
 
@@ -81,24 +81,37 @@ export class PlatformOperationExecutor {
           [idempotencyKey],
         );
         const existing = existingResult.rows[0];
-        if (!existing
-          || existing.operation_type !== operationType
-          || existing.resource_type !== resourceType
-          || existing.resource_id !== resourceId
-          || existing.request_hash !== hash) {
-          throw new ConflictException("Idempotency-Key was already used for another platform operation");
+        if (!existing) throw new ConflictException("Idempotency record was not found");
+        if (
+          existing.operation_type !== operationType ||
+          existing.request_hash !== hash ||
+          existing.resource_type !== resourceType ||
+          existing.resource_id !== resourceId
+        ) {
+          throw new ConflictException("Idempotency key was already used for a different operation");
         }
         if (existing.status === "completed" && existing.response) return existing.response;
-        throw new ConflictException("The platform operation is already in progress");
+        throw new ConflictException("The operation is already processing or previously failed");
       }
-      const response = await action(client);
-      await client.query(
-        `UPDATE platform_operation_requests
-         SET status = 'completed', response = $2, updated_at = now()
-         WHERE idempotency_key = $1`,
-        [idempotencyKey, response],
-      );
-      return response;
+
+      try {
+        const response = await action(client);
+        await client.query(
+          `UPDATE platform_operation_requests
+           SET status='completed', response=$2::jsonb, completed_at=now()
+           WHERE idempotency_key=$1`,
+          [idempotencyKey, JSON.stringify(response)],
+        );
+        return response;
+      } catch (error) {
+        await client.query(
+          `UPDATE platform_operation_requests
+           SET status='failed', completed_at=now()
+           WHERE idempotency_key=$1`,
+          [idempotencyKey],
+        );
+        throw error;
+      }
     });
   }
 }
