@@ -1,5 +1,6 @@
-import Link from "next/link";
 import type { BaselineRoleKey, WorkspaceSession } from "@veza/contracts";
+import type { Route } from "next";
+import Link from "next/link";
 import { DashboardOverview } from "../dashboard/dashboard-overview";
 import { primaryRole, workspaceLabel } from "./navigation";
 
@@ -11,7 +12,7 @@ interface NextStep {
   readonly eyebrow: string;
   readonly title: string;
   readonly description: string;
-  readonly href: string;
+  readonly href: Route;
   readonly action: string;
 }
 
