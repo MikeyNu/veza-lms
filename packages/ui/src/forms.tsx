@@ -4,7 +4,6 @@ import {
   useEffect,
   useId,
   useRef,
-  type CheckboxHTMLAttributes,
   type FieldsetHTMLAttributes,
   type InputHTMLAttributes,
   type LabelHTMLAttributes,
@@ -43,15 +42,18 @@ export function Field({
   const controlId = children.props.id ?? `vz-field-${generatedId.replaceAll(":", "")}`;
   const descriptionId = description ? `${controlId}-description` : undefined;
   const errorId = error ? `${controlId}-error` : undefined;
+  const describedBy = joinIds(children.props["aria-describedby"], descriptionId, errorId);
+  const invalid = error ? true : children.props["aria-invalid"];
+  const errorMessage = errorId ?? children.props["aria-errormessage"];
   const control = cloneElement(children, {
     id: controlId,
-    "aria-describedby": joinIds(children.props["aria-describedby"], descriptionId, errorId),
-    "aria-invalid": error ? true : children.props["aria-invalid"],
-    "aria-errormessage": errorId ?? children.props["aria-errormessage"],
+    ...(describedBy ? { "aria-describedby": describedBy } : {}),
+    ...(invalid !== undefined ? { "aria-invalid": invalid } : {}),
+    ...(errorMessage ? { "aria-errormessage": errorMessage } : {}),
   });
 
   return (
-    <div className={cx("vz-field", error && "vz-field--invalid", className)}>
+    <div className={cx("vz-field", Boolean(error) && "vz-field--invalid", className)}>
       <label className={cx("vz-field__label", labelClassName)} htmlFor={controlId}>
         <span>{label}</span>
       </label>
@@ -84,7 +86,7 @@ export function FieldGroup({ legend, description, error, className, children, ..
     <fieldset
       {...props}
       aria-describedby={joinIds(props["aria-describedby"], descriptionId, errorId)}
-      className={cx("vz-field-group", error && "vz-field-group--invalid", className)}
+      className={cx("vz-field-group", Boolean(error) && "vz-field-group--invalid", className)}
     >
       <legend>{legend}</legend>
       {description ? <p id={descriptionId} className="vz-field__description">{description}</p> : null}
@@ -158,7 +160,7 @@ export function Select({ className, children, ...props }: SelectHTMLAttributes<H
   return <select {...props} className={cx("vz-select", className)}>{children}</select>;
 }
 
-export interface CheckboxProps extends CheckboxHTMLAttributes<HTMLInputElement> {
+export interface CheckboxProps extends Omit<InputHTMLAttributes<HTMLInputElement>, "type"> {
   readonly label: ReactNode;
   readonly description?: ReactNode;
 }
@@ -234,7 +236,7 @@ export function RadioGroup({
   );
 }
 
-export interface SwitchProps extends Omit<CheckboxHTMLAttributes<HTMLInputElement>, "type"> {
+export interface SwitchProps extends Omit<InputHTMLAttributes<HTMLInputElement>, "type"> {
   readonly label: ReactNode;
   readonly description?: ReactNode;
 }
