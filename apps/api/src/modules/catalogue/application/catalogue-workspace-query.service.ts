@@ -91,14 +91,15 @@ export class CatalogueWorkspaceQueryService {
           [institutionId],
         ),
       ]);
-      return {
+      const workspace = {
         institutionId,
         programmes: programmes.rows.map((row) => this.camel(row)),
         blueprints: blueprints.rows.map((row) => this.camel(row)),
         outcomes: outcomes.rows.map((row) => this.camel(row)),
         runs: runs.rows.map((row) => this.camel(row)),
         enrolments: enrolments.rows.map((row) => this.camel(row)),
-      } as CatalogueWorkspace;
+      };
+      return workspace as unknown as CatalogueWorkspace;
     });
   }
 
