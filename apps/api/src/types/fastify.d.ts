@@ -16,7 +16,9 @@ declare module "fastify" {
   }
 
   export interface FastifyReply {
+    readonly statusCode: number;
     header(name: string, value: string | number): this;
+    getHeader(name: string): string | number | string[] | undefined;
     status(code: number): this;
     code(code: number): this;
     send(payload?: unknown): unknown;
