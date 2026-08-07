@@ -113,7 +113,7 @@ function EnrolmentLifecycle({ institutionId, workspace }: { institutionId: strin
       completionResult,
     }));
   }
-  return <section className="governance-card governance-list"><header><small>ENROLMENT LIFECYCLE</small><h3>Close current memberships with evidence</h3></header>{workspace.enrolments.filter((item) => next[item.status]).slice(0, 12).map((item) => <article key={item.id}><div><strong>{item.learnerDisplayName}</strong><small>{item.courseRunTitle} · {item.status}</small></div><div className="governance-actions">{next[item.status].map((status) => <button key={status} type="button" disabled={submission.busy} onClick={() => transition(item.id, item.version, status)}>{status}</button>)}</div></article>)}{submission.message ? <p className="catalogue-error">{submission.message}</p> : null}</section>;
+  return <section className="governance-card governance-list"><header><small>ENROLMENT LIFECYCLE</small><h3>Close current memberships with evidence</h3></header>{workspace.enrolments.filter((item) => next[item.status]).slice(0, 12).map((item) => <article key={item.id}><div><strong>{item.learnerDisplayName}</strong><small>{item.courseRunTitle} · {item.status}</small></div><div className="governance-actions">{(next[item.status] ?? []).map((status) => <button key={status} type="button" disabled={submission.busy} onClick={() => transition(item.id, item.version, status)}>{status}</button>)}</div></article>)}{submission.message ? <p className="catalogue-error">{submission.message}</p> : null}</section>;
 }
 
 function TransferControl({ institutionId, workspace, references }: { institutionId: string; workspace: CatalogueWorkspace; references: CatalogueReferences }) {
