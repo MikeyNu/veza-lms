@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
 import type { WorkspaceSession } from "@veza/contracts";
 import { membershipCookieName } from "./auth-config";
+import { createDemoWorkspaceSession, demoModeEnabled } from "./demo-mode";
 import { getWebOidcSession } from "./web-session";
 import { listWorkspaceOptions, loadWorkspaceSession, WorkspaceApiError } from "./workspace-api";
 
@@ -35,35 +36,6 @@ export const demoLearnerSession: WorkspaceSession = {
   ],
 };
 
-const demoInstitutionId = "00000000-0000-4000-8000-000000000401" as WorkspaceSession["membership"]["institutionIds"][number];
-
-/**
- * VEZA_DEMO_ROLE selects which workspace the demo session presents. Accepts a
- * comma-separated list so a single run can exercise screens that require more
- * than one role. Defaults to the learner workspace.
- */
-function demoSession(): WorkspaceSession {
-  const requested = process.env.VEZA_DEMO_ROLE?.split(",").map((value) => value.trim()).filter(Boolean) ?? [];
-  if (requested.length === 0) return demoLearnerSession;
-
-  const roles = requested as unknown as WorkspaceSession["membership"]["roles"];
-  const institutional = requested.some((role) => role !== "learner" && role !== "guardian-sponsor");
-  const primaryRoleLabel = requested[0]?.replaceAll("-", " ") ?? "User";
-  return {
-    ...demoLearnerSession,
-    principal: {
-      ...demoLearnerSession.principal,
-      displayName: `Demo ${primaryRoleLabel}`,
-    },
-    membership: {
-      ...demoLearnerSession.membership,
-      roles,
-      // Institutional screens index into this list; an empty array would throw.
-      institutionIds: institutional ? [demoInstitutionId] : [],
-    },
-  };
-}
-
 export type WorkspaceResolution =
   | { readonly status: "ready"; readonly session: WorkspaceSession; readonly demo: boolean }
   | { readonly status: "signed-out" }
@@ -71,9 +43,10 @@ export type WorkspaceResolution =
   | { readonly status: "access-pending" };
 
 export async function resolveWorkspaceSession(): Promise<WorkspaceResolution> {
-  if (process.env.VEZA_DEMO_MODE === "true") {
-    return { status: "ready", session: demoSession(), demo: true };
+  if (demoModeEnabled()) {
+    return { status: "ready", session: await createDemoWorkspaceSession(), demo: true };
   }
+
   const [cookieStore, oidcSession] = await Promise.all([cookies(), getWebOidcSession()]);
   if (!oidcSession) {
     return { status: "signed-out" };
