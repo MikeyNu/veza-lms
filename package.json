@@ -27,6 +27,8 @@
   },
   "devDependencies": {
     "@types/node": "^24.0.15",
+    "jose": "6.2.3",
+    "pg": "8.22.0",
     "prettier": "^3.6.2",
     "turbo": "^2.10.7",
     "typescript": "6.0.2"

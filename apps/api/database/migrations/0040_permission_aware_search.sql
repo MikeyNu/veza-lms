@@ -1,5 +1,12 @@
 BEGIN;
 
+-- array_to_string is only STABLE (it depends on the element output function),
+-- so it cannot appear in a generated column. For text[] with a constant
+-- separator the result is genuinely immutable, so wrap it accordingly.
+CREATE FUNCTION veza_keywords_text(value text[]) RETURNS text
+  LANGUAGE sql IMMUTABLE PARALLEL SAFE STRICT
+  AS $$ SELECT array_to_string(value, ' ') $$;
+
 CREATE TABLE search_documents (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id uuid NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
@@ -21,7 +28,7 @@ CREATE TABLE search_documents (
   search_vector tsvector GENERATED ALWAYS AS (
     setweight(to_tsvector('simple', coalesce(title,'')), 'A') ||
     setweight(to_tsvector('simple', coalesce(subtitle,'')), 'B') ||
-    setweight(to_tsvector('simple', coalesce(array_to_string(keywords,' '),'')), 'B') ||
+    setweight(to_tsvector('simple', coalesce(veza_keywords_text(keywords),'')), 'B') ||
     setweight(to_tsvector('simple', coalesce(body,'')), 'C')
   ) STORED,
   indexed_at timestamptz NOT NULL DEFAULT now(),
@@ -68,9 +75,13 @@ CREATE TABLE search_synonyms (
   synonyms text[] NOT NULL CHECK (cardinality(synonyms) > 0),
   status text NOT NULL DEFAULT 'active' CHECK (status IN ('active','retired')),
   created_by uuid NOT NULL REFERENCES users(id),
-  updated_at timestamptz NOT NULL DEFAULT now(),
-  UNIQUE (tenant_id, lower(term))
+  updated_at timestamptz NOT NULL DEFAULT now()
 );
+
+-- A table-level UNIQUE constraint cannot contain an expression; the
+-- case-insensitive uniqueness of (tenant_id, term) needs its own index.
+CREATE UNIQUE INDEX search_synonyms_tenant_term_idx
+  ON search_synonyms(tenant_id, lower(term));
 
 CREATE TABLE search_query_events (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),

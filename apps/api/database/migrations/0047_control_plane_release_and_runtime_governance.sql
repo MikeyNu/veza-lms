@@ -392,10 +392,10 @@ INSERT INTO scheduled_jobs (
 )
 SELECT
   NULL, 'support.session-expiry', 'support.session-expiry', '{}'::jsonb,
-  60, now(), 'active', 8, system_user.id
-FROM users system_user
-WHERE system_user.identity_issuer = 'https://control.veza.invalid/system'
-  AND system_user.identity_subject = 'scheduled-jobs-bootstrap'
+  60, now(), 'active', 8, bootstrap_user.id
+FROM users bootstrap_user
+WHERE bootstrap_user.identity_issuer = 'https://control.veza.invalid/system'
+  AND bootstrap_user.identity_subject = 'scheduled-jobs-bootstrap'
 ON CONFLICT (tenant_id, job_key) DO UPDATE
 SET handler_key = EXCLUDED.handler_key,
     interval_seconds = EXCLUDED.interval_seconds,

@@ -1,5 +1,5 @@
 import { readdir, readFile } from "node:fs/promises";
-import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 import pg from "pg";
 
 const { Pool } = pg;
@@ -20,7 +20,8 @@ try {
   const applied = new Set((await client.query("SELECT filename FROM schema_migrations")).rows.map((row) => row.filename));
   for (const file of files) {
     if (applied.has(file)) continue;
-    const sql = await readFile(join(directory.pathname, file), "utf8");
+    // URL.pathname is "/C:/..." on Windows; fileURLToPath keeps this portable.
+    const sql = await readFile(fileURLToPath(new URL(file, directory)), "utf8");
     await client.query(sql);
     await client.query("INSERT INTO schema_migrations(filename) VALUES ($1)", [file]);
     process.stdout.write(`Applied ${file}\n`);
