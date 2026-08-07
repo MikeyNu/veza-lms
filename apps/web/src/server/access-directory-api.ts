@@ -1,7 +1,7 @@
-import { cookies } from "next/headers";
 import type { BaselineRoleKey, MembershipStatus } from "@veza/contracts";
-import { membershipCookieName } from "./auth-config";
-import { getWebOidcSession } from "./web-session";
+import { demoAccessDirectoryPage } from "./demo-direct-data";
+import { demoModeEnabled } from "./demo-mode";
+import { requestWorkspaceJson } from "./workspace-json-request";
 
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const maximumBytes = 512 * 1024;
@@ -177,47 +177,13 @@ function directory(value: unknown): AccessDirectoryPage {
   };
 }
 
-async function credentials() {
-  const [session, store] = await Promise.all([getWebOidcSession(), cookies()]);
-  const membershipId = store.get(membershipCookieName)?.value;
-  if (!session || !membershipId || !uuid.test(membershipId)) {
-    throw new AccessDirectoryApiError(401, "An active workspace session is required");
-  }
-  return { accessToken: session.accessToken, membershipId };
-}
-
 async function request(path: string, init?: RequestInit): Promise<unknown> {
-  const auth = await credentials();
-  const baseUrl = process.env.VEZA_API_BASE_URL ?? "http://localhost:4000";
-  const response = await fetch(`${baseUrl}${path}`, {
-    ...init,
-    headers: {
-      authorization: `Bearer ${auth.accessToken}`,
-      "x-veza-membership-id": auth.membershipId,
-      accept: "application/json",
-      ...(init?.body ? { "content-type": "application/json" } : {}),
-      ...init?.headers,
-    },
-    cache: "no-store",
-    signal: AbortSignal.timeout(20_000),
+  return requestWorkspaceJson(path, {
+    service: "Access service",
+    maximumBytes,
+    timeoutMs: 20_000,
+    ...(init ? { init } : {}),
   });
-  const text = await response.text();
-  if (new TextEncoder().encode(text).byteLength > maximumBytes) {
-    throw new AccessDirectoryApiError(502, "Access service returned an oversized response");
-  }
-  let body: unknown;
-  try {
-    body = text ? JSON.parse(text) : {};
-  } catch {
-    throw new AccessDirectoryApiError(502, "Access service returned invalid JSON");
-  }
-  if (!response.ok) {
-    const message = isRecord(body) && typeof body.message === "string"
-      ? body.message
-      : "Access operation failed";
-    throw new AccessDirectoryApiError(response.status, message.slice(0, 300));
-  }
-  return body;
 }
 
 export async function loadAccessDirectory(input: {
@@ -227,6 +193,9 @@ export async function loadAccessDirectory(input: {
   readonly institutionId?: string;
   readonly cursor?: string;
 } = {}): Promise<AccessDirectoryPage> {
+  if (demoModeEnabled()) {
+    return demoAccessDirectoryPage(input) as AccessDirectoryPage;
+  }
   const query = new URLSearchParams({ limit: "40" });
   if (input.query) query.set("query", input.query);
   if (input.status) query.set("status", input.status);
@@ -248,6 +217,9 @@ export function mutateAccessDirectory(operation: string, input: Readonly<Record<
   };
   const target = map[operation];
   if (!target) throw new AccessDirectoryApiError(400, "Access operation is not allowed");
+  if (demoModeEnabled()) {
+    return Promise.resolve({ ok: true, demo: true, persisted: false, operation });
+  }
   const { membershipId: _membershipId, assignmentId: _assignmentId, invitationId: _invitationId, ...payload } = input;
   return request(target.path(input), { method: "POST", body: JSON.stringify(payload) });
 }
