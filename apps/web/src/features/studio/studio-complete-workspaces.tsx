@@ -338,7 +338,7 @@ export function StudioLessonEditorComplete({
     dirty.current = true;
   }
   function updateBlock(id: string, data: Record<string, unknown>) { setBlocks((current) => current.map((block) => block.id === id ? { ...block, data } : block)); dirty.current = true; }
-  function move(id: string, delta: number) { setBlocks((current) => { const index = current.findIndex((block) => block.id === id); const target = index + delta; if (index < 0 || target < 0 || target >= current.length) return current; const next = [...current]; [next[index], next[target]] = [next[target], next[index]]; return next; }); dirty.current = true; }
+  function move(id: string, delta: number) { setBlocks((current) => { const index = current.findIndex((block) => block.id === id); const target = index + delta; if (index < 0 || target < 0 || target >= current.length) return current; const sourceBlock = current[index]; const targetBlock = current[target]; if (!sourceBlock || !targetBlock) return current; const next = [...current]; next[index] = targetBlock; next[target] = sourceBlock; return next; }); dirty.current = true; }
   function remove(id: string) { setBlocks((current) => current.filter((block) => block.id !== id)); setSelected(null); dirty.current = true; }
 
   async function save(changeSummary = "Autosaved structured block changes") {
