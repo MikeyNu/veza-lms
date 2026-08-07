@@ -42,11 +42,11 @@ export function loadAcademicEvidenceWorkspace(
   institutionId: string,
 ): Promise<AcademicEvidenceWorkspace> {
   if (!uuid.test(institutionId)) throw new Error("Institution identifier is invalid");
-  return authenticated(`/v1/institutions/${institutionId}/academic-evidence`);
+  return authenticated<AcademicEvidenceWorkspace>(`/v1/institutions/${institutionId}/academic-evidence`);
 }
 
 export function loadLearnerAssignments(): Promise<LearnerAssignmentWorkspace> {
-  return authenticated("/v1/learner/assignments").catch((error: unknown) => {
+  return authenticated<LearnerAssignmentWorkspace>("/v1/learner/assignments").catch((error: unknown) => {
     if (demoMode()) {
       return {
         learnerPersonId: "00000000-0000-4000-8000-000000000101",
@@ -62,7 +62,7 @@ export function loadLearnerGradebook(
   courseRunId: string,
 ): Promise<Readonly<Record<string, unknown>>> {
   if (!uuid.test(courseRunId)) throw new Error("Course-run identifier is invalid");
-  return authenticated(`/v1/learner/gradebook/${courseRunId}`).catch((error: unknown) => {
+  return authenticated<Readonly<Record<string, unknown>>>(`/v1/learner/gradebook/${courseRunId}`).catch((error: unknown) => {
     if (demoMode()) return { results: [] };
     throw error;
   });
@@ -72,14 +72,14 @@ export function loadStaffGradebook(
   courseRunId: string,
 ): Promise<Readonly<Record<string, unknown>>> {
   if (!uuid.test(courseRunId)) throw new Error("Course-run identifier is invalid");
-  return authenticated(`/v1/academic-evidence/gradebook/${courseRunId}/staff`);
+  return authenticated<Readonly<Record<string, unknown>>>(`/v1/academic-evidence/gradebook/${courseRunId}/staff`);
 }
 
 export function loadInstitutionAnalytics(
   institutionId: string,
 ): Promise<readonly AnalyticsMetric[]> {
   if (!uuid.test(institutionId)) throw new Error("Institution identifier is invalid");
-  return authenticated(`/v1/academic-evidence/analytics?institutionId=${institutionId}`);
+  return authenticated<readonly AnalyticsMetric[]>(`/v1/academic-evidence/analytics?institutionId=${institutionId}`);
 }
 
 export async function verifyCertificatePublic(
