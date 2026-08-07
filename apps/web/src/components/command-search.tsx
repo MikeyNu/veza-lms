@@ -1,5 +1,6 @@
 "use client";
 
+import type { Route } from "next";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { Icon } from "./icon";
@@ -18,6 +19,14 @@ interface SearchResponse {
   readonly latencyMs: number;
 }
 
+const searchFilters = [
+  ["", "All"],
+  ["person", "People"],
+  ["programme-version,course-blueprint,course-run", "Catalogue"],
+  ["studio-lesson", "Lessons"],
+  ["media-asset", "Assets"],
+] as const;
+
 function icon(type: string): string {
   if (type === "person") return "PE";
   if (type === "programme-version") return "PR";
@@ -27,8 +36,12 @@ function icon(type: string): string {
   return "SR";
 }
 
-function href(item: SearchItem): string {
-  return typeof item.metadata.href === "string" ? item.metadata.href : "/";
+function href(item: SearchItem): Route {
+  const candidate = item.metadata.href;
+  if (typeof candidate !== "string" || !candidate.startsWith("/") || candidate.startsWith("//")) {
+    return "/";
+  }
+  return candidate as Route;
 }
 
 function excerpt(item: SearchItem): string {
@@ -119,13 +132,7 @@ export function CommandSearch() {
               <button type="button" onClick={() => setOpen(false)}>Esc</button>
             </header>
             <nav aria-label="Search filters">
-              {[
-                ["", "All"],
-                ["person", "People"],
-                ["programme-version,course-blueprint,course-run", "Catalogue"],
-                ["studio-lesson", "Lessons"],
-                ["media-asset", "Assets"],
-              ].map(([value, label]) => (
+              {searchFilters.map(([value, label]) => (
                 <button
                   type="button"
                   className={type === value ? "active" : ""}
