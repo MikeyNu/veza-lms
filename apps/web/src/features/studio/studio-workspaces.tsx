@@ -79,7 +79,7 @@ export function StudioLessonEditor({ institutionId, detail }: { institutionId: s
 
   function addBlock(type: StudioBlockType) { const block: StudioBlock = { id: uid(), type, data: defaultData(type) }; setBlocks((current) => [...current, block]); setSelected(block.id); dirty.current = true; }
   function updateBlock(id: string, data: Record<string, unknown>) { setBlocks((current) => current.map((block) => block.id === id ? { ...block, data } : block)); dirty.current = true; }
-  function move(id: string, delta: number) { setBlocks((current) => { const index = current.findIndex((block) => block.id === id); const target = index + delta; if (index < 0 || target < 0 || target >= current.length) return current; const next = [...current]; [next[index], next[target]] = [next[target], next[index]]; return next; }); dirty.current = true; }
+  function move(id: string, delta: number) { setBlocks((current) => { const index = current.findIndex((block) => block.id === id); const target = index + delta; if (index < 0 || target < 0 || target >= current.length) return current; const sourceBlock = current[index]; const targetBlock = current[target]; if (!sourceBlock || !targetBlock) return current; const next = [...current]; next[index] = targetBlock; next[target] = sourceBlock; return next; }); dirty.current = true; }
   function remove(id: string) { setBlocks((current) => current.filter((block) => block.id !== id)); setSelected(null); dirty.current = true; }
 
   useEffect(() => {
