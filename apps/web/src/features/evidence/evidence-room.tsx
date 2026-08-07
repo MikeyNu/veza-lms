@@ -1,5 +1,6 @@
-import Link from "next/link";
 import type { WorkspaceSession } from "@veza/contracts";
+import type { Route } from "next";
+import Link from "next/link";
 import type { AuditEventPage, AuditFilters } from "../../server/audit-api";
 
 const exportManagerRoles = new Set(["tenant-owner", "institution-admin", "registrar"]);
@@ -20,13 +21,13 @@ function json(value: Readonly<Record<string, unknown>> | undefined): string {
   return JSON.stringify(value ?? {}, null, 2);
 }
 
-function nextHref(filters: AuditFilters, cursor: string): string {
+function nextHref(filters: AuditFilters, cursor: string): Route {
   const params = new URLSearchParams();
   for (const [key, value] of Object.entries(filters)) {
     if (value !== undefined && key !== "cursor" && key !== "limit") params.set(key, String(value));
   }
   params.set("cursor", cursor);
-  return `/evidence?${params.toString()}`;
+  return `/evidence?${params.toString()}` as Route;
 }
 
 export function EvidenceRoom({ page, filters, session }: { page: AuditEventPage; filters: AuditFilters; session: WorkspaceSession }) {
