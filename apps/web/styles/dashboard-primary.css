@@ -14,6 +14,7 @@
   border: 1px solid var(--line);
   border-radius: var(--radius);
   background: var(--surface);
+  box-shadow: var(--veza-shadow-panel);
 }
 
 .continue-card {
@@ -48,21 +49,22 @@
   gap: 1rem;
 }
 
+/* Chip/pill: tint background + 700-tone text, .75rem, 600 weight, eyebrow tracking */
 .pill {
   display: inline-flex;
   padding: 0.35rem 0.55rem;
   border-radius: 999px;
   background: var(--veza-institution-accent-soft);
   color: var(--brand-strong);
-  font-size: 0.62rem;
-  font-weight: 850;
-  letter-spacing: 0.07em;
+  font-size: var(--veza-text-xs);
+  font-weight: 700;
+  letter-spacing: var(--veza-tracking-eyebrow);
   text-transform: uppercase;
 }
 
 .course-position {
   color: var(--muted);
-  font-size: 0.68rem;
+  font-size: var(--veza-text-sm);
   font-weight: 700;
 }
 
@@ -80,7 +82,7 @@
 .muted {
   margin: 0 0 0.55rem;
   color: var(--muted);
-  font-size: 0.76rem;
+  font-size: var(--veza-text-md);
 }
 
 .continue-card h2,
@@ -88,7 +90,7 @@
 .deadline-card h2 {
   margin: 0;
   color: var(--ink);
-  letter-spacing: -0.025em;
+  letter-spacing: var(--veza-tracking-heading);
 }
 
 .continue-card h2 {
@@ -101,25 +103,26 @@
   max-width: 31rem;
   margin: 0.75rem 0 1.3rem;
   color: var(--muted);
-  font-size: 0.72rem;
+  font-size: var(--veza-text-md);
   line-height: 1.55;
 }
 
+/* Flat solid fill — no gradient on buttons per CI */
 .dark-button {
   display: inline-flex;
   min-height: 2.65rem;
   align-items: center;
   gap: 0.6rem;
   padding: 0 0.95rem;
-  border-radius: 0.625rem;
+  border-radius: var(--veza-radius-control);
   background: var(--ink);
   color: white;
-  font-size: 0.72rem;
-  font-weight: 780;
+  font-size: var(--veza-text-md);
+  font-weight: 600;
 }
 
 .dark-button:hover {
-  background: #162238;
+  background: var(--veza-slate-800);
 }
 
 .play {
@@ -166,9 +169,10 @@
   inset: 0;
   display: grid;
   place-items: center;
-  font-size: 0.76rem;
+  font-size: var(--veza-text-md);
 }
 
+/* Dark media panel: var(--sidebar) background, brand-indigo-50 accents */
 .lesson-art {
   position: absolute;
   inset: 0 0 0 auto;
@@ -179,14 +183,15 @@
   color: white;
 }
 
+/* Eyebrow on dark panel uses indigo-50 (light indigo) not teal */
 .art-index {
   position: absolute;
   top: 1.5rem;
   right: 1.5rem;
-  color: #5eead4;
-  font-size: 0.7rem;
-  font-weight: 850;
-  letter-spacing: 0.08em;
+  color: var(--veza-indigo-50);
+  font-size: var(--veza-text-sm);
+  font-weight: 700;
+  letter-spacing: var(--veza-tracking-eyebrow);
 }
 
 .art-copy {
@@ -204,9 +209,9 @@
 }
 
 .art-copy span {
-  color: #94a3b8;
+  color: var(--veza-muted-subtle);
   font-size: 1rem;
-  font-weight: 650;
+  font-weight: 500;
 }
 
 .section-heading {
@@ -217,16 +222,17 @@
 }
 
 .section-heading h2 {
-  font-size: 1.15rem;
+  font-size: var(--veza-text-h3);
 }
 
+/* "View all" link: .8125rem var(--brand) per CI card-header spec */
 .section-heading a {
   display: flex;
   align-items: center;
   gap: 0.35rem;
-  color: var(--brand-strong);
-  font-size: 0.68rem;
-  font-weight: 760;
+  color: var(--brand);
+  font-size: var(--veza-text-sm);
+  font-weight: 600;
   white-space: nowrap;
 }
 
@@ -248,8 +254,8 @@
 .time > span {
   padding-top: 0.2rem;
   color: var(--ink-soft);
-  font-size: 0.68rem;
-  font-weight: 750;
+  font-size: var(--veza-text-sm);
+  font-weight: 600;
 }
 
 .time i {
@@ -277,10 +283,11 @@
   box-shadow: 0 0 0 1px var(--brand);
 }
 
+/* Uppercase micro-label: .75rem, 700, eyebrow tracking per CI */
 .time div small {
   color: var(--muted);
-  font-size: 0.58rem;
-  font-weight: 800;
+  font-size: var(--veza-text-xs);
+  font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
 }
@@ -288,13 +295,13 @@
 .time div strong {
   display: block;
   margin-top: 0.35rem;
-  font-size: 0.77rem;
+  font-size: var(--veza-text-md);
 }
 
 .time div p {
   margin: 0.3rem 0;
   color: var(--muted);
-  font-size: 0.66rem;
+  font-size: var(--veza-text-sm);
 }
 
 .join-action {
@@ -302,9 +309,9 @@
   margin-top: 0.8rem;
   padding: 0.45rem 0.65rem;
   border: 1px solid color-mix(in srgb, var(--brand) 28%, var(--line));
-  border-radius: 0.5rem;
+  border-radius: var(--veza-radius-tile);
   background: var(--veza-institution-accent-soft);
   color: var(--brand-strong);
-  font-size: 0.63rem;
-  font-weight: 780;
+  font-size: var(--veza-text-xs);
+  font-weight: 600;
 }
