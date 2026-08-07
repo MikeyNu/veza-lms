@@ -12,8 +12,8 @@ export interface IdentityGatewayProps {
 
 export function IdentityBrandLockup() {
   return (
-    <a className="identity-lockup" href="/" aria-label="Veza Learning Cloud home">
-      <img src="/branding/veza-logo-white.png" alt="Veza Learning Cloud" />
+    <a className="identity-lockup" href="/" aria-label="Veza LMS home">
+      <img src="/assets/veza_logo_white_text_horizontal.png" alt="Veza LMS" />
     </a>
   );
 }
@@ -29,17 +29,18 @@ export function IdentityGateway({
 }: IdentityGatewayProps) {
   return (
     <main className="identity-gateway">
-      <section className="identity-story" aria-label="Veza Learning Cloud">
-        <header className="identity-story-header">
-          <IdentityBrandLockup />
-          {stage ? <span className="identity-stage">{stage}</span> : null}
-        </header>
-        <div className="identity-story-copy">
-          <p className="identity-kicker">ONE INSTITUTIONAL CONTEXT</p>
-          <h1>Learning operations that remain connected to their evidence.</h1>
-          <p>
-            Identity, curriculum, delivery, assessment and communication stay inside one governed workspace, with every consequential transition traceable.
-          </p>
+      <section className="identity-story" aria-label="Veza LMS" data-stage={stage}>
+        <div className="identity-story-inner">
+          <header className="identity-story-header">
+            <IdentityBrandLockup />
+          </header>
+          <div className="identity-story-copy">
+            <span className="identity-brand-rule" aria-hidden="true" />
+            <h1>Teach. Learn. Grow. Together.</h1>
+            <p>
+              Veza LMS is the all-in-one learning platform that empowers institutions to create engaging learning experiences, streamline operations, and enable every learner to achieve more.
+            </p>
+          </div>
         </div>
       </section>
 
