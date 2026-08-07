@@ -73,7 +73,7 @@ export default async function InvitationPage({
           <IdentitySteps items={[
             { label: "Invitation received", detail: "The one-time invitation token is present.", state: "complete" },
             { label: "Identity verification", detail: session ? `Signed in as ${session.profile.email ?? session.profile.displayName ?? "a verified account"}.` : "Sign in with the invited email address.", state: session ? "complete" : "current" },
-            { label: "Membership activation", detail: "Veza will verify the token, email, expiry and invitation state before activation.", state: session ? "current" : undefined },
+            { label: "Membership activation", detail: "Veza will verify the token, email, expiry and invitation state before activation.", ...(session ? { state: "current" as const } : {}) },
           ]} />
           <div className="identity-action-stack">
             {session ? (
