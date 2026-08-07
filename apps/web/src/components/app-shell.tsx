@@ -7,6 +7,10 @@ import {
   type NavigationKey,
   workspaceLabel,
 } from "../features/workspace/navigation";
+import {
+  demoModeEnabled,
+  demoRoleOptions,
+} from "../server/demo-mode";
 import { CommandSearch } from "./command-search";
 import { Icon } from "./icon";
 
@@ -108,6 +112,25 @@ function MobileNavigation({ session, active }: { session: WorkspaceSession; acti
   );
 }
 
+function DemoRoleSwitcher({ session }: { session: WorkspaceSession }) {
+  if (!demoModeEnabled()) return null;
+  const selectedRole = session.membership.roles[0] ?? "learner";
+
+  return (
+    <div className="demo-controls" aria-label="Demo inspection controls">
+      <Link className="demo-qa-link" href="/demo">QA map</Link>
+      <form action="/api/demo/role" method="post" className="demo-role-switcher">
+        <select name="role" defaultValue={selectedRole} aria-label="Demo role">
+          {demoRoleOptions.map((option) => (
+            <option key={option.key} value={option.key}>{option.label}</option>
+          ))}
+        </select>
+        <button type="submit">Switch</button>
+      </form>
+    </div>
+  );
+}
+
 function Topbar({ session, active }: { session: WorkspaceSession; active: NavigationKey }) {
   const action = primaryAction(session);
 
@@ -127,6 +150,7 @@ function Topbar({ session, active }: { session: WorkspaceSession; active: Naviga
       </Link>
 
       <div className="top-actions">
+        <DemoRoleSwitcher session={session} />
         <Link className="topbar-tool" href="/communicate" aria-label="Notifications">
           <Icon name="bell" /><span>Notifications</span>
         </Link>
