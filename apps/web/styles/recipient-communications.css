@@ -1,0 +1,385 @@
+.vz-recipient-communications {
+  width: min(100%, var(--veza-content-max));
+  margin: 0 auto;
+  padding: var(--veza-space-8);
+}
+
+.vz-recipient-heading {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--veza-space-6);
+  padding-bottom: var(--veza-space-6);
+  border-bottom: 1px solid var(--veza-line);
+}
+
+.vz-recipient-heading p {
+  margin: 0 0 var(--veza-space-1);
+  color: var(--veza-brand-strong);
+  font-size: var(--veza-text-xs);
+  font-weight: var(--veza-weight-bold);
+  letter-spacing: var(--veza-tracking-eyebrow);
+}
+
+.vz-recipient-heading h1 {
+  margin: 0;
+  color: var(--veza-ink);
+  font-size: var(--veza-text-2xl);
+  line-height: var(--veza-leading-2xl);
+  letter-spacing: var(--veza-tracking-heading);
+}
+
+.vz-recipient-heading > div:first-child > span {
+  display: block;
+  margin-top: var(--veza-space-1);
+  max-width: 48rem;
+  color: var(--veza-muted);
+  font-size: var(--veza-text-md);
+  line-height: var(--veza-leading-body);
+}
+
+.vz-recipient-counts {
+  display: flex;
+  gap: var(--veza-space-5);
+  color: var(--veza-muted);
+  font-size: var(--veza-text-sm);
+}
+
+.vz-recipient-counts span {
+  white-space: nowrap;
+}
+
+.vz-recipient-counts strong {
+  margin-right: var(--veza-space-1);
+  color: var(--veza-ink);
+  font-size: var(--veza-text-lg);
+}
+
+.vz-recipient-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(19rem, 22rem);
+  gap: var(--veza-space-8);
+  align-items: start;
+  padding-top: var(--veza-space-6);
+}
+
+.vz-notification-feed {
+  min-width: 0;
+}
+
+.vz-notification-feed > header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--veza-space-5);
+  padding-bottom: var(--veza-space-3);
+}
+
+.vz-notification-feed h2,
+.vz-recipient-preferences h2,
+.vz-recipient-empty h2 {
+  margin: 0;
+  color: var(--veza-ink);
+  font-size: var(--veza-text-h3);
+  line-height: var(--veza-leading-h3);
+  letter-spacing: var(--veza-tracking-heading);
+}
+
+.vz-notification-feed > header p,
+.vz-recipient-preferences > header p,
+.vz-recipient-empty p {
+  margin: var(--veza-space-1) 0 0;
+  color: var(--veza-muted);
+  font-size: var(--veza-text-md);
+  line-height: var(--veza-leading-body);
+}
+
+.vz-notification-feed > header small {
+  color: var(--veza-muted);
+  font-size: var(--veza-text-xs);
+}
+
+.vz-notification-list {
+  border-top: 1px solid var(--veza-line);
+}
+
+.vz-notification-list article {
+  display: grid;
+  grid-template-columns: 0.5rem minmax(0, 1fr);
+  gap: var(--veza-space-4);
+  padding: var(--veza-space-5) 0;
+  border-bottom: 1px solid var(--veza-line);
+}
+
+.vz-notification-marker {
+  width: 0.5rem;
+  height: 0.5rem;
+  margin-top: 0.45rem;
+  border-radius: 50%;
+  background: var(--veza-brand);
+}
+
+.vz-notification-copy {
+  min-width: 0;
+}
+
+.vz-notification-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--veza-space-4);
+  color: var(--veza-muted);
+  font-size: var(--veza-text-xs);
+}
+
+.vz-notification-meta span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.vz-notification-meta time {
+  flex: 0 0 auto;
+}
+
+.vz-notification-copy h3 {
+  margin: var(--veza-space-1) 0 0;
+  color: var(--veza-ink);
+  font-size: var(--veza-text-lg);
+  line-height: var(--veza-leading-lg);
+  letter-spacing: var(--veza-tracking-heading);
+}
+
+.vz-notification-copy > p {
+  margin: var(--veza-space-2) 0 0;
+  max-width: 54rem;
+  color: var(--veza-ink-soft);
+  font-size: var(--veza-text-md);
+  line-height: var(--veza-leading-body);
+}
+
+.vz-notification-copy footer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--veza-space-2);
+  align-items: center;
+  margin-top: var(--veza-space-3);
+  color: var(--veza-muted);
+  font-size: var(--veza-text-xs);
+}
+
+.vz-notification-copy footer > span:not(.vz-notification-state) {
+  padding-left: var(--veza-space-2);
+  border-left: 1px solid var(--veza-line-strong);
+}
+
+.vz-notification-state {
+  color: var(--veza-ink-soft);
+  font-weight: var(--veza-weight-semibold);
+  text-transform: capitalize;
+}
+
+.vz-notification-state.delivered,
+.vz-notification-state.sent,
+.vz-notification-state.completed {
+  color: var(--veza-positive-strong);
+}
+
+.vz-notification-state.processing,
+.vz-notification-state.pending,
+.vz-notification-state.retry,
+.vz-notification-state.digested {
+  color: var(--veza-warning-strong);
+}
+
+.vz-notification-state.failed,
+.vz-notification-state.dead-letter,
+.vz-notification-state.bounced,
+.vz-notification-state.complained {
+  color: var(--veza-critical-strong);
+}
+
+.vz-recipient-empty {
+  padding: var(--veza-space-8) 0;
+  border-top: 1px solid var(--veza-line);
+}
+
+.vz-recipient-preferences {
+  position: sticky;
+  top: calc(var(--veza-topbar-height) + var(--veza-space-5));
+  padding-left: var(--veza-space-6);
+  border-left: 1px solid var(--veza-line);
+}
+
+.vz-recipient-preferences > header {
+  padding-bottom: var(--veza-space-4);
+}
+
+.vz-recipient-preferences form {
+  display: grid;
+  gap: var(--veza-space-3);
+  padding: var(--veza-space-5) 0;
+  border-top: 1px solid var(--veza-line);
+}
+
+.vz-preference-channel {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--veza-space-3);
+}
+
+.vz-preference-channel strong {
+  color: var(--veza-ink);
+  font-size: var(--veza-text-md);
+}
+
+.vz-preference-channel span {
+  color: var(--veza-muted);
+  font-size: var(--veza-text-xs);
+  text-align: right;
+}
+
+.vz-recipient-preferences label {
+  display: grid;
+  gap: var(--veza-space-1);
+  color: var(--veza-ink-soft);
+  font-size: var(--veza-text-sm);
+  font-weight: var(--veza-weight-medium);
+}
+
+.vz-recipient-preferences select,
+.vz-recipient-preferences input {
+  width: 100%;
+  min-height: var(--veza-control-height);
+  padding: 0 var(--veza-space-3);
+  border: 1px solid var(--veza-line-strong);
+  border-radius: var(--veza-radius-control);
+  background: var(--veza-surface);
+  color: var(--veza-ink);
+  font: inherit;
+}
+
+.vz-preference-times {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--veza-space-2);
+}
+
+.vz-recipient-preferences button {
+  min-height: var(--veza-control-height);
+  border: 0;
+  border-radius: var(--veza-radius-control);
+  background: var(--veza-brand);
+  color: var(--veza-on-brand);
+  font: inherit;
+  font-size: var(--veza-text-md);
+  font-weight: var(--veza-weight-semibold);
+  cursor: pointer;
+}
+
+.vz-recipient-preferences button:hover,
+.vz-recipient-preferences button:focus-visible {
+  background: var(--veza-brand-hover);
+}
+
+.vz-recipient-preferences button:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.vz-recipient-preferences output {
+  display: block;
+  min-height: 1.4rem;
+  padding-top: var(--veza-space-3);
+  border-top: 1px solid var(--veza-line);
+  color: var(--veza-muted);
+  font-size: var(--veza-text-sm);
+}
+
+@media (max-width: 1040px) {
+  .vz-recipient-communications {
+    padding: var(--veza-space-6);
+  }
+
+  .vz-recipient-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .vz-recipient-preferences {
+    position: static;
+    padding: var(--veza-space-6) 0 0;
+    border-top: 1px solid var(--veza-line);
+    border-left: 0;
+  }
+
+  .vz-recipient-preferences > header {
+    max-width: 42rem;
+  }
+
+  .vz-recipient-preferences form {
+    grid-template-columns: minmax(9rem, 0.6fr) repeat(2, minmax(10rem, 1fr));
+    align-items: end;
+  }
+
+  .vz-preference-channel {
+    align-self: center;
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .vz-preference-channel span {
+    text-align: left;
+  }
+
+  .vz-preference-times {
+    grid-column: 2 / 4;
+  }
+
+  .vz-recipient-preferences form button {
+    grid-column: 1;
+  }
+}
+
+@media (max-width: 720px) {
+  .vz-recipient-communications {
+    padding: var(--veza-space-4);
+  }
+
+  .vz-recipient-heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .vz-recipient-heading h1 {
+    font-size: var(--veza-text-xl);
+    line-height: var(--veza-leading-xl);
+  }
+
+  .vz-recipient-counts {
+    width: 100%;
+  }
+
+  .vz-notification-feed > header,
+  .vz-notification-meta {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .vz-notification-meta {
+    gap: var(--veza-space-1);
+  }
+
+  .vz-notification-meta span {
+    white-space: normal;
+  }
+
+  .vz-recipient-preferences form {
+    grid-template-columns: 1fr;
+  }
+
+  .vz-preference-times,
+  .vz-recipient-preferences form button {
+    grid-column: auto;
+  }
+}
