@@ -54,6 +54,25 @@ function SignOutButton({ className }: { className?: string }) {
   );
 }
 
+function DemoRoleSwitcher({ session }: { session: WorkspaceSession }) {
+  if (!demoModeEnabled()) return null;
+  const selectedRole = session.membership.roles[0] ?? "learner";
+
+  return (
+    <div className="demo-controls" aria-label="Demo inspection controls">
+      <Link className="demo-qa-link" href="/demo">QA map</Link>
+      <form action="/api/demo/role" method="post" className="demo-role-switcher">
+        <select name="role" defaultValue={selectedRole} aria-label="Demo role">
+          {demoRoleOptions.map((option) => (
+            <option key={option.key} value={option.key}>{option.label}</option>
+          ))}
+        </select>
+        <button type="submit">Switch</button>
+      </form>
+    </div>
+  );
+}
+
 function Sidebar({ session, active }: { session: WorkspaceSession; active: NavigationKey }) {
   return (
     <aside className="sidebar" aria-label="Primary workspace">
@@ -106,28 +125,10 @@ function MobileNavigation({ session, active }: { session: WorkspaceSession; acti
         <nav aria-label="Mobile navigation">
           <NavigationLinks session={session} active={active} mobile />
         </nav>
+        <DemoRoleSwitcher session={session} />
         <SignOutButton className="mobile-signout" />
       </div>
     </details>
-  );
-}
-
-function DemoRoleSwitcher({ session }: { session: WorkspaceSession }) {
-  if (!demoModeEnabled()) return null;
-  const selectedRole = session.membership.roles[0] ?? "learner";
-
-  return (
-    <div className="demo-controls" aria-label="Demo inspection controls">
-      <Link className="demo-qa-link" href="/demo">QA map</Link>
-      <form action="/api/demo/role" method="post" className="demo-role-switcher">
-        <select name="role" defaultValue={selectedRole} aria-label="Demo role">
-          {demoRoleOptions.map((option) => (
-            <option key={option.key} value={option.key}>{option.label}</option>
-          ))}
-        </select>
-        <button type="submit">Switch</button>
-      </form>
-    </div>
   );
 }
 
