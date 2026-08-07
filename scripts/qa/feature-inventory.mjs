@@ -7,6 +7,7 @@ const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..", ".
 const artifactRoot = join(repositoryRoot, "qa-artifacts", "features");
 const ignoredDirectories = new Set(["node_modules", "dist", ".next", ".turbo", ".git", "coverage", "qa-artifacts"]);
 const allowedStatuses = new Set(["implemented", "gap"]);
+const allowedApplications = new Set(["web", "control-plane"]);
 const criticalFeatureIds = new Set([
   "assignment-submission.start-individual-assignment-session",
   "assignment-submission.start-group-assignment-session",
@@ -191,6 +192,7 @@ async function validateCatalogue() {
   const ids = new Set();
   const pathChecks = [];
   const gaps = [];
+  const browserEntryPoints = [];
   let featureCount = 0;
   for (const category of catalogue.categories) {
     invariant(category.id && category.title && category.boundary, `Feature category is incomplete: ${JSON.stringify(category)}`);
@@ -204,6 +206,14 @@ async function validateCatalogue() {
       invariant(feature.id.startsWith(`${category.id}.`), `Feature ${feature.id} is outside its category namespace`);
       invariant(allowedStatuses.has(feature.status), `Feature ${feature.id} has unsupported status ${feature.status}`);
       invariant(!/[—]/.test(`${feature.name}${feature.note ?? ""}`), `Feature ${feature.id} contains a prohibited em dash`);
+      if (feature.entryPoint !== undefined) {
+        const application = feature.application ?? "web";
+        invariant(feature.status === "implemented", `Gap feature ${feature.id} cannot declare an implemented browser entry point`);
+        invariant(allowedApplications.has(application), `Feature ${feature.id} declares unsupported application ${application}`);
+        invariant(typeof feature.entryPoint === "string" && feature.entryPoint.startsWith("/"), `Feature ${feature.id} has invalid browser entry point`);
+        invariant(!feature.entryPoint.includes("?"), `Feature ${feature.id} entry point must not contain a query string`);
+        browserEntryPoints.push({ featureId: feature.id, application, route: feature.entryPoint });
+      }
       if (feature.status === "gap") gaps.push({ category: category.id, ...feature });
       ids.add(feature.id);
     }
@@ -214,11 +224,25 @@ async function validateCatalogue() {
   for (const item of pathChecks) {
     invariant(await exists(join(repositoryRoot, item.path)), `Feature category ${item.category} references missing path ${item.path}`);
   }
-  return { featureCount, gaps };
+  return { featureCount, gaps, browserEntryPoints };
+}
+
+function validateBrowserEntryPoints(entryPoints, webPages, controlPages) {
+  const pagesByApplication = new Map([
+    ["web", new Set(webPages.map((page) => page.route))],
+    ["control-plane", new Set(controlPages.map((page) => page.route))],
+  ]);
+  const validated = [];
+  for (const entryPoint of entryPoints) {
+    const routes = pagesByApplication.get(entryPoint.application);
+    invariant(routes?.has(entryPoint.route), `Feature ${entryPoint.featureId} declares missing ${entryPoint.application} browser entry point ${entryPoint.route}`);
+    validated.push(entryPoint);
+  }
+  return validated;
 }
 
 async function main() {
-  const [{ featureCount, gaps }, workerRuntimeEvidence, migrationOrder] = await Promise.all([
+  const [{ featureCount, gaps, browserEntryPoints }, workerRuntimeEvidence, migrationOrder] = await Promise.all([
     validateCatalogue(),
     validateWorkerRuntime(),
     validateMigrationOrder(),
@@ -231,6 +255,7 @@ async function main() {
     bffRoutes(join(repositoryRoot, "apps", "control-plane", "app"), "control-plane"),
     workerCapabilities(),
   ]);
+  const validatedBrowserEntryPoints = validateBrowserEntryPoints(browserEntryPoints, webPages, controlPages);
   const surfaces = [...apiOperations, ...webPages, ...controlPages, ...webBff, ...controlBff, ...workers];
   const surfaceIds = new Set();
   for (const surface of surfaces) {
@@ -251,6 +276,7 @@ async function main() {
     categoryCount: catalogue.categories.length,
     gapCount: gaps.length,
     gaps,
+    validatedBrowserEntryPoints,
     workerRuntimeEvidence,
     migrationOrder,
     discovered: {
@@ -263,7 +289,7 @@ async function main() {
       total: surfaces.length,
     },
   }, null, 2)}\n`);
-  console.log(`Feature inventory validated: ${featureCount} capabilities, ${surfaces.length} implementation surfaces, ${workerRuntimeEvidence.length} wired worker capabilities, no declared gaps.`);
+  console.log(`Feature inventory validated: ${featureCount} capabilities, ${surfaces.length} implementation surfaces, ${validatedBrowserEntryPoints.length} browser entry points, ${workerRuntimeEvidence.length} wired worker capabilities, no declared gaps.`);
 }
 
 await main();
