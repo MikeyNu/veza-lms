@@ -1,3 +1,4 @@
+import type { Route } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AppShell } from "../../src/components/app-shell";
@@ -62,7 +63,7 @@ export default async function DemoQaPage() {
                           {available ? "Current role" : route.roles.map(demoRoleLabel).join(", ")}
                         </span>
                         <span role="cell">
-                          {available ? <Link href={route.href}>Open screen</Link> : <span>Switch role first</span>}
+                          {available ? <Link href={route.href as Route}>Open screen</Link> : <span>Switch role first</span>}
                         </span>
                       </div>
                     );
