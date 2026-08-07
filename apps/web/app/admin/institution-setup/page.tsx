@@ -3,6 +3,7 @@ import type { InstitutionId } from "@veza/contracts";
 import { AppShell } from "../../../src/components/app-shell";
 import { AdminSectionNavigation } from "../../../src/features/admin/admin-section-navigation";
 import { InstitutionSetupCentre } from "../../../src/features/institution-setup/institution-setup-centre";
+import { demoInstitutionSetupBundle, demoScopedInstitutionBundle } from "../../../src/server/demo-direct-data";
 import { loadScopedInstitution, loadTenantSetupBundle } from "../../../src/server/institution-setup-api";
 import { requireWorkspaceSession } from "../../../src/server/require-workspace-session";
 
@@ -19,14 +20,18 @@ export default async function InstitutionSetupPage({ searchParams }: { searchPar
   let bundle;
   if (tenantOwner) {
     const requested = query.institution && uuidPattern.test(query.institution) ? query.institution as InstitutionId : undefined;
-    bundle = await loadTenantSetupBundle(requested);
+    bundle = resolution.demo
+      ? demoInstitutionSetupBundle(requested)
+      : await loadTenantSetupBundle(requested);
   } else {
     const allowed = resolution.session.membership.institutionIds;
     const selected = query.institution && allowed.includes(query.institution as InstitutionId)
       ? query.institution as InstitutionId
       : allowed[0];
     if (!selected) notFound();
-    bundle = await loadScopedInstitution(selected);
+    bundle = resolution.demo
+      ? demoScopedInstitutionBundle()
+      : await loadScopedInstitution(selected);
   }
 
   return (
