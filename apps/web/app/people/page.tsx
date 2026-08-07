@@ -32,12 +32,15 @@ export default async function PeoplePage({
   const membershipRoles = new Set(resolution.session.membership.roles);
   if (!roles.some((role) => membershipRoles.has(role))) notFound();
 
+  const search = single(query.search)?.slice(0, 120);
+  const status = single(query.status);
+  const cursor = single(query.cursor)?.slice(0, 512);
   const filters: PeopleFilters = {
-    search: single(query.search)?.slice(0, 120),
-    status: single(query.status),
+    ...(search ? { search } : {}),
+    ...(status ? { status } : {}),
     learnersOnly: single(query.learnersOnly) === "true",
     staffOnly: single(query.staffOnly) === "true",
-    cursor: single(query.cursor)?.slice(0, 512),
+    ...(cursor ? { cursor } : {}),
     limit: 30,
   };
   const page = await loadPeople(filters);
