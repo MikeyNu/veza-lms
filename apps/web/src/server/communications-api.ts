@@ -137,14 +137,14 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export function loadCommunicationsWorkspace(): Promise<CommunicationsWorkspace> {
-  return request("/v1/communications/workspace").catch((error: unknown) => {
+  return request<CommunicationsWorkspace>("/v1/communications/workspace").catch((error: unknown) => {
     if (demoMode()) return demoCommunicationsWorkspace();
     throw error;
   });
 }
 
 export function loadRecipientCommunicationsWorkspace(): Promise<RecipientCommunicationsWorkspace> {
-  return request("/v1/communications/recipient-workspace").catch((error: unknown) => {
+  return request<RecipientCommunicationsWorkspace>("/v1/communications/recipient-workspace").catch((error: unknown) => {
     if (demoMode()) return demoRecipientCommunicationsWorkspace();
     throw error;
   });
@@ -179,5 +179,5 @@ export function mutateCommunications(
       ? `/v1/communications/senders/${senderVerify[1]}/verify`
       : undefined);
   if (!path) throw new Error("Communications operation is invalid");
-  return request(path, { method: "POST", body: JSON.stringify(input) });
+  return request<Readonly<Record<string, unknown>>>(path, { method: "POST", body: JSON.stringify(input) });
 }
