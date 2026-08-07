@@ -26,7 +26,7 @@ export default async function StaffGradebookPage({
   const { courseRunId } = await params;
   const gradebook = await loadStaffGradebook(courseRunId);
   return (
-    <AppShell session={resolution.session} active="assessments">
+    <AppShell session={resolution.session} active="assess">
       <StaffGradebookWorkspace gradebook={gradebook} />
     </AppShell>
   );
