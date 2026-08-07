@@ -222,7 +222,7 @@
     gap: 0.15rem;
   }
 
-  .top-actions .topbar-tool:first-child {
+  .top-actions > .topbar-tool:first-of-type {
     display: none;
   }
 
