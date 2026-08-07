@@ -12,6 +12,12 @@ export interface CommunicationsWorkspace {
   readonly activeSuppressions: readonly Readonly<Record<string, unknown>>[];
 }
 
+export interface RecipientCommunicationsWorkspace {
+  readonly generatedAt: string;
+  readonly preferences: readonly Readonly<Record<string, unknown>>[];
+  readonly notifications: readonly Readonly<Record<string, unknown>>[];
+}
+
 function demoMode(): boolean {
   return process.env.VEZA_DEMO_MODE === "true";
 }
@@ -58,6 +64,69 @@ function demoCommunicationsWorkspace(): CommunicationsWorkspace {
   };
 }
 
+function demoRecipientCommunicationsWorkspace(): RecipientCommunicationsWorkspace {
+  const now = new Date();
+  return {
+    generatedAt: now.toISOString(),
+    preferences: [
+      {
+        id: "00000000-0000-4000-8000-000000002301",
+        topic_key: "*",
+        channel: "email",
+        state: "enabled",
+        digest_frequency: null,
+        quiet_hours: { timezone: "Africa/Johannesburg", start: "21:00", end: "07:00" },
+        version: 1,
+        updated_at: now.toISOString(),
+      },
+    ],
+    notifications: [
+      {
+        id: "00000000-0000-4000-8000-000000002401",
+        template_key: "learning.assignment-reminder",
+        topic_key: "learning.assignments",
+        policy: "optional",
+        requested_channels: ["email", "push"],
+        status: "completed",
+        scheduled_at: now.toISOString(),
+        created_at: now.toISOString(),
+        completed_at: now.toISOString(),
+        channel: "email",
+        delivery_state: "delivered",
+        content_snapshot: {
+          templateKey: "learning.assignment-reminder",
+          templateVersion: 1,
+          contentType: "text/plain",
+          subject: "Assignment due tomorrow",
+          body: "Data Literacy Lab 2 is due tomorrow at 17:00. Open the course room to review the brief and submit your work.",
+        },
+        activity_at: now.toISOString(),
+      },
+      {
+        id: "00000000-0000-4000-8000-000000002402",
+        template_key: "learning.result-released",
+        topic_key: "learning.results",
+        policy: "required",
+        requested_channels: ["email"],
+        status: "completed",
+        scheduled_at: new Date(now.getTime() - 86_400_000).toISOString(),
+        created_at: new Date(now.getTime() - 86_400_000).toISOString(),
+        completed_at: new Date(now.getTime() - 86_300_000).toISOString(),
+        channel: "email",
+        delivery_state: "sent",
+        content_snapshot: {
+          templateKey: "learning.result-released",
+          templateVersion: 2,
+          contentType: "text/plain",
+          subject: "Your result is available",
+          body: "A released result is now available in your course room and Progress workspace.",
+        },
+        activity_at: new Date(now.getTime() - 86_300_000).toISOString(),
+      },
+    ],
+  };
+}
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return (await requestWorkspaceJson(path, {
     service: "Communications service",
@@ -70,6 +139,13 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 export function loadCommunicationsWorkspace(): Promise<CommunicationsWorkspace> {
   return request("/v1/communications/workspace").catch((error: unknown) => {
     if (demoMode()) return demoCommunicationsWorkspace();
+    throw error;
+  });
+}
+
+export function loadRecipientCommunicationsWorkspace(): Promise<RecipientCommunicationsWorkspace> {
+  return request("/v1/communications/recipient-workspace").catch((error: unknown) => {
+    if (demoMode()) return demoRecipientCommunicationsWorkspace();
     throw error;
   });
 }
