@@ -18,6 +18,7 @@ const evidenceRoles: readonly BaselineRoleKey[] = [
   "auditor",
 ];
 type Query = Readonly<Record<string, string | string[] | undefined>>;
+type AuditPage = Awaited<ReturnType<typeof loadAuditEvents>>;
 
 function single(value: string | string[] | undefined): string | undefined {
   return typeof value === "string" && value.length > 0 ? value : undefined;
@@ -57,8 +58,11 @@ export default async function EvidencePage({
   const institutionId = resolution.session.membership.institutionIds[0];
   if (!institutionId) notFound();
   const selectedFilters = filters(query);
+  const auditPromise: Promise<AuditPage> = resolution.demo
+    ? Promise.resolve(demoAuditEvents(selectedFilters.limit ?? 30) as unknown as AuditPage)
+    : loadAuditEvents(selectedFilters);
   const [auditPage, workspace, catalogue, references] = await Promise.all([
-    resolution.demo ? Promise.resolve(demoAuditEvents(selectedFilters.limit ?? 30)) : loadAuditEvents(selectedFilters),
+    auditPromise,
     loadAcademicEvidenceWorkspace(institutionId),
     loadCatalogue(institutionId),
     loadCatalogueReferences(institutionId),
