@@ -39,7 +39,7 @@ export class CommunicationsController {
   workspace(@Req() request: AuthenticatedRequest) {
     this.authorization.assertPermission(
       request,
-      permissions.tenantRead,
+      permissions.tenantConfigure,
       this.authorization.buildTenantResource(),
     );
     return this.communications.workspace();
