@@ -14,13 +14,14 @@ export default async function StorageAdministrationPage() {
   );
   if (!isAdministrator) redirect("/");
   const workspace = await loadStorageAdministration();
+  const institutionId = session.membership.institutionIds[0];
 
   return (
     <AppShell session={session} active="admin">
       <AdminSectionNavigation active="storage"/>
       <StorageAdministrationWorkspace
         workspace={workspace}
-        institutionId={session.membership.institutionIds[0]}
+        {...(institutionId ? { institutionId } : {})}
       />
     </AppShell>
   );
