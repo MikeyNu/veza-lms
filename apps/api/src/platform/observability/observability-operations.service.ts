@@ -276,7 +276,7 @@ export class ObservabilityOperationsService {
     eventType: string,
     resourceType: string,
     resourceId: string,
-    metadata: Readonly<Record<string, unknown>>,
+    metadata: object,
   ): Promise<void> {
     await client.query(
       `INSERT INTO platform_audit_events (
