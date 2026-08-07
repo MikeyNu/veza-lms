@@ -45,7 +45,7 @@ const definitions: readonly NavigationDefinition[] = [
   { key: "studio", labels: { default: "Studio" }, href: "/studio", icon: "studio", roles: ["tenant-owner", "institution-admin", "curriculum-manager", "course-manager", "instructor"], modules: ["studio-pro"] },
   { key: "assess", labels: { default: "Assess", moderator: "Moderation" }, href: "/assessments", icon: "check", roles: ["tenant-owner", "institution-admin", "registrar", "course-manager", "instructor", "assessor", "moderator"] },
   { key: "calendar", labels: { default: "Calendar", registrar: "Timetable" }, href: "/calendar", icon: "calendar", roles: [...institutionalRoles, "assessor", "moderator", "learner", "guardian-sponsor"] },
-  { key: "communicate", labels: { default: "Communicate", learner: "Messages", instructor: "Messages", "guardian-sponsor": "Messages" }, href: "/communicate", icon: "message", roles: [...institutionalRoles, "learner", "guardian-sponsor"] },
+  { key: "communicate", labels: { default: "Communicate", learner: "Notifications", instructor: "Notifications", "guardian-sponsor": "Notifications" }, href: "/communicate", icon: "message", roles: [...institutionalRoles, "learner", "guardian-sponsor"] },
   { key: "insights", labels: { default: "Insights", learner: "Progress", registrar: "Reports", "guardian-sponsor": "Learner summary" }, href: "/insights", icon: "chart", roles: [...institutionalRoles, "learner", "guardian-sponsor"] },
   { key: "evidence", labels: { default: "Evidence room", auditor: "Evidence room" }, href: "/evidence", icon: "evidence", roles: ["tenant-owner", "institution-admin", "auditor"] },
   { key: "support", labels: { default: "Support cases" }, href: "/support", icon: "support", roles: ["tenant-owner", "institution-admin", "support-agent"] },
