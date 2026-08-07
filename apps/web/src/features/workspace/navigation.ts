@@ -1,4 +1,5 @@
 import type { BaselineRoleKey, TenantModuleKey, WorkspaceSession } from "@veza/contracts";
+import type { Route } from "next";
 import type { IconName } from "../../components/icon";
 
 export type NavigationKey =
@@ -18,7 +19,7 @@ export type NavigationKey =
 export interface NavigationItem {
   readonly key: NavigationKey;
   readonly label: string;
-  readonly href: string;
+  readonly href: Route;
   readonly icon: IconName;
   readonly badge?: number;
 }
@@ -105,7 +106,7 @@ export function workspaceLabel(session: WorkspaceSession): string {
   return labels[role] ?? "Veza workspace";
 }
 
-export function primaryAction(session: WorkspaceSession): Readonly<{ label: string; href: string }> | undefined {
+export function primaryAction(session: WorkspaceSession): Readonly<{ label: string; href: Route }> | undefined {
   const roles = new Set(session.membership.roles);
   const modules = new Set(session.entitlements.filter((item) => item.state !== "disabled").map((item) => item.module));
   if (roles.has("tenant-owner")) {
