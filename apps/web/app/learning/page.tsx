@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import type { BaselineRoleKey } from "@veza/contracts";
 import { AppShell } from "../../src/components/app-shell";
 import { CurriculumGovernanceWorkspace } from "../../src/features/catalogue/curriculum-governance-workspace";
+import { DeliveryStructureActions } from "../../src/features/catalogue/delivery-structure-actions";
 import { LearnerTodayWorkspace } from "../../src/features/learner/learner-workspaces";
 import { primaryRole } from "../../src/features/workspace/navigation";
 import { loadCatalogue, loadCatalogueReferences } from "../../src/server/catalogue-api";
@@ -17,6 +18,13 @@ const staffRoles: readonly BaselineRoleKey[] = [
   "curriculum-manager",
   "course-manager",
   "instructor",
+];
+
+const deliveryManagerRoles: readonly BaselineRoleKey[] = [
+  "tenant-owner",
+  "institution-admin",
+  "registrar",
+  "course-manager",
 ];
 
 export default async function LearningPage() {
@@ -43,6 +51,9 @@ export default async function LearningPage() {
     loadCatalogue(institutionId),
     loadCatalogueReferences(institutionId),
   ]);
+  const canManageDelivery = resolution.session.membership.roles.some((candidate) =>
+    deliveryManagerRoles.includes(candidate),
+  );
 
   return (
     <AppShell session={resolution.session} active="learning">
@@ -52,6 +63,13 @@ export default async function LearningPage() {
         references={references}
         roles={resolution.session.membership.roles}
       />
+      {canManageDelivery ? (
+        <DeliveryStructureActions
+          institutionId={institutionId}
+          workspace={workspace}
+          references={references}
+        />
+      ) : null}
     </AppShell>
   );
 }
