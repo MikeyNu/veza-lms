@@ -1,7 +1,9 @@
 import type { HTMLAttributes, ReactNode } from "react";
 import { cx } from "./utilities.js";
 
-export interface PageHeaderProps extends HTMLAttributes<HTMLElement> {
+type SectionElementAttributes = Omit<HTMLAttributes<HTMLElement>, "title">;
+
+export interface PageHeaderProps extends SectionElementAttributes {
   readonly eyebrow?: ReactNode;
   readonly title: ReactNode;
   readonly description?: ReactNode;
@@ -23,7 +25,7 @@ export function PageHeader({ eyebrow, title, description, actions, metadata, cla
   );
 }
 
-export interface SectionProps extends HTMLAttributes<HTMLElement> {
+export interface SectionProps extends SectionElementAttributes {
   readonly title?: ReactNode;
   readonly description?: ReactNode;
   readonly actions?: ReactNode;
@@ -59,7 +61,7 @@ export interface ContextRailItem {
   readonly onSelect?: () => void;
 }
 
-export interface ContextRailProps extends HTMLAttributes<HTMLElement> {
+export interface ContextRailProps extends SectionElementAttributes {
   readonly label: string;
   readonly title?: ReactNode;
   readonly items: readonly ContextRailItem[];
@@ -88,7 +90,7 @@ export function ContextRail({ label, title, items, footer, className, ...props }
   );
 }
 
-export interface InspectorPanelProps extends HTMLAttributes<HTMLElement> {
+export interface InspectorPanelProps extends SectionElementAttributes {
   readonly title: ReactNode;
   readonly description?: ReactNode;
   readonly actions?: ReactNode;
@@ -117,7 +119,7 @@ export function SplitWorkspace({
   readonly className?: string;
 }) {
   return (
-    <div className={cx("vz-split-workspace", rail && "has-rail", inspector && "has-inspector", className)}>
+    <div className={cx("vz-split-workspace", Boolean(rail) && "has-rail", Boolean(inspector) && "has-inspector", className)}>
       {rail}
       <main className="vz-split-workspace__main">{children}</main>
       {inspector}
