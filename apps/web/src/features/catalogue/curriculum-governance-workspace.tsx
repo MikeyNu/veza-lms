@@ -41,8 +41,12 @@ async function jsonRequest(
 ): Promise<Record<string, unknown>> {
   const response = await fetch(path, {
     method,
-    headers: input ? { "content-type": "application/json" } : undefined,
-    body: input ? JSON.stringify(input) : undefined,
+    ...(input
+      ? {
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify(input),
+        }
+      : {}),
   });
   const body = (await response.json()) as Record<string, unknown>;
   if (!response.ok) {
@@ -247,7 +251,7 @@ function CurriculumLifecycle({
   const basePath = `/api/catalogue/curriculum/${kind}/${item.id}`;
 
   async function analyse() {
-    setReview((current) => ({ ...current, loading: true, error: undefined }));
+    setReview(({ error: _error, ...current }) => ({ ...current, loading: true }));
     try {
       const result = (await jsonRequest(`${basePath}/analysis`, "POST", {
         institutionId,
@@ -263,7 +267,7 @@ function CurriculumLifecycle({
   }
 
   async function history() {
-    setReview((current) => ({ ...current, loading: true, error: undefined }));
+    setReview(({ error: _error, ...current }) => ({ ...current, loading: true }));
     try {
       const result = (await jsonRequest(
         `${basePath}/history?institutionId=${institutionId}`,
@@ -319,10 +323,11 @@ function CurriculumLifecycle({
     try {
       let currentReview = review.analysis;
       if (!currentReview || currentReview.resourceVersion !== item.version) {
-        currentReview = (await jsonRequest(`${basePath}/analysis`, "POST", {
+        const analysedReview = (await jsonRequest(`${basePath}/analysis`, "POST", {
           institutionId,
         })) as unknown as CurriculumAnalysis;
-        setReview((current) => ({ ...current, analysis: currentReview }));
+        currentReview = analysedReview;
+        setReview((current) => ({ ...current, analysis: analysedReview }));
       }
       if (!currentReview.validation.passed) {
         throw new Error("Approval is blocked by the current curriculum review");
@@ -388,7 +393,10 @@ function CurriculumLifecycle({
           {review.error}
         </p>
       ) : null}
-      <ReviewDrawer analysis={review.analysis} history={review.history} />
+      <ReviewDrawer
+        {...(review.analysis ? { analysis: review.analysis } : {})}
+        {...(review.history ? { history: review.history } : {})}
+      />
     </div>
   );
 }
@@ -439,11 +447,11 @@ function CurriculumView({
                 <dl>
                   <div>
                     <dt>Credit</dt>
-                    <dd>{programme.creditValue ?? "—"}</dd>
+                    <dd>{programme.creditValue ?? "Not set"}</dd>
                   </div>
                   <div>
                     <dt>Hours</dt>
-                    <dd>{programme.notionalHours ?? "—"}</dd>
+                    <dd>{programme.notionalHours ?? "Not set"}</dd>
                   </div>
                   <div>
                     <dt>Courses</dt>
@@ -502,7 +510,7 @@ function CurriculumView({
                   </div>
                   <div>
                     <dt>Hours</dt>
-                    <dd>{blueprint.notionalHours ?? "—"}</dd>
+                    <dd>{blueprint.notionalHours ?? "Not set"}</dd>
                   </div>
                 </dl>
                 <em className={`catalogue-state ${blueprint.lifecycle}`}>
@@ -1050,6 +1058,91 @@ function DeliveryView({
               <label>
                 Capacity
                 <input name="capacity" type="number" min="1" />
+              </label>
+            </OperationForm>
+          </ActionPanel>
+
+          <ActionPanel eyebrow="GROUPING" title="Create cohort">
+            <OperationForm
+              path="/api/catalogue/cohorts"
+              institutionId={institutionId}
+              submitLabel="Create cohort"
+              buildInput={(form) => ({
+                code: form.get("code"),
+                title: form.get("title"),
+                startsOn: form.get("startsOn") || undefined,
+                endsOn: form.get("endsOn") || undefined,
+              })}
+            >
+              <label>
+                Cohort code
+                <input name="code" required maxLength={40} />
+              </label>
+              <label>
+                Cohort title
+                <input name="title" required maxLength={160} />
+              </label>
+              <div className="catalogue-form-row">
+                <label>
+                  Starts on
+                  <input name="startsOn" type="date" />
+                </label>
+                <label>
+                  Ends on
+                  <input name="endsOn" type="date" />
+                </label>
+              </div>
+            </OperationForm>
+          </ActionPanel>
+
+          <ActionPanel eyebrow="SECTION" title="Create class">
+            <OperationForm
+              path="/api/catalogue/classes"
+              institutionId={institutionId}
+              submitLabel="Create class"
+              buildInput={(form) => ({
+                courseRunId: form.get("courseRunId"),
+                cohortId: form.get("cohortId") || undefined,
+                code: form.get("code"),
+                title: form.get("title"),
+                capacity: String(form.get("capacity") ?? "").trim() || undefined,
+              })}
+            >
+              <label>
+                Course run
+                <select name="courseRunId" required defaultValue="">
+                  <option value="" disabled>Select run</option>
+                  {workspace.runs
+                    .filter((run) => !["completed", "cancelled"].includes(run.lifecycle))
+                    .map((run) => (
+                      <option key={run.id} value={run.id}>
+                        {run.code} · {run.title}
+                      </option>
+                    ))}
+                </select>
+              </label>
+              <label>
+                Cohort
+                <select name="cohortId" defaultValue="">
+                  <option value="">No cohort</option>
+                  {references.cohorts.map((cohort) => (
+                    <option key={cohort.id} value={cohort.id}>
+                      {cohort.code} · {cohort.title}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                Class code
+                <input name="code" required maxLength={40} />
+              </label>
+              <label>
+                Class title
+                <input name="title" required maxLength={160} />
+              </label>
+              <label>
+                Capacity
+                <input name="capacity" type="number" min="1" max="100000" />
               </label>
             </OperationForm>
           </ActionPanel>
