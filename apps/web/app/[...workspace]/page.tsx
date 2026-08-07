@@ -6,14 +6,13 @@ import { requireWorkspaceSession } from "../../src/server/require-workspace-sess
 
 export const dynamic = "force-dynamic";
 
-const navigationKeys = new Set<NavigationKey>([
-  "people", "learning", "studio", "assess", "calendar", "communicate", "insights", "evidence", "support", "admin", "help",
-]);
+const fallbackKeys = new Set<NavigationKey>(["calendar", "support", "help"]);
 
 export default async function WorkspaceRoute({ params }: { params: Promise<{ workspace: string[] }> }) {
   const [{ workspace }, resolution] = await Promise.all([params, requireWorkspaceSession()]);
+  if (workspace.length !== 1) notFound();
   const section = workspace[0] as NavigationKey | undefined;
-  if (!section || !navigationKeys.has(section)) notFound();
+  if (!section || !fallbackKeys.has(section)) notFound();
   const allowed = resolveNavigation(resolution.session).some((item) => item.key === section);
   if (!allowed) notFound();
   return <AppShell session={resolution.session} active={section}><WorkspaceSectionPage session={resolution.session} section={section as Exclude<NavigationKey, "home">}/></AppShell>;
