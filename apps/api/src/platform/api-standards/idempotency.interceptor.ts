@@ -9,9 +9,11 @@ import {
   type NestInterceptor,
 } from "@nestjs/common";
 import { Reflector } from "@nestjs/core";
+import type { TenantId, UserId } from "@veza/contracts";
 import type { FastifyRequest } from "fastify";
+import type { QueryResultRow } from "pg";
 import { from, mergeMap, of, type Observable } from "rxjs";
-import { CacheService } from "../cache/cache.service.js";
+import { CacheService, type IdempotencyReservation } from "../cache/cache.service.js";
 import { DatabaseService } from "../database/database.service.js";
 import { TenantContext } from "../request-context/tenant-context.js";
 
@@ -22,12 +24,18 @@ interface IdempotentRequest extends FastifyRequest {
   readonly body?: unknown;
 }
 
+interface IdempotencyRow extends QueryResultRow {
+  readonly request_hash: string;
+  readonly state: "processing" | "completed";
+  readonly response_body: Readonly<Record<string, unknown>> | null;
+}
+
 function hashRequest(request: IdempotentRequest): string {
   return createHash("sha256")
     .update(
       JSON.stringify({
         method: request.method,
-        path: request.routeOptions?.url ?? request.url.split("?")[0],
+        path: request.routeOptions?.url ?? request.url.split("?")[0] ?? request.url,
         query: request.query ?? {},
         body: request.body ?? null,
       }),
@@ -37,11 +45,11 @@ function hashRequest(request: IdempotentRequest): string {
 }
 
 function operationKey(request: IdempotentRequest): string {
-  return `${request.method}:${request.routeOptions?.url ?? request.url.split("?")[0]}`;
+  return `${request.method}:${request.routeOptions?.url ?? request.url.split("?")[0] ?? request.url}`;
 }
 
 function responseEnvelope(value: unknown): Readonly<Record<string, unknown>> {
-  return { value: value as unknown };
+  return { value };
 }
 
 @Injectable()
@@ -97,52 +105,54 @@ export class IdempotencyInterceptor implements NestInterceptor {
   }
 
   private async reserve(
-    tenantId: string,
-    actorId: string,
+    tenantId: TenantId,
+    actorId: UserId,
     operation: string,
     key: string,
     requestHash: string,
-  ) {
+  ): Promise<IdempotencyReservation> {
     const cache = await this.cache.reserveIdempotency(operation, key, requestHash);
-    if (cache.state === "completed") return cache;
-    if (cache.state === "processing") return cache;
+    if (cache.state === "completed" || cache.state === "processing") return cache;
     const expiresAt = new Date(Date.now() + 86_400_000);
-    const durable = await this.database.withTenantTransaction(tenantId, async (client) => {
-      const inserted = await client.query(
-        `INSERT INTO api_idempotency_records (
-           tenant_id, idempotency_key, operation_key, request_hash,
-           actor_id, state, expires_at
-         ) VALUES ($1,$2,$3,$4,$5,'processing',$6)
-         ON CONFLICT (tenant_id, operation_key, idempotency_key) DO NOTHING
-         RETURNING id`,
-        [tenantId, key, operation, requestHash, actorId, expiresAt],
-      );
-      if (inserted.rowCount) return { state: "reserved" as const };
-      const existing = await client.query(
-        `SELECT request_hash, state, response_body
-         FROM api_idempotency_records
-         WHERE operation_key = $1 AND idempotency_key = $2
-         FOR UPDATE`,
-        [operation, key],
-      );
-      const row = existing.rows[0];
-      if (!row || row.request_hash !== requestHash) {
-        throw new ConflictException("Idempotency key was used with a different request");
-      }
-      if (row.state === "completed") {
-        return {
-          state: "completed" as const,
-          response: row.response_body as Readonly<Record<string, unknown>>,
-        };
-      }
-      return { state: "processing" as const };
-    });
+    const durable: IdempotencyReservation = await this.database.withTenantTransaction(
+      tenantId,
+      async (client): Promise<IdempotencyReservation> => {
+        const inserted = await client.query(
+          `INSERT INTO api_idempotency_records (
+             tenant_id, idempotency_key, operation_key, request_hash,
+             actor_id, state, expires_at
+           ) VALUES ($1,$2,$3,$4,$5,'processing',$6)
+           ON CONFLICT (tenant_id, operation_key, idempotency_key) DO NOTHING
+           RETURNING id`,
+          [tenantId, key, operation, requestHash, actorId, expiresAt],
+        );
+        if (inserted.rowCount) return { state: "reserved" };
+        const existing = await client.query<IdempotencyRow>(
+          `SELECT request_hash, state, response_body
+           FROM api_idempotency_records
+           WHERE operation_key = $1 AND idempotency_key = $2
+           FOR UPDATE`,
+          [operation, key],
+        );
+        const row = existing.rows[0];
+        if (!row || row.request_hash !== requestHash) {
+          throw new ConflictException("Idempotency key was used with a different request");
+        }
+        if (row.state === "completed") {
+          return {
+            state: "completed",
+            ...(row.response_body ? { response: row.response_body } : {}),
+          };
+        }
+        return { state: "processing" };
+      },
+    );
     if (durable.state !== "reserved") return durable;
-    return { ...cache, state: "reserved" as const };
+    return cache;
   }
 
   private async complete(
-    tenantId: string,
+    tenantId: TenantId,
     operation: string,
     key: string,
     requestHash: string,
