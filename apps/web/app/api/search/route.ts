@@ -1,11 +1,64 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { demoModeEnabled } from "../../../src/server/demo-mode";
+import { demoFixtureIds } from "../../../src/server/demo-workspace-data";
 import { getWebOidcSession } from "../../../src/server/web-session";
 
 const apiBaseUrl = process.env.VEZA_API_BASE_URL ?? "http://localhost:4000";
 const noStore = { "cache-control": "no-store" };
 
+function demoSearch(request: NextRequest) {
+  const query = request.nextUrl.searchParams.get("query")?.trim().toLowerCase() ?? "";
+  const requestedTypes = new Set(
+    (request.nextUrl.searchParams.get("types") ?? "")
+      .split(",")
+      .map((value) => value.trim())
+      .filter(Boolean),
+  );
+  const catalogue = [
+    {
+      id: demoFixtureIds.demoLearnerPersonId,
+      entityType: "person",
+      title: "Naledi Mokoena",
+      subtitle: "Learner · AKH-L-2026-0142",
+      excerpt: "Active learner at Akha Academy",
+      metadata: { href: `/people/${demoFixtureIds.demoLearnerPersonId}` },
+    },
+    {
+      id: demoFixtureIds.courseRunId,
+      entityType: "course-run",
+      title: "Data Literacy Foundations",
+      subtitle: "DL101-S2-26 · In progress",
+      excerpt: "Blended course run for Semester 2 2026",
+      metadata: { href: "/learning" },
+    },
+    {
+      id: demoFixtureIds.lessonId,
+      entityType: "studio-lesson",
+      title: "Reading a dataset critically",
+      subtitle: "Data Literacy Foundations",
+      excerpt: "Separate observation, interpretation and claim.",
+      metadata: { href: `/studio/lessons/${demoFixtureIds.lessonId}` },
+    },
+    {
+      id: "00000000-0000-4000-8000-000000006701",
+      entityType: "media-asset",
+      title: "Source evaluation guide",
+      subtitle: "PDF · Learning content",
+      excerpt: "Four-page reference guide for evaluating evidence sources.",
+      metadata: { href: "/studio" },
+    },
+  ];
+  const items = catalogue.filter((item) => {
+    if (requestedTypes.size > 0 && !requestedTypes.has(item.entityType)) return false;
+    if (!query) return true;
+    return `${item.title} ${item.subtitle} ${item.excerpt}`.toLowerCase().includes(query);
+  });
+  return NextResponse.json({ items, latencyMs: 1 }, { headers: noStore });
+}
+
 export async function GET(request: NextRequest) {
   try {
+    if (demoModeEnabled()) return demoSearch(request);
     const session = await getWebOidcSession();
     if (!session) {
       return NextResponse.json({ message: "Authentication is required." }, { status: 401, headers: noStore });
