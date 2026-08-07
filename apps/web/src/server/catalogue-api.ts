@@ -226,3 +226,30 @@ export function allocateClassStaff(
     body: JSON.stringify(input),
   });
 }
+
+export function governCatalogue(
+  institutionId: string,
+  resource: "programme-versions" | "blueprint-versions" | "runs" | "enrolments" | "classes",
+  resourceId: string,
+  action: "courses" | "requisites" | "lifecycle" | "status" | "staff",
+  input: unknown,
+): Promise<unknown> {
+  if (!uuid.test(resourceId)) throw new Error("Academic resource identifier is invalid");
+  const route = `${resource}:${action}`;
+  if (route === "programme-versions:courses") {
+    return linkProgrammeCourse(institutionId, resourceId, input);
+  }
+  if (route === "blueprint-versions:requisites") {
+    return addCourseRequisite(institutionId, resourceId, input);
+  }
+  if (route === "runs:lifecycle") {
+    return transitionCourseRun(institutionId, resourceId, input);
+  }
+  if (route === "enrolments:status") {
+    return transitionEnrolment(institutionId, resourceId, input);
+  }
+  if (route === "classes:staff") {
+    return allocateClassStaff(institutionId, resourceId, input);
+  }
+  throw new Error("Academic governance operation is not allowed");
+}
