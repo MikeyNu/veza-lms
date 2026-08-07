@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { AppShell } from "../../src/components/app-shell";
-import { AnalyticsWorkspace } from "../../src/features/academic-evidence/academic-workspaces";
+import { AnalyticsReferenceWorkspace } from "../../src/features/analytics/analytics-reference-workspace";
 import { LearnerProgressWorkspace } from "../../src/features/learner/learner-progress-workspace";
 import { primaryRole } from "../../src/features/workspace/navigation";
 import { loadInstitutionAnalytics } from "../../src/server/academic-evidence-api";
@@ -51,9 +51,7 @@ export default async function InsightsPage() {
     "instructor",
     "auditor",
   ];
-  if (!resolution.session.membership.roles.some((candidate) => allowed.includes(candidate))) {
-    notFound();
-  }
+  if (!resolution.session.membership.roles.some((candidate) => allowed.includes(candidate))) notFound();
 
   const institutionId = resolution.session.membership.institutionIds[0];
   if (!institutionId) notFound();
@@ -61,7 +59,7 @@ export default async function InsightsPage() {
 
   return (
     <AppShell session={resolution.session} active="insights">
-      <AnalyticsWorkspace metrics={metrics} />
+      <AnalyticsReferenceWorkspace metrics={metrics} />
     </AppShell>
   );
 }
