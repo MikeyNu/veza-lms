@@ -1,6 +1,6 @@
 import { isSameOriginRequest } from "@veza/oidc-bff";
 import { NextResponse, type NextRequest } from "next/server";
-import { endStaffEngagement } from "../../../../../../../src/server/people-api";
+import { endStaffEngagement } from "@/src/server/people-api";
 
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const noStore = { "cache-control": "no-store" };
