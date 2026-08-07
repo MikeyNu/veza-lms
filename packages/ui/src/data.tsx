@@ -47,7 +47,7 @@ export function DataTable<Row>({
   className,
   ...props
 }: DataTableProps<Row>) {
-  const selectionEnabled = Boolean(selectedRowIds && onSelectionChange);
+  const selectionEnabled = selectedRowIds !== undefined && onSelectionChange !== undefined;
   const allSelected = selectionEnabled && rows.length > 0 && rows.every((row) => selectedRowIds.has(getRowId(row)));
   const someSelected = selectionEnabled && rows.some((row) => selectedRowIds.has(getRowId(row))) && !allSelected;
   return (
@@ -101,7 +101,7 @@ export function DataTable<Row>({
                       type="checkbox"
                       aria-label={`Select row ${rowId}`}
                       checked={selected}
-                      onChange={(event) => onSelectionChange?.(rowId, event.currentTarget.checked)}
+                      onChange={(event) => onSelectionChange(rowId, event.currentTarget.checked)}
                     />
                   </td>
                 ) : null}
