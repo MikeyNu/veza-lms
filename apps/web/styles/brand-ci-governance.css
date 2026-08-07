@@ -1,0 +1,329 @@
+/*
+ * Veza institutional UI governance layer.
+ *
+ * This file is intentionally loaded last. It encodes the approved Brand CI
+ * and the supplied 1672x941 product references as cross-workspace guardrails.
+ * Feature styles may own task-specific layout, but they must not reintroduce
+ * generic SaaS decoration, excessive card chrome, oversized application type,
+ * or low-density marketing composition.
+ */
+
+:root {
+  /* The product references use a darker application-shell navy than CI Slate 900. */
+  --veza-app-shell: #000e2a;
+  --veza-sidebar: var(--veza-app-shell);
+  --veza-sidebar-width: 14.5rem; /* 232px at the reference viewport */
+  --veza-topbar-height: 4rem; /* 64px */
+}
+
+html,
+body,
+.shell,
+.shell-main,
+.main-area,
+.app-main,
+.workspace {
+  background-image: none !important;
+}
+
+body {
+  color: var(--veza-slate-900);
+  font-family: var(--veza-font-sans);
+}
+
+/* Application typography follows the compact CI UI scale, not display scale. */
+.shell-main :where(h1) {
+  font-size: var(--veza-text-2xl);
+  font-weight: var(--veza-weight-semibold);
+  line-height: var(--veza-leading-2xl);
+  letter-spacing: var(--veza-tracking-heading);
+}
+
+.shell-main :where(h2) {
+  font-size: var(--veza-text-xl);
+  font-weight: var(--veza-weight-semibold);
+  line-height: var(--veza-leading-xl);
+  letter-spacing: var(--veza-tracking-heading);
+}
+
+.shell-main :where(h3) {
+  font-size: var(--veza-text-h3);
+  font-weight: var(--veza-weight-medium);
+  line-height: var(--veza-leading-h3);
+}
+
+.shell-main :where(p, li, td, th, label, input, select, textarea, button) {
+  font-family: inherit;
+}
+
+/* Reference geometry: dense full-width institutional workspaces. */
+.shell-main > :where(.workspace, .vz-learning-page, .people-workspace, .person-record, .terminology-workspace, .catalogue-workspace, .storage-administration, .service-account-workspace, .institution-setup, .evidence-room, .vz-communications-page) {
+  width: 100%;
+  max-width: none;
+  margin-inline: 0;
+  padding: 1.5rem clamp(1.5rem, 2vw, 2rem) 2rem;
+}
+
+/* Page headings should read as application headers, never marketing heroes. */
+:where(.foundation-heading, .people-heading, .person-record-heading, .terminology-heading, .catalogue-heading, .storage-heading, .service-account-heading, .setup-heading, .evidence-heading, .vz-page-heading) {
+  gap: 1rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--veza-line);
+}
+
+:where(.foundation-heading, .people-heading, .person-record-heading, .terminology-heading, .catalogue-heading, .storage-heading, .service-account-heading, .setup-heading, .evidence-heading, .vz-page-heading) h1 {
+  margin: 0;
+  font-size: var(--veza-text-2xl);
+  line-height: var(--veza-leading-2xl);
+  letter-spacing: var(--veza-tracking-heading);
+}
+
+:where(.foundation-heading, .people-heading, .person-record-heading, .terminology-heading, .catalogue-heading, .storage-heading, .service-account-heading, .setup-heading, .evidence-heading, .vz-page-heading) p {
+  max-width: 52rem;
+  margin-top: 0.25rem;
+  color: var(--veza-muted);
+  font-size: var(--veza-text-md);
+  line-height: var(--veza-leading-md);
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+/* Eyebrows are informational labels only. They must not become decorative pills. */
+:where(.eyebrow, .dashboard-kicker, .admin-eyebrow) {
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--veza-muted);
+  font-size: var(--veza-text-xs);
+  font-weight: var(--veza-weight-semibold);
+  letter-spacing: var(--veza-tracking-eyebrow);
+}
+
+/* Shared surface discipline. Real grouping may have a border, but not floating-card chrome. */
+.shell-main :where(
+  .card,
+  .panel,
+  .section-state-panel,
+  .metric-card,
+  .setup-card,
+  .person-panel,
+  .people-table-panel,
+  .people-filters,
+  .people-import,
+  .terminology-resolved,
+  .terminology-hierarchy,
+  .terminology-versions,
+  .terminology-create,
+  .catalogue-main-surface,
+  .catalogue-outcomes,
+  .catalogue-actions,
+  .storage-config-panel,
+  .storage-assets-panel,
+  .storage-asset-inspector,
+  .storage-governance-panel,
+  .service-account-directory,
+  .service-account-inspector,
+  .service-account-create,
+  .activation-rail,
+  .setup-inspector,
+  .institution-selector,
+  .evidence-filters,
+  .evidence-stream,
+  .vz-record-surface,
+  .vz-course-register,
+  .vz-lesson-player,
+  .vz-module-rail
+) {
+  border-radius: var(--veza-radius-panel);
+  box-shadow: none;
+}
+
+/* Keep overlays elevated. Application cards themselves stay flat. */
+.shell-main :where(.vz-dialog__frame, .vz-drawer__frame, .vz-popover__content, .command-search-dialog) {
+  box-shadow: var(--veza-shadow-overlay);
+}
+
+/* Tabs are textual with a thin brand underline, as shown in the CI. */
+:where(.catalogue-tabs, .admin-section-navigation, .institution-admin-tools, .vz-tab-bar) {
+  gap: 0;
+  padding: 0;
+  border: 0;
+  border-bottom: 1px solid var(--veza-line);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+:where(.catalogue-tabs button, .admin-section-navigation a, .institution-admin-tools a, .vz-tab-bar button) {
+  min-height: 2.5rem;
+  padding: 0 0.75rem;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  background: transparent;
+  color: var(--veza-muted);
+  box-shadow: none;
+}
+
+:where(.catalogue-tabs button.active, .admin-section-navigation a.active, .institution-admin-tools a[aria-current="page"], .vz-tab-bar button.active) {
+  border-bottom-color: var(--veza-brand);
+  background: transparent;
+  color: var(--veza-brand-strong);
+  box-shadow: none;
+}
+
+/* Semantic chips remain compact and state-driven. */
+:where(.status, .status-chip, .vz-status-pill, .tenant-status) {
+  min-height: 1.5rem;
+  padding: 0.2rem 0.5rem;
+  border-radius: 999px;
+  font-size: var(--veza-text-xs);
+  line-height: 1rem;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+/* Inputs and buttons use CI control geometry. */
+.shell-main :where(input:not([type="checkbox"]):not([type="radio"]), select, textarea, button, .vz-button) {
+  border-radius: var(--veza-radius-tile);
+}
+
+/* The learning reference is a three-pane workspace, not a hero dashboard. */
+.vz-primary-next {
+  min-height: 0;
+  padding: 1rem;
+  border: 1px solid var(--veza-line);
+  border-radius: var(--veza-radius-panel);
+  background: var(--veza-surface);
+  color: var(--veza-ink);
+  box-shadow: none;
+}
+
+.vz-primary-next :where(h2, p) {
+  color: inherit;
+}
+
+.vz-primary-next h2 {
+  margin: 0.35rem 0;
+  font-size: var(--veza-text-xl);
+  line-height: var(--veza-leading-xl);
+}
+
+.vz-primary-next a {
+  border-color: var(--veza-brand);
+  background: var(--veza-brand);
+  color: #fff;
+}
+
+.vz-course-shell {
+  grid-template-columns: minmax(17.5rem, 0.9fr) minmax(0, 2.15fr) minmax(19rem, 1fr);
+  border-radius: var(--veza-radius-panel);
+  box-shadow: none;
+}
+
+.vz-module-rail,
+.vz-course-context {
+  background: var(--veza-surface);
+}
+
+.vz-course-context section {
+  border-radius: 0;
+  box-shadow: none;
+}
+
+/* Studio must remain a true editor: structure, canvas, inspector. */
+:where(.vz-studio-grid, .studio-layout, .lesson-builder-grid) {
+  grid-template-columns: minmax(18rem, 24fr) minmax(0, 49fr) minmax(20rem, 27fr);
+  align-items: start;
+}
+
+:where(.vz-editor-canvas > article, .studio-block, .lesson-block) {
+  border-radius: var(--veza-radius-panel);
+  box-shadow: none;
+}
+
+/* Analytics uses compact analytical objects and dense tables. */
+:where(.vz-metric-grid, .analytics-kpis, .analytics-metric-grid) {
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+:where(.vz-metric-grid > *, .analytics-kpis > *, .analytics-metric-grid > *) {
+  min-height: 0;
+  border-radius: var(--veza-radius-panel);
+  box-shadow: none;
+}
+
+/* Tables remain tables and carry density through the whole product. */
+.shell-main :where(table) {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--veza-text-md);
+}
+
+.shell-main :where(th) {
+  color: var(--veza-muted);
+  font-size: var(--veza-text-xs);
+  font-weight: var(--veza-weight-semibold);
+  letter-spacing: 0.03em;
+}
+
+.shell-main :where(th, td) {
+  min-height: 2.5rem;
+  padding: 0.55rem 0.7rem;
+  border-bottom: 1px solid var(--veza-line);
+}
+
+/* Remove decorative pseudo-art from operational workspaces. */
+.shell-main :where(.workspace, .foundation-home, .vz-learning-page, .people-workspace, .catalogue-workspace, .institution-setup)::before,
+.shell-main :where(.workspace, .foundation-home, .vz-learning-page, .people-workspace, .catalogue-workspace, .institution-setup)::after {
+  display: none !important;
+  content: none !important;
+}
+
+@media (max-width: 1280px) {
+  .vz-course-shell {
+    grid-template-columns: minmax(15rem, 0.85fr) minmax(0, 2.15fr);
+  }
+
+  :where(.vz-metric-grid, .analytics-kpis, .analytics-metric-grid) {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 900px) {
+  .shell-main > :where(.workspace, .vz-learning-page, .people-workspace, .person-record, .terminology-workspace, .catalogue-workspace, .storage-administration, .service-account-workspace, .institution-setup, .evidence-room, .vz-communications-page) {
+    padding: 1rem;
+  }
+
+  :where(.vz-studio-grid, .studio-layout, .lesson-builder-grid, .vz-course-shell) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  :where(.vz-metric-grid, .analytics-kpis, .analytics-metric-grid) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 560px) {
+  :where(.vz-metric-grid, .analytics-kpis, .analytics-metric-grid) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .shell-main :where(h1),
+  :where(.foundation-heading, .people-heading, .person-record-heading, .terminology-heading, .catalogue-heading, .storage-heading, .service-account-heading, .setup-heading, .evidence-heading, .vz-page-heading) h1 {
+    font-size: var(--veza-text-xl);
+    line-height: var(--veza-leading-xl);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .shell-main *,
+  .shell-main *::before,
+  .shell-main *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0ms !important;
+    animation-duration: 0ms !important;
+  }
+}
