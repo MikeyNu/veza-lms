@@ -36,9 +36,9 @@ export default async function PersonPage({
       <PersonRecord person={person} session={resolution.session} />
       <PersonAdministration
         person={person}
-        institutionId={institutionId}
-        references={references}
         canManage={canManage}
+        {...(institutionId ? { institutionId } : {})}
+        {...(references ? { references } : {})}
       />
     </AppShell>
   );
