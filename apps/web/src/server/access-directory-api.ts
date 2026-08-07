@@ -194,7 +194,7 @@ export async function loadAccessDirectory(input: {
   readonly cursor?: string;
 } = {}): Promise<AccessDirectoryPage> {
   if (demoModeEnabled()) {
-    return demoAccessDirectoryPage(input) as AccessDirectoryPage;
+    return demoAccessDirectoryPage(input) as unknown as AccessDirectoryPage;
   }
   const query = new URLSearchParams({ limit: "40" });
   if (input.query) query.set("query", input.query);
