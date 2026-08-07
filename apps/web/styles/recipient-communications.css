@@ -182,7 +182,7 @@
 .vz-notification-state.delivered,
 .vz-notification-state.sent,
 .vz-notification-state.completed {
-  color: var(--veza-positive-strong);
+  color: var(--veza-success-strong);
 }
 
 .vz-notification-state.processing,
@@ -271,7 +271,7 @@
   border: 0;
   border-radius: var(--veza-radius-control);
   background: var(--veza-brand);
-  color: var(--veza-on-brand);
+  color: var(--veza-white);
   font: inherit;
   font-size: var(--veza-text-md);
   font-weight: var(--veza-weight-semibold);
@@ -280,7 +280,7 @@
 
 .vz-recipient-preferences button:hover,
 .vz-recipient-preferences button:focus-visible {
-  background: var(--veza-brand-hover);
+  background: var(--veza-brand-strong);
 }
 
 .vz-recipient-preferences button:disabled {
