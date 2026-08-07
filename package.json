@@ -20,11 +20,14 @@
     "test:workflows": "node scripts/qa/workflow-completeness.mjs",
     "test:integration": "pnpm --filter @veza/api test:integration",
     "test:ci": "turbo run lint typecheck test build",
+    "test:visual:demo": "node scripts/visual/capture-demo-screens.mjs",
+    "test:visual:demo:install": "pnpm exec playwright install chromium",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "build:packages": "pnpm --filter './packages/*' build"
   },
   "devDependencies": {
+    "@playwright/test": "^1.54.2",
     "@types/node": "^24.0.15",
     "prettier": "^3.6.2",
     "turbo": "^2.10.7",
