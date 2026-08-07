@@ -9,6 +9,7 @@ import { requireWorkspaceSession } from "../../../src/server/require-workspace-s
 
 export const dynamic = "force-dynamic";
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+type InstitutionSetupBundle = Awaited<ReturnType<typeof loadTenantSetupBundle>>;
 
 export default async function InstitutionSetupPage({ searchParams }: { searchParams: Promise<{ institution?: string }> }) {
   const [resolution, query] = await Promise.all([requireWorkspaceSession(), searchParams]);
@@ -17,11 +18,11 @@ export default async function InstitutionSetupPage({ searchParams }: { searchPar
   const institutionAdmin = roles.has("institution-admin");
   if (!tenantOwner && !institutionAdmin) notFound();
 
-  let bundle;
+  let bundle: InstitutionSetupBundle;
   if (tenantOwner) {
     const requested = query.institution && uuidPattern.test(query.institution) ? query.institution as InstitutionId : undefined;
     bundle = resolution.demo
-      ? demoInstitutionSetupBundle(requested)
+      ? demoInstitutionSetupBundle(requested) as unknown as InstitutionSetupBundle
       : await loadTenantSetupBundle(requested);
   } else {
     const allowed = resolution.session.membership.institutionIds;
@@ -30,7 +31,7 @@ export default async function InstitutionSetupPage({ searchParams }: { searchPar
       : allowed[0];
     if (!selected) notFound();
     bundle = resolution.demo
-      ? demoScopedInstitutionBundle()
+      ? demoScopedInstitutionBundle() as unknown as InstitutionSetupBundle
       : await loadScopedInstitution(selected);
   }
 
