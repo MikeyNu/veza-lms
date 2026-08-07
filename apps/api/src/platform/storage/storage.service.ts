@@ -225,10 +225,7 @@ export class StorageService {
       ) {
         throw new BadRequestException("File media type is not allowed by the selected policy");
       }
-      await client.query("SELECT app.assert_storage_quota($1,$2)", [
-        context.tenantId,
-        input.byteSize,
-      ]);
+      await client.query("SELECT app.assert_storage_quota($1,$2)", [context.tenantId, input.byteSize]);
       const assetId = randomUUID();
       const now = new Date();
       const datePath = `${now.getUTCFullYear()}/${String(now.getUTCMonth() + 1).padStart(2, "0")}`;
@@ -242,22 +239,9 @@ export class StorageService {
            purpose, object_key, original_filename, media_type, byte_size,
            checksum_sha256, metadata, retained_until, created_by
          ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)`,
-        [
-          assetId,
-          context.tenantId,
-          input.institutionId ?? null,
-          input.namespaceId,
-          input.storagePolicyId,
-          input.purpose,
-          objectKey,
-          input.originalFilename.trim(),
-          input.mediaType,
-          input.byteSize,
-          input.checksumSha256,
-          input.metadata,
-          retainedUntil,
-          context.actorId,
-        ],
+        [assetId, context.tenantId, input.institutionId ?? null, input.namespaceId, input.storagePolicyId,
+          input.purpose, objectKey, input.originalFilename.trim(), input.mediaType, input.byteSize,
+          input.checksumSha256, input.metadata, retainedUntil, context.actorId],
       );
       const sessionId = randomUUID();
       const expiresAt = new Date(Date.now() + 15 * 60_000);
@@ -266,17 +250,9 @@ export class StorageService {
            id, tenant_id, asset_id, upload_method, expected_bytes,
            expected_checksum, expires_at, created_by
          ) VALUES ($1,$2,$3,'single-put',$4,$5,$6,$7)`,
-        [
-          sessionId,
-          context.tenantId,
-          assetId,
-          input.byteSize,
-          input.checksumSha256,
-          expiresAt,
-          context.actorId,
-        ],
+        [sessionId, context.tenantId, assetId, input.byteSize, input.checksumSha256, expiresAt, context.actorId],
       );
-      const upload = this.signer.presign({
+      const upload = await this.signer.presign({
         bucket: namespace.bucket_key,
         key: objectKey,
         method: "PUT",
@@ -284,23 +260,15 @@ export class StorageService {
         contentType: input.mediaType,
         checksumSha256: input.checksumSha256,
       });
-      await appendAudit(
-        client,
-        context.tenantId,
-        context.actorId,
-        context.correlationId,
-        "storage.media-upload.created",
-        "media-asset",
-        assetId,
-        {
+      await appendAudit(client, context.tenantId, context.actorId, context.correlationId,
+        "storage.media-upload.created", "media-asset", assetId, {
           purpose: input.purpose,
           mediaType: input.mediaType,
           byteSize: input.byteSize,
           checksumSha256: input.checksumSha256,
           namespaceId: input.namespaceId,
           storagePolicyId: input.storagePolicyId,
-        },
-      );
+        });
       return {
         assetId,
         uploadSessionId: sessionId,
@@ -333,10 +301,7 @@ export class StorageService {
       if (session.version !== input.expectedVersion) {
         throw new ConflictException("Media upload session changed since it was loaded");
       }
-      if (
-        Number(session.expected_bytes) !== input.acknowledgedBytes ||
-        session.expected_checksum !== input.checksumSha256
-      ) {
+      if (Number(session.expected_bytes) !== input.acknowledgedBytes || session.expected_checksum !== input.checksumSha256) {
         throw new BadRequestException("Upload completion evidence does not match the registered file");
       }
       await client.query(
@@ -356,11 +321,7 @@ export class StorageService {
         "SELECT app.enqueue_media_processing($1) enqueued",
         [session.asset_id],
       );
-      return {
-        assetId: session.asset_id,
-        status: "processing",
-        processingJobs: Number(jobs.rows[0]?.enqueued ?? 0),
-      };
+      return { assetId: session.asset_id, status: "processing", processingJobs: Number(jobs.rows[0]?.enqueued ?? 0) };
     });
   }
 
@@ -429,9 +390,7 @@ export class StorageService {
         [assetId, renditionKey ?? null],
       );
       const row = result.rows[0];
-      if (!row || row.status !== "ready") {
-        throw new NotFoundException("Ready media asset was not found");
-      }
+      if (!row || row.status !== "ready") throw new NotFoundException("Ready media asset was not found");
       if (!row.cdn_domain) throw new ConflictException("Tenant media CDN is not configured");
       const objectKey = row.rendition_object_key ?? row.object_key;
       const bytes = Number(row.rendition_byte_size ?? row.byte_size);
@@ -442,13 +401,8 @@ export class StorageService {
            occurred_at, source_reference, metadata
          ) VALUES ($1,$2,'egress-byte',$3,'byte',now(),$4,$5)
          ON CONFLICT DO NOTHING`,
-        [
-          context.tenantId,
-          assetId,
-          bytes,
-          `delivery:${assetId}:${renditionKey ?? "source"}:${signed.expiresAt}`,
-          { renditionKey: renditionKey ?? null },
-        ],
+        [context.tenantId, assetId, bytes, `delivery:${assetId}:${renditionKey ?? "source"}:${signed.expiresAt}`,
+          { renditionKey: renditionKey ?? null }],
       );
       return signed;
     });
@@ -464,17 +418,8 @@ export class StorageService {
          ) VALUES ($1,$2,$3,$4,$5,$6,
            CASE WHEN $6 = 'granted' THEN now() ELSE NULL END,$7,$8,$9)
          RETURNING id, version`,
-        [
-          context.tenantId,
-          input.institutionId,
-          input.subjectPersonId,
-          input.recordingContext.trim(),
-          input.purpose.trim(),
-          input.state,
-          input.expiresAt ?? null,
-          input.evidence,
-          context.actorId,
-        ],
+        [context.tenantId, input.institutionId, input.subjectPersonId, input.recordingContext.trim(),
+          input.purpose.trim(), input.state, input.expiresAt ?? null, input.evidence, context.actorId],
       ),
     );
     return { id: result.rows[0].id, state: input.state, version: result.rows[0].version };
@@ -499,14 +444,9 @@ export class StorageService {
 
   async requestDeletion(assetId: string, input: RequestMediaDeletionDto) {
     const context = this.context.require();
-    const executeAfter = input.executeAfter
-      ? new Date(input.executeAfter)
-      : new Date(Date.now() + 24 * 60 * 60_000);
+    const executeAfter = input.executeAfter ? new Date(input.executeAfter) : new Date(Date.now() + 24 * 60 * 60_000);
     return this.database.withTenantTransaction(context.tenantId, async (client) => {
-      const asset = await client.query(
-        `SELECT legal_hold, status FROM media_assets WHERE id = $1 FOR UPDATE`,
-        [assetId],
-      );
+      const asset = await client.query(`SELECT legal_hold, status FROM media_assets WHERE id = $1 FOR UPDATE`, [assetId]);
       if (!asset.rowCount) throw new NotFoundException("Media asset was not found");
       if (asset.rows[0].legal_hold) throw new ConflictException("Media asset is under legal hold");
       const result = await client.query<{ id: string } & QueryResultRow>(
@@ -552,12 +492,7 @@ export class StorageService {
          ON CONFLICT (tenant_id, asset_id, job_type)
          DO UPDATE SET state = 'pending', next_attempt_at = EXCLUDED.next_attempt_at,
                        last_error = NULL`,
-        [
-          context.tenantId,
-          request.asset_id,
-          { deletionRequestId: requestId, reason: input.reason.trim() },
-          request.execute_after,
-        ],
+        [context.tenantId, request.asset_id, { deletionRequestId: requestId, reason: input.reason.trim() }, request.execute_after],
       );
       return { id: requestId, status: "approved" };
     });
