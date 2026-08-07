@@ -3,6 +3,8 @@ import type { TenantId } from "@veza/contracts";
 import { Pool, type PoolClient, type PoolConfig, type QueryResult, type QueryResultRow } from "pg";
 import type { TransactionWork } from "./database.types.js";
 
+const tenantIdPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
 function poolConfig(connectionString: string | undefined, applicationName: string): PoolConfig {
   return {
     ...(connectionString ? { connectionString } : {}),
@@ -14,6 +16,11 @@ function poolConfig(connectionString: string | undefined, applicationName: strin
   };
 }
 
+function validateTenantId(tenantId: string): TenantId {
+  if (!tenantIdPattern.test(tenantId)) throw new Error("Tenant identifier is invalid");
+  return tenantId as TenantId;
+}
+
 @Injectable()
 export class DatabaseService implements OnApplicationShutdown {
   private readonly applicationPool = new Pool(poolConfig(process.env.DATABASE_URL, "veza-api-application"));
@@ -21,9 +28,10 @@ export class DatabaseService implements OnApplicationShutdown {
     poolConfig(process.env.CONTROL_PLANE_DATABASE_URL ?? process.env.DATABASE_URL, "veza-api-control-plane"),
   );
 
-  async withTenantTransaction<TResult>(tenantId: TenantId, work: TransactionWork<TResult>): Promise<TResult> {
+  async withTenantTransaction<TResult>(tenantId: TenantId | string, work: TransactionWork<TResult>): Promise<TResult> {
+    const validatedTenantId = validateTenantId(tenantId);
     return this.withTransaction(this.applicationPool, async (client) => {
-      await client.query("SELECT set_config('app.tenant_id', $1, true)", [tenantId]);
+      await client.query("SELECT set_config('app.tenant_id', $1, true)", [validatedTenantId]);
       await client.query("SELECT set_config('app.data_plane', 'application', true)");
       return work(client);
     });
