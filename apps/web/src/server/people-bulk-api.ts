@@ -1,3 +1,5 @@
+import { demoPeopleBulkReceipt } from "./demo-direct-data";
+import { demoModeEnabled } from "./demo-mode";
 import { getWebOidcSession } from "./web-session";
 
 export interface PeopleBulkStatusInput {
@@ -25,6 +27,9 @@ function isReceipt(value: unknown): value is PeopleBulkStatusReceipt {
 }
 
 export async function changePeopleBulkStatus(input: PeopleBulkStatusInput): Promise<PeopleBulkStatusReceipt> {
+  if (demoModeEnabled()) {
+    return demoPeopleBulkReceipt(input);
+  }
   const session = await getWebOidcSession();
   if (!session) throw new Error("Workspace authentication is required");
   const baseUrl = process.env.VEZA_API_BASE_URL ?? "http://localhost:4000";
