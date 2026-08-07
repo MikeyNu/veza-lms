@@ -1,6 +1,11 @@
 {
   "$schema": "https://turbo.build/schema.json",
   "ui": "tui",
+  "globalEnv": [
+    "VEZA_DEMO_MODE",
+    "VEZA_DEMO_DATASET",
+    "VEZA_DEMO_ROLE_SWITCHER"
+  ],
   "tasks": {
     "build": { "dependsOn": ["^build"], "outputs": [".next/**", "dist/**", "!.next/cache/**"] },
     "dev": { "cache": false, "persistent": true },
