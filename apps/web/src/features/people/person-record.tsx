@@ -263,6 +263,7 @@ export function PersonRecord({
   session: WorkspaceSession;
 }) {
   const institutionId = session.membership.institutionIds[0];
+  const institutionScope = institutionId ? { institutionId } : {};
   return (
     <div className="person-record">
       <header className="person-record-heading">
@@ -300,8 +301,8 @@ export function PersonRecord({
         </article>
       </section>
       <div className="person-grid">
-        <ProfileForm person={person} institutionId={institutionId} kind="learner" />
-        <ProfileForm person={person} institutionId={institutionId} kind="staff" />
+        <ProfileForm person={person} {...institutionScope} kind="learner" />
+        <ProfileForm person={person} {...institutionScope} kind="staff" />
         <section className="person-panel relationship-list">
           <header>
             <div>
@@ -346,7 +347,7 @@ export function PersonRecord({
             </div>
           )}
         </section>
-        <RelationshipForm person={person} institutionId={institutionId} />
+        <RelationshipForm person={person} {...institutionScope} />
         <RelationshipLifecycle person={person} />
       </div>
       <section className="person-panel contact-panel">
