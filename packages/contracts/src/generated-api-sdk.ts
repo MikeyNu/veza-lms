@@ -34,7 +34,7 @@ export class VezaApiError extends Error {
 
 export class VezaApiClient {
   private readonly baseUrl: string;
-  private readonly accessToken?: string;
+  private readonly accessToken: string | undefined;
   private readonly fetcher: typeof globalThis.fetch;
 
   constructor(options: VezaApiClientOptions) {
@@ -119,7 +119,7 @@ export class VezaApiClient {
         ...(options?.idempotencyKey ? { "idempotency-key": options.idempotencyKey } : {}),
         ...options?.headers,
       },
-      signal: options?.signal,
+      ...(options?.signal ? { signal: options.signal } : {}),
     });
     const text = await response.text();
     const body = text ? (JSON.parse(text) as T | VezaApiProblem) : undefined;
