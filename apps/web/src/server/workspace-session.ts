@@ -48,11 +48,12 @@ function demoSession(): WorkspaceSession {
 
   const roles = requested as unknown as WorkspaceSession["membership"]["roles"];
   const institutional = requested.some((role) => role !== "learner" && role !== "guardian-sponsor");
+  const primaryRoleLabel = requested[0]?.replaceAll("-", " ") ?? "User";
   return {
     ...demoLearnerSession,
     principal: {
       ...demoLearnerSession.principal,
-      displayName: `Demo ${requested[0].replaceAll("-", " ")}`,
+      displayName: `Demo ${primaryRoleLabel}`,
     },
     membership: {
       ...demoLearnerSession.membership,
