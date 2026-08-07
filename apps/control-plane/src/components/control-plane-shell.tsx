@@ -23,7 +23,10 @@ function initials(name: string | undefined): string {
 export function ControlPlaneShell({ children, active, principal, environmentLabel }: { children: ReactNode; active: string; principal: AuthenticatedPrincipal; environmentLabel: string }) {
   return <div className="cp-shell">
     <aside className="cp-sidebar">
-      <Link className="cp-brand" href="/"><span>V</span><div><strong>veza</strong><small>CONTROL PLANE</small></div></Link>
+      <Link className="cp-brand" href="/">
+        <img src="/branding/veza-app-icon-48.png" width="32" height="32" alt="" aria-hidden="true" />
+        <div><strong>veza</strong><small>Control Plane</small></div>
+      </Link>
       <p className="cp-nav-label">Service operations</p>
       <nav aria-label="Control-plane navigation">{navigation.map((item) =>
         <Link className={active === item.href ? "cp-nav-item active" : "cp-nav-item"} href={item.href} key={item.href}><small>{item.number}</small><span>{item.label}</span></Link>)}</nav>
