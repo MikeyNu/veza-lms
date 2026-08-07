@@ -12,7 +12,7 @@ import {
   NotFoundException,
   UnauthorizedException,
 } from "@nestjs/common";
-import type { AuthenticatedPrincipal } from "@veza/contracts";
+import type { AuthenticatedPrincipal, UserId } from "@veza/contracts";
 import { decodeJwt, jwtVerify, SignJWT } from "jose";
 import { DatabaseService } from "../database/database.service.js";
 import { TenantContext } from "../request-context/tenant-context.js";
@@ -27,6 +27,7 @@ interface InternalClaims {
   readonly iss?: string;
   readonly sub?: string;
   readonly aud?: string | readonly string[];
+  readonly iat?: number;
   readonly tenant_id?: string;
   readonly service_account_id?: string;
   readonly client_id?: string;
@@ -278,13 +279,13 @@ export class ServiceAccountService {
       throw new UnauthorizedException("Service account is inactive");
     }
     return {
-      userId: account.user_id,
-      issuer,
+      userId: account.user_id as UserId,
       subject: claims.sub,
-      email: account.email ?? undefined,
-      displayName: account.display_name ?? account.client_id,
-      status: "active",
+      ...(account.email ? { email: String(account.email) } : {}),
+      displayName: String(account.display_name ?? account.client_id),
+      platformRoles: [],
       authenticationMethods: ["client_credentials"],
+      issuedAt: new Date((claims.iat ?? Math.floor(Date.now() / 1000)) * 1000).toISOString(),
     };
   }
 
