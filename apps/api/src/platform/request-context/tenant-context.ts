@@ -14,6 +14,10 @@ export class TenantContext {
     return this.storage.getStore();
   }
 
+  optional(): RequestContext | undefined {
+    return this.current();
+  }
+
   require(): RequestContext {
     const context = this.current();
     if (!context) throw new Error("Tenant context is required for this operation");
