@@ -1,0 +1,176 @@
+.help-workspace {
+  display: grid;
+  gap: 1.5rem;
+}
+
+.help-heading {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--veza-line);
+}
+
+.help-heading h1,
+.help-heading p {
+  margin: 0;
+}
+
+.help-heading p {
+  max-width: 48rem;
+  margin-top: 0.35rem;
+  color: var(--veza-muted);
+}
+
+.help-support-link {
+  display: inline-flex;
+  min-height: 2.25rem;
+  align-items: center;
+  padding: 0 0.75rem;
+  border: 1px solid var(--veza-brand);
+  border-radius: var(--veza-radius-tile);
+  color: var(--veza-brand-strong);
+  font-size: var(--veza-text-sm);
+  font-weight: var(--veza-weight-semibold);
+}
+
+.help-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.65fr) minmax(18rem, 0.75fr);
+  gap: 1.5rem;
+  align-items: start;
+}
+
+.help-directory > header {
+  padding-bottom: 0.85rem;
+}
+
+.help-directory > header h2,
+.help-directory > header p,
+.help-guidance h2,
+.help-security-note p {
+  margin: 0;
+}
+
+.help-directory > header p {
+  margin-top: 0.25rem;
+  color: var(--veza-muted);
+  font-size: var(--veza-text-md);
+}
+
+.help-directory nav {
+  border-top: 1px solid var(--veza-line);
+}
+
+.help-directory nav a {
+  display: grid;
+  grid-template-columns: minmax(13rem, 0.9fr) minmax(0, 1.1fr);
+  gap: 1rem;
+  align-items: center;
+  min-height: 3.75rem;
+  padding: 0.7rem 0;
+  border-bottom: 1px solid var(--veza-line);
+}
+
+.help-directory nav a:hover {
+  color: var(--veza-brand-strong);
+}
+
+.help-directory nav span {
+  font-weight: var(--veza-weight-semibold);
+}
+
+.help-directory nav small {
+  color: var(--veza-muted);
+  font-size: var(--veza-text-sm);
+}
+
+.help-guidance {
+  padding-left: 1.25rem;
+  border-left: 1px solid var(--veza-line);
+}
+
+.help-guidance ol {
+  display: grid;
+  gap: 0;
+  margin: 0.85rem 0 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: help-step;
+}
+
+.help-guidance li {
+  position: relative;
+  display: grid;
+  gap: 0.2rem;
+  padding: 0.8rem 0 0.8rem 2rem;
+  border-top: 1px solid var(--veza-line);
+  counter-increment: help-step;
+}
+
+.help-guidance li::before {
+  position: absolute;
+  top: 0.85rem;
+  left: 0;
+  display: grid;
+  width: 1.35rem;
+  height: 1.35rem;
+  place-items: center;
+  border: 1px solid var(--veza-line-strong);
+  border-radius: 50%;
+  color: var(--veza-muted);
+  content: counter(help-step);
+  font-size: var(--veza-text-xs);
+  font-weight: var(--veza-weight-semibold);
+}
+
+.help-guidance li span {
+  color: var(--veza-muted);
+  font-size: var(--veza-text-sm);
+  line-height: var(--veza-leading-md);
+}
+
+.help-security-note {
+  margin-top: 1rem;
+  padding: 0.85rem 0;
+  border-top: 1px solid var(--veza-line);
+  border-bottom: 1px solid var(--veza-line);
+}
+
+.help-security-note strong {
+  color: var(--veza-brand-strong);
+  font-size: var(--veza-text-sm);
+}
+
+.help-security-note p {
+  margin-top: 0.25rem;
+  color: var(--veza-muted);
+  font-size: var(--veza-text-sm);
+  line-height: var(--veza-leading-md);
+}
+
+@media (max-width: 900px) {
+  .help-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .help-guidance {
+    padding-left: 0;
+    padding-top: 1rem;
+    border-top: 1px solid var(--veza-line);
+    border-left: 0;
+  }
+}
+
+@media (max-width: 640px) {
+  .help-heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .help-directory nav a {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.2rem;
+  }
+}
