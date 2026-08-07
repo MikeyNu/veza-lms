@@ -218,7 +218,7 @@ export function mutateStudio(
 }
 
 export function loadLearnerToday(): Promise<LearnerHome> {
-  return request("/v1/learner/home").catch((error: unknown) => {
+  return request<LearnerHome>("/v1/learner/home").catch((error: unknown) => {
     if (demoMode()) return demoLearnerHome();
     throw error;
   });
@@ -229,7 +229,7 @@ export function loadLearnerCourseRoom(
   lowBandwidth = false,
 ): Promise<LearnerCourseRoom> {
   requireUuid(enrolmentId, "Enrolment");
-  return request(
+  return request<LearnerCourseRoom>(
     `/v1/learner/enrolments/${enrolmentId}/course-room?lowBandwidth=${lowBandwidth ? "true" : "false"}`,
   ).catch((error: unknown) => {
     if (demoMode()) return demoLearnerCourseRoom(enrolmentId);
