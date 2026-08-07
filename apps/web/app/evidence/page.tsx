@@ -7,6 +7,7 @@ import { EvidenceRoom } from "../../src/features/evidence/evidence-room";
 import { loadAcademicEvidenceWorkspace } from "../../src/server/academic-evidence-api";
 import { loadAuditEvents, type AuditFilters } from "../../src/server/audit-api";
 import { loadCatalogue, loadCatalogueReferences } from "../../src/server/catalogue-api";
+import { demoAuditEvents } from "../../src/server/demo-direct-data";
 import { requireWorkspaceSession } from "../../src/server/require-workspace-session";
 
 export const dynamic = "force-dynamic";
@@ -57,7 +58,7 @@ export default async function EvidencePage({
   if (!institutionId) notFound();
   const selectedFilters = filters(query);
   const [auditPage, workspace, catalogue, references] = await Promise.all([
-    loadAuditEvents(selectedFilters),
+    resolution.demo ? Promise.resolve(demoAuditEvents(selectedFilters.limit ?? 30)) : loadAuditEvents(selectedFilters),
     loadAcademicEvidenceWorkspace(institutionId),
     loadCatalogue(institutionId),
     loadCatalogueReferences(institutionId),
