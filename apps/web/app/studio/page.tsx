@@ -12,23 +12,6 @@ export const dynamic = "force-dynamic";
 
 export default async function StudioPage() {
   const resolution = await requireWorkspaceSession();
-  if (resolution.demo) {
-    return (
-      <AppShell session={resolution.session} active="studio">
-        <section className="vz-learning-page" aria-labelledby="studio-demo-title">
-          <header className="vz-page-heading">
-            <div>
-              <p>STUDIO</p>
-              <h1 id="studio-demo-title">Studio preview</h1>
-              <span>
-                Studio authoring requires authenticated institutional context. Demo mode shows navigation and layout only.
-              </span>
-            </div>
-          </header>
-        </section>
-      </AppShell>
-    );
-  }
   const allowed = [
     "tenant-owner",
     "institution-admin",
