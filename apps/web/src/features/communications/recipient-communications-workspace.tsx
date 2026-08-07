@@ -181,7 +181,7 @@ export function RecipientCommunicationsWorkspaceView({
               <form key={channel} onSubmit={submit}>
                 <input type="hidden" name="channel" value={channel} />
                 <div className="vz-preference-channel">
-                  <strong>{channel === "sms" ? "SMS" : channel[0].toUpperCase() + channel.slice(1)}</strong>
+                  <strong>{channel === "sms" ? "SMS" : channel.charAt(0).toUpperCase() + channel.slice(1)}</strong>
                   <span>{preference ? `Updated ${formatDate(preference.updated_at, timezone)}` : "Using institution default"}</span>
                 </div>
                 <label>
