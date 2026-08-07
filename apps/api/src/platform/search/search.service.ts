@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { BadRequestException, Injectable } from "@nestjs/common";
-import type { TenantMembershipSummary } from "@veza/contracts";
+import type { InstitutionId, TenantMembershipSummary } from "@veza/contracts";
 import { DatabaseService } from "../database/database.service.js";
 import { TenantContext } from "../request-context/tenant-context.js";
 import type { SearchQueryDto } from "./search.dto.js";
@@ -45,8 +45,9 @@ export class SearchService {
     const query = input.query.trim().replace(/\s+/g, " ");
     const limit = input.limit ?? 20;
     const cursor = decodeCursor(input.cursor);
-    if (input.institutionId && !membership.roles.includes("tenant-owner")) {
-      if (!membership.institutionIds.includes(input.institutionId)) {
+    const institutionId = input.institutionId as InstitutionId | undefined;
+    if (institutionId && !membership.roles.includes("tenant-owner")) {
+      if (!membership.institutionIds.includes(institutionId)) {
         throw new BadRequestException("Search institution is outside the active membership scope");
       }
     }
@@ -124,7 +125,7 @@ export class SearchService {
           membership.roles,
           membership.roles.includes("tenant-owner"),
           membership.institutionIds,
-          input.institutionId ?? null,
+          institutionId ?? null,
           input.entityTypes ?? [],
           cursor?.score ?? null,
           cursor?.title ?? "",
@@ -148,7 +149,7 @@ export class SearchService {
           query.length,
           {
             entityTypes: input.entityTypes ?? [],
-            institutionId: input.institutionId ?? null,
+            institutionId: institutionId ?? null,
           },
           page.length,
           latencyMs,
