@@ -49,7 +49,7 @@ export default async function DeliveryFailuresPage({ searchParams }: { searchPar
       principal={session.principal}
       environmentLabel={process.env.VEZA_ENVIRONMENT_LABEL ?? "Local development"}
     >
-      <DeadLetterQueue queue={queue} filters={filters} selected={selected}/>
+      <DeadLetterQueue queue={queue} filters={filters} {...(selected ? { selected } : {})}/>
     </ControlPlaneShell>
   );
 }

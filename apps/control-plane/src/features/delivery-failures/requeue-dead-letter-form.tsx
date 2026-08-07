@@ -1,5 +1,6 @@
 "use client";
 
+import type { Route } from "next";
 import { useRouter } from "next/navigation";
 import { useRef, useState, type FormEvent } from "react";
 
@@ -83,7 +84,7 @@ export function RequeueDeadLetterForm({ eventId, returnHref }: { eventId: string
 
       setState("completed");
       setMessage("Event returned to the delivery queue. The worker will claim it as a new delivery attempt.");
-      router.replace(returnHref);
+      router.replace(returnHref as Route);
       router.refresh();
     } catch {
       setState("error");

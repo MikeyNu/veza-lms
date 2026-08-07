@@ -24,5 +24,5 @@ export default async function TenantsPage({ searchParams }: { searchParams: Prom
   const selected = selectedId && uuidPattern.test(selectedId)
     ? fleet.items.find((tenant) => tenant.id === selectedId) ?? await loadTenantDetail(session.oidc.accessToken, selectedId as TenantId)
     : fleet.items[0];
-  return <ControlPlaneShell active="/tenants" principal={session.principal} environmentLabel={process.env.VEZA_ENVIRONMENT_LABEL ?? "Local development"}><TenantFleet fleet={fleet} selected={selected} filters={filters}/></ControlPlaneShell>;
+  return <ControlPlaneShell active="/tenants" principal={session.principal} environmentLabel={process.env.VEZA_ENVIRONMENT_LABEL ?? "Local development"}><TenantFleet fleet={fleet} filters={filters} {...(selected ? { selected } : {})}/></ControlPlaneShell>;
 }

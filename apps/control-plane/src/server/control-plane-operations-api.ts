@@ -93,6 +93,7 @@ export function mutateControlPlaneOperations(
   let method = "POST";
   if (tenant) {
     const [, tenantId, action] = tenant;
+    if (!tenantId || !action) throw new Error("Control-plane tenant operation is invalid");
     const suffix = action === "profile" ? "profile"
       : action === "health" ? "health"
       : action === "lifecycle" ? "lifecycle"

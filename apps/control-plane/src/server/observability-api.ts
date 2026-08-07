@@ -9,7 +9,7 @@ export interface ObservabilityOverview {
   readonly alertRules: readonly Readonly<Record<string, unknown>>[];
   readonly alertEvents: readonly Readonly<Record<string, unknown>>[];
   readonly errors: readonly Readonly<Record<string, unknown>>[];
-  readonly backlog: Readonly<Record<string, unknown>>;
+  readonly backlog: Readonly<Record<string, number>>;
 }
 
 async function request<T>(

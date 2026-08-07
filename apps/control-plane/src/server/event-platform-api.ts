@@ -99,6 +99,6 @@ export async function mutateEventPlatform(
   return request(accessToken, path, {
     method: "POST",
     body: JSON.stringify(input),
-    headers: idempotencyKey ? { "idempotency-key": idempotencyKey } : undefined,
+    ...(idempotencyKey ? { headers: { "idempotency-key": idempotencyKey } } : {}),
   });
 }

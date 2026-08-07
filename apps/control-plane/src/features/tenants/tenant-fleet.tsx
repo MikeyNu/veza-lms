@@ -5,13 +5,13 @@ function humanize(value: string): string {
   return value.replaceAll("-", " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
 
-function nextHref(filters: TenantFleetFilters, cursor: string): string {
+function nextHref(filters: TenantFleetFilters, cursor: string) {
   const params = new URLSearchParams();
   if (filters.query) params.set("query", filters.query);
   if (filters.status) params.set("status", filters.status);
   if (filters.planKey) params.set("planKey", filters.planKey);
   params.set("cursor", cursor);
-  return `/tenants?${params.toString()}`;
+  return { pathname: "/tenants", query: Object.fromEntries(params.entries()) };
 }
 
 export function TenantFleet({ fleet, selected, filters }: { fleet: TenantFleetPage; selected?: TenantFleetItem; filters: TenantFleetFilters }) {
