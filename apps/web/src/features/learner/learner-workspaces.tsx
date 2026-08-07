@@ -1,9 +1,10 @@
 "use client";
 
-import Link from "next/link";
-import { useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
 import type { LearnerCourseRoom, LearnerHome, StudioBlock } from "@veza/contracts";
+import type { Route } from "next";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useMemo, useState } from "react";
 
 async function post(operation: string, input: Record<string, unknown>): Promise<Record<string, unknown>> {
   const response = await fetch(`/api/learner/${operation}`, {
@@ -21,6 +22,10 @@ function formatDate(value?: string): string {
   return new Intl.DateTimeFormat("en-ZA", { dateStyle: "medium", timeStyle: value.includes("T") ? "short" : undefined, timeZone: "Africa/Johannesburg" }).format(new Date(value));
 }
 
+function internalRoute(value: string): Route {
+  return value.startsWith("/") && !value.startsWith("//") ? value as Route : "/";
+}
+
 export function LearnerTodayWorkspace({ home }: { home: LearnerHome }) {
   return (
     <div className="vz-learning-page vz-learner-home">
@@ -31,16 +36,16 @@ export function LearnerTodayWorkspace({ home }: { home: LearnerHome }) {
       <section className="vz-next-grid">
         <article className="vz-primary-next">
           <span>Next action</span>
-          {home.today[0] ? <><h2>{home.today[0].title}</h2><p>{home.today[0].courseTitle}</p><Link href={home.today[0].href}>Continue</Link></> : <><h2>You are up to date</h2><p>No available lesson, event or due activity requires attention.</p></>}
+          {home.today[0] ? <><h2>{home.today[0].title}</h2><p>{home.today[0].courseTitle}</p><Link href={internalRoute(home.today[0].href)}>Continue</Link></> : <><h2>You are up to date</h2><p>No available lesson, event or due activity requires attention.</p></>}
         </article>
         <div className="vz-today-list">
-          {home.today.slice(1, 6).map((item) => <Link key={`${item.kind}-${item.id}`} href={item.href}><span>{item.kind}</span><strong>{item.title}</strong><small>{item.courseTitle} · {formatDate(item.dueAt ?? item.startsAt)}</small></Link>)}
+          {home.today.slice(1, 6).map((item) => <Link key={`${item.kind}-${item.id}`} href={internalRoute(item.href)}><span>{item.kind}</span><strong>{item.title}</strong><small>{item.courseTitle} · {formatDate(item.dueAt ?? item.startsAt)}</small></Link>)}
         </div>
       </section>
       <section className="vz-course-register">
         <header><div><p>COURSES</p><h2>Your current learning</h2></div><span>{home.courses.length}</span></header>
         <div className="vz-course-cards">
-          {home.courses.map((course) => <Link href={`/courses/${course.enrolmentId}`} key={course.enrolmentId}>
+          {home.courses.map((course) => <Link href={`/courses/${course.enrolmentId}` as Route} key={course.enrolmentId}>
             <div className="vz-course-progress"><span style={{ width: `${Math.max(0, Math.min(100, course.progressPercent))}%` }} /></div>
             <small>{course.deliveryMode.replaceAll("_", " ")}</small>
             <h3>{course.courseTitle}</h3>
