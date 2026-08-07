@@ -5,7 +5,7 @@
   "description": "Multi-tenant education operating system for institutions.",
   "packageManager": "pnpm@11.15.1",
   "engines": {
-    "node": ">=24.18.0",
+    "node": ">=24.15.0 <25",
     "pnpm": ">=11.15.1"
   },
   "scripts": {
