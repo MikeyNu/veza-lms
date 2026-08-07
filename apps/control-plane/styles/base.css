@@ -1,0 +1,165 @@
+/* Control-plane base layer.
+   Mirrors apps/web/styles/reset.css so both apps share one vocabulary:
+   the CI typeface plus the short role aliases over the @veza/ui tokens. */
+
+@font-face {
+  font-family: Satoshi;
+  src: url("/fonts/Satoshi-Variable.woff2") format("woff2-variations"),
+       url("/fonts/Satoshi-Variable.woff2") format("woff2");
+  font-weight: 300 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+:root {
+  --ink: var(--veza-ink);
+  --ink-soft: var(--veza-ink-soft);
+  --muted: var(--veza-muted);
+  --muted-subtle: var(--veza-muted-subtle);
+  --canvas: var(--veza-canvas);
+  --surface: var(--veza-surface);
+  --surface-subtle: var(--veza-surface-subtle);
+  --surface-muted: var(--veza-surface-muted);
+  --surface-selected: var(--veza-surface-selected);
+  --line: var(--veza-line);
+  --line-strong: var(--veza-line-strong);
+  --line-emphasis: var(--veza-line-emphasis);
+  --brand: var(--veza-brand);
+  --brand-strong: var(--veza-brand-strong);
+  --brand-surface: var(--veza-brand-surface);
+  --teal: var(--veza-teal-500);
+  --blue: var(--veza-blue-500);
+  --violet: var(--veza-purple-600);
+  --purple: var(--veza-purple-600);
+  --success: var(--veza-success);
+  --success-strong: var(--veza-success-strong);
+  --amber: var(--veza-warning);
+  --amber-strong: var(--veza-warning-strong);
+  --critical: var(--veza-critical);
+  --critical-strong: var(--veza-critical-strong);
+  --information: var(--veza-information);
+  --information-strong: var(--veza-information-strong);
+  --sidebar: var(--veza-sidebar);
+  --sidebar-muted: var(--veza-sidebar-muted);
+  --radius: var(--veza-radius-panel);
+  --radius-control: var(--veza-radius-control);
+  --radius-tile: var(--veza-radius-tile);
+}
+
+html {
+  min-width: 20rem;
+  background: var(--canvas);
+  color: var(--ink);
+  font-family: var(--veza-font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+body {
+  min-height: 100vh;
+  margin: 0;
+  background: var(--canvas);
+  color: var(--ink);
+  font-size: var(--veza-text-md);
+  font-weight: var(--veza-weight-regular);
+  line-height: var(--veza-leading-body);
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  margin: 0;
+  color: var(--ink);
+  font-weight: var(--veza-weight-semibold);
+  letter-spacing: var(--veza-tracking-heading);
+}
+
+h1 {
+  font-size: var(--veza-text-2xl);
+  line-height: var(--veza-leading-2xl);
+}
+
+h2 {
+  font-size: var(--veza-text-xl);
+  line-height: var(--veza-leading-xl);
+}
+
+h3 {
+  font-size: var(--veza-text-h3);
+  font-weight: var(--veza-weight-medium);
+  line-height: var(--veza-leading-h3);
+}
+
+h4,
+h5,
+h6 {
+  font-size: var(--veza-text-lg);
+  line-height: var(--veza-leading-lg);
+}
+
+button,
+input,
+select,
+textarea {
+  color: inherit;
+  font: inherit;
+}
+
+button,
+summary,
+a {
+  -webkit-tap-highlight-color: transparent;
+}
+
+button {
+  border: 0;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+img,
+svg,
+video,
+canvas {
+  display: block;
+  max-width: 100%;
+}
+
+table {
+  border-spacing: 0;
+}
+
+:focus-visible {
+  outline: 0;
+  box-shadow: var(--veza-focus);
+}
+
+::selection {
+  background: var(--veza-institution-accent-soft);
+  color: var(--ink);
+}
+
+.sr-only {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
+}

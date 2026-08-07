@@ -195,17 +195,6 @@
   font-size: 0.58rem;
 }
 
-.course-art::after {
-  position: absolute;
-  right: -2.3rem;
-  bottom: -2.3rem;
-  width: 7rem;
-  height: 7rem;
-  border: 1rem solid rgb(255 255 255 / 0.07);
-  border-radius: 50%;
-  content: "";
-}
-
 .course-body {
   display: flex;
   min-width: 0;

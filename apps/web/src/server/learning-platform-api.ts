@@ -13,6 +13,88 @@ const maximumBytes = 4 * 1024 * 1024;
 const uuid =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
+function demoMode(): boolean {
+  return process.env.VEZA_DEMO_MODE === "true";
+}
+
+function demoLearnerHome(): LearnerHome {
+  return {
+    learnerPersonId: "00000000-0000-4000-8000-000000000101",
+    generatedAt: new Date().toISOString(),
+    today: [
+      {
+        id: "00000000-0000-4000-8000-000000001001",
+        kind: "lesson",
+        courseRunId: "00000000-0000-4000-8000-000000001201",
+        title: "Welcome to Veza Learning",
+        courseTitle: "Platform Orientation",
+        href: "/learning",
+        priority: 1,
+      },
+    ],
+    courses: [
+      {
+        enrolmentId: "00000000-0000-4000-8000-000000001101",
+        courseRunId: "00000000-0000-4000-8000-000000001201",
+        courseTitle: "Platform Orientation",
+        deliveryMode: "guided",
+        nextLessonTitle: "Explore your workspace",
+        progressPercent: 35,
+        completedLessons: 2,
+        totalLessons: 6,
+        startsOn: new Date().toISOString(),
+        endsOn: new Date(Date.now() + 1000 * 60 * 60 * 24 * 30).toISOString(),
+      },
+    ],
+  };
+}
+
+function demoLearnerCourseRoom(enrolmentId: string): LearnerCourseRoom {
+  return {
+    enrolmentId,
+    courseRunId: "00000000-0000-4000-8000-000000001201",
+    courseTitle: "Platform Orientation",
+    publicationSnapshotId: "00000000-0000-4000-8000-000000001301",
+    publicationChecksum: "demo-publication-checksum",
+    progressPercent: 35,
+    completedLessons: 2,
+    totalLessons: 6,
+    modules: [
+      {
+        id: "00000000-0000-4000-8000-000000001401",
+        title: "Getting started",
+        sequenceNumber: 1,
+        completionPercent: 35,
+        lessons: [
+          {
+            id: "00000000-0000-4000-8000-000000001501",
+            moduleId: "00000000-0000-4000-8000-000000001401",
+            title: "Explore your workspace",
+            sequenceNumber: 1,
+            blocks: [
+              {
+                id: "00000000-0000-4000-8000-000000001601",
+                type: "paragraph",
+                data: {
+                  text: "This is demo-mode course content for local design preview.",
+                },
+              },
+            ],
+            completionRule: {},
+            completed: false,
+            bookmarked: false,
+          },
+        ],
+      },
+    ],
+    announcements: [],
+    timetable: [],
+    discussions: [],
+    offlineAvailable: true,
+    dataFreshness: new Date().toISOString(),
+  };
+}
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return (await requestWorkspaceJson(path, {
     service: "Learning service",
@@ -136,7 +218,10 @@ export function mutateStudio(
 }
 
 export function loadLearnerToday(): Promise<LearnerHome> {
-  return request("/v1/learner/home");
+  return request("/v1/learner/home").catch((error: unknown) => {
+    if (demoMode()) return demoLearnerHome();
+    throw error;
+  });
 }
 
 export function loadLearnerCourseRoom(
@@ -146,7 +231,10 @@ export function loadLearnerCourseRoom(
   requireUuid(enrolmentId, "Enrolment");
   return request(
     `/v1/learner/enrolments/${enrolmentId}/course-room?lowBandwidth=${lowBandwidth ? "true" : "false"}`,
-  );
+  ).catch((error: unknown) => {
+    if (demoMode()) return demoLearnerCourseRoom(enrolmentId);
+    throw error;
+  });
 }
 
 export function loadLearnerAssignments(): Promise<Readonly<Record<string, unknown>>> {

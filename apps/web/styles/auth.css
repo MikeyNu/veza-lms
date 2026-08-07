@@ -16,17 +16,6 @@
   background: var(--sidebar);
 }
 
-.auth-brand::after {
-  position: absolute;
-  inset: auto -7rem -7rem auto;
-  width: 21rem;
-  height: 21rem;
-  border: 1px solid rgb(94 234 212 / 0.2);
-  border-radius: 50%;
-  box-shadow: 0 0 0 3rem rgb(94 234 212 / 0.045), 0 0 0 6rem rgb(94 234 212 / 0.025);
-  content: "";
-}
-
 .auth-brand-lockup {
   position: relative;
   z-index: 1;

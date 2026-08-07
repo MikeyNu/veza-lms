@@ -42,11 +42,12 @@ export type WorkspaceResolution =
   | { readonly status: "access-pending" };
 
 export async function resolveWorkspaceSession(): Promise<WorkspaceResolution> {
+  if (process.env.VEZA_DEMO_MODE === "true") {
+    return { status: "ready", session: demoLearnerSession, demo: true };
+  }
   const [cookieStore, oidcSession] = await Promise.all([cookies(), getWebOidcSession()]);
   if (!oidcSession) {
-    return process.env.VEZA_DEMO_MODE === "true"
-      ? { status: "ready", session: demoLearnerSession, demo: true }
-      : { status: "signed-out" };
+    return { status: "signed-out" };
   }
 
   const membershipId = cookieStore.get(membershipCookieName)?.value;

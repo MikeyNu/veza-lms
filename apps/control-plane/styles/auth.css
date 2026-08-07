@@ -14,16 +14,7 @@
   padding: clamp(1.5rem, 4vw, 4.25rem);
   overflow: hidden;
   color: #f8fafc;
-  background: radial-gradient(circle at 72% 28%, rgb(13 148 136 / .16), transparent 27rem), linear-gradient(145deg, #101a2a, #0b1220 58%, #111b29);
-}
-
-.operator-gateway-story::before {
-  position: absolute;
-  inset: 0;
-  background-image: linear-gradient(rgb(255 255 255 / .025) 1px, transparent 1px), linear-gradient(90deg, rgb(255 255 255 / .025) 1px, transparent 1px);
-  background-size: 42px 42px;
-  mask-image: linear-gradient(to bottom, black, transparent 90%);
-  content: "";
+  background: linear-gradient(145deg, #101a2a, #0b1220 58%, #111b29);
 }
 
 .operator-gateway-story > * { position: relative; z-index: 1; }

@@ -179,15 +179,6 @@
   color: white;
 }
 
-.art-grid {
-  position: absolute;
-  inset: 0;
-  background-image:
-    linear-gradient(rgb(255 255 255 / 0.055) 1px, transparent 1px),
-    linear-gradient(90deg, rgb(255 255 255 / 0.055) 1px, transparent 1px);
-  background-size: 1.8rem 1.8rem;
-}
-
 .art-index {
   position: absolute;
   top: 1.5rem;

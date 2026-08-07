@@ -7,6 +7,10 @@ const maximumPublicBytes = 128 * 1024;
 const uuid =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
+function demoMode(): boolean {
+  return process.env.VEZA_DEMO_MODE === "true";
+}
+
 async function authenticated<T>(path: string): Promise<T> {
   return (await requestWorkspaceJson(path, {
     service: "Academic evidence service",
@@ -42,14 +46,26 @@ export function loadAcademicEvidenceWorkspace(
 }
 
 export function loadLearnerAssignments(): Promise<LearnerAssignmentWorkspace> {
-  return authenticated("/v1/learner/assignments");
+  return authenticated("/v1/learner/assignments").catch((error: unknown) => {
+    if (demoMode()) {
+      return {
+        learnerPersonId: "00000000-0000-4000-8000-000000000101",
+        assignments: [],
+        generatedAt: new Date().toISOString(),
+      };
+    }
+    throw error;
+  });
 }
 
 export function loadLearnerGradebook(
   courseRunId: string,
 ): Promise<Readonly<Record<string, unknown>>> {
   if (!uuid.test(courseRunId)) throw new Error("Course-run identifier is invalid");
-  return authenticated(`/v1/learner/gradebook/${courseRunId}`);
+  return authenticated(`/v1/learner/gradebook/${courseRunId}`).catch((error: unknown) => {
+    if (demoMode()) return { results: [] };
+    throw error;
+  });
 }
 
 export function loadStaffGradebook(

@@ -18,7 +18,7 @@
   margin: 0;
   font-size: clamp(2rem, 5vw, 3.6rem);
   line-height: 1.04;
-  letter-spacing: -0.05em;
+  letter-spacing: var(--veza-tracking-display);
 }
 
 .section-state-panel > p:not(.eyebrow),
@@ -39,7 +39,7 @@
   padding: 1rem;
   border-left: 3px solid var(--success);
   background: var(--veza-success-surface);
-  color: #264639;
+  color: var(--veza-success-strong);
 }
 
 .section-state-evidence > span {
@@ -47,10 +47,10 @@
   width: 2rem;
   height: 2rem;
   place-items: center;
-  border-radius: 0.55rem;
+  border-radius: var(--veza-radius-tile);
   background: var(--success);
   color: white;
-  font-weight: 900;
+  font-weight: var(--veza-weight-bold);
 }
 
 .section-state-evidence strong,
@@ -60,7 +60,7 @@
 
 .section-state-evidence small {
   margin-top: 0.35rem;
-  color: #5b766b;
+  color: var(--veza-success-strong);
   line-height: 1.5;
 }
 
@@ -82,17 +82,17 @@
 
 .section-state-panel dt {
   color: var(--muted);
-  font-size: 0.62rem;
-  font-weight: 750;
-  letter-spacing: 0.06em;
+  font-size: var(--veza-text-xs);
+  font-weight: var(--veza-weight-semibold);
+  letter-spacing: var(--veza-tracking-eyebrow);
   text-transform: uppercase;
 }
 
 .section-state-panel dd {
   margin: 0.4rem 0 0;
   overflow-wrap: anywhere;
-  font-size: 0.72rem;
-  font-weight: 750;
+  font-size: var(--veza-text-md);
+  font-weight: var(--veza-weight-semibold);
   text-transform: capitalize;
 }
 
@@ -117,8 +117,8 @@
 
 .form-card h2 {
   margin: 0.55rem 0 0;
-  font-size: 1.45rem;
-  letter-spacing: -0.03em;
+  font-size: var(--veza-text-xl);
+  letter-spacing: var(--veza-tracking-heading);
 }
 
 .form-card > div > p:last-child {
@@ -134,17 +134,17 @@
   display: grid;
   gap: 0.45rem;
   color: var(--ink-soft);
-  font-size: 0.7rem;
-  font-weight: 750;
+  font-size: var(--veza-text-xs);
+  font-weight: var(--veza-weight-semibold);
 }
 
 .foundation-form input,
 .foundation-form select {
   width: 100%;
-  min-height: 2.75rem;
+  min-height: var(--veza-control-height);
   padding: 0 0.75rem;
   border: 1px solid var(--line-strong);
-  border-radius: 0.625rem;
+  border-radius: var(--veza-radius-control);
   background: var(--surface);
   color: var(--ink);
 }
@@ -158,18 +158,18 @@
 .foundation-form > p {
   margin: 0;
   color: var(--muted);
-  font-size: 0.68rem;
+  font-size: var(--veza-text-md);
   line-height: 1.6;
 }
 
 .foundation-form button {
-  min-height: 2.75rem;
+  min-height: var(--veza-control-height);
   border: 0;
-  border-radius: 0.625rem;
+  border-radius: var(--veza-radius-control);
   background: var(--brand-strong);
   color: white;
   cursor: pointer;
-  font-weight: 760;
+  font-weight: var(--veza-weight-semibold);
 }
 
 .foundation-form button:disabled {
@@ -179,21 +179,21 @@
 
 .form-status {
   padding: 0.75rem 0.85rem;
-  border-radius: 0.625rem;
-  font-size: 0.68rem;
+  border-radius: var(--veza-radius-control);
+  font-size: var(--veza-text-md);
   line-height: 1.5;
 }
 
 .form-status.success {
   border: 1px solid color-mix(in srgb, var(--success) 28%, var(--line));
   background: var(--veza-success-surface);
-  color: #17653f;
+  color: var(--veza-green-700);
 }
 
 .form-status.error {
   border: 1px solid color-mix(in srgb, var(--critical) 28%, var(--line));
   background: var(--veza-critical-surface);
-  color: #8d2c35;
+  color: var(--veza-red-700);
 }
 
 @media (max-width: 720px) {

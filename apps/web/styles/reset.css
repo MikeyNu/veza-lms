@@ -1,3 +1,14 @@
+/* Brand CI 03 Typography — Satoshi is the CI typeface, self-hosted as the
+   variable cut so Regular/Medium/Semibold/Bold all come from one 42KB file. */
+@font-face {
+  font-family: Satoshi;
+  src: url("/fonts/Satoshi-Variable.woff2") format("woff2-variations"),
+       url("/fonts/Satoshi-Variable.woff2") format("woff2");
+  font-weight: 300 900;
+  font-style: normal;
+  font-display: swap;
+}
+
 *,
 *::before,
 *::after {
@@ -12,21 +23,33 @@
   --canvas: var(--veza-canvas);
   --surface: var(--veza-surface);
   --surface-subtle: var(--veza-surface-subtle);
+  --surface-muted: var(--veza-surface-muted);
   --surface-selected: var(--veza-surface-selected);
   --line: var(--veza-line);
   --line-strong: var(--veza-line-strong);
   --line-emphasis: var(--veza-line-emphasis);
   --brand: var(--veza-brand);
   --brand-strong: var(--veza-brand-strong);
-  --teal: var(--veza-brand);
-  --blue: var(--veza-brand);
-  --violet: var(--veza-brand);
+  --brand-surface: var(--veza-brand-surface);
+  /* CI 02 keeps Teal, Blue and Purple as distinct primaries — they are
+     chart/accent colours in their own right, not aliases of Indigo. */
+  --teal: var(--veza-teal-500);
+  --blue: var(--veza-blue-500);
+  --violet: var(--veza-purple-600);
+  --purple: var(--veza-purple-600);
   --success: var(--veza-success);
+  --success-strong: var(--veza-success-strong);
   --amber: var(--veza-warning);
+  --amber-strong: var(--veza-warning-strong);
   --critical: var(--veza-critical);
+  --critical-strong: var(--veza-critical-strong);
   --information: var(--veza-information);
+  --information-strong: var(--veza-information-strong);
   --sidebar: var(--veza-sidebar);
+  --sidebar-muted: var(--veza-sidebar-muted);
   --radius: var(--veza-radius-panel);
+  --radius-control: var(--veza-radius-control);
+  --radius-tile: var(--veza-radius-tile);
 }
 
 html {
@@ -34,6 +57,8 @@ html {
   background: var(--canvas);
   color: var(--ink);
   font-family: var(--veza-font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
 }
 
@@ -43,7 +68,45 @@ body {
   background: var(--canvas);
   color: var(--ink);
   font-size: var(--veza-text-md);
+  font-weight: var(--veza-weight-regular);
   line-height: var(--veza-leading-body);
+}
+
+/* CI 03 type scale. Headings are Semibold and tightly tracked; the previous
+   sheets relied on browser defaults, which put every heading at Bold/16px. */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  margin: 0;
+  color: var(--ink);
+  font-weight: var(--veza-weight-semibold);
+  letter-spacing: var(--veza-tracking-heading);
+}
+
+h1 {
+  font-size: var(--veza-text-2xl);
+  line-height: var(--veza-leading-2xl);
+}
+
+h2 {
+  font-size: var(--veza-text-xl);
+  line-height: var(--veza-leading-xl);
+}
+
+h3 {
+  font-size: var(--veza-text-h3);
+  font-weight: var(--veza-weight-medium);
+  line-height: var(--veza-leading-h3);
+}
+
+h4,
+h5,
+h6 {
+  font-size: var(--veza-text-lg);
+  line-height: var(--veza-leading-lg);
 }
 
 button,

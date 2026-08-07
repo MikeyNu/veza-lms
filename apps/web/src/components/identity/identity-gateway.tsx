@@ -13,36 +13,8 @@ export interface IdentityGatewayProps {
 export function IdentityBrandLockup() {
   return (
     <a className="identity-lockup" href="/" aria-label="Veza Learning Cloud home">
-      <span className="identity-lockup-mark" aria-hidden="true">
-        <i />
-        <i />
-      </span>
-      <span>
-        <strong>veza</strong>
-        <small>LEARNING CLOUD</small>
-      </span>
+      <img src="/branding/veza-logo-white.png" alt="Veza Learning Cloud" />
     </a>
-  );
-}
-
-function IdentityNetwork() {
-  return (
-    <div className="identity-network" aria-hidden="true">
-      <div className="identity-network-grid" />
-      <span className="identity-node identity-node-primary"><b>V</b><small>Learning</small></span>
-      <span className="identity-node identity-node-people"><b>12.4k</b><small>People</small></span>
-      <span className="identity-node identity-node-courses"><b>184</b><small>Courses</small></span>
-      <span className="identity-node identity-node-evidence"><b>Verified</b><small>Evidence</small></span>
-      <span className="identity-node identity-node-context"><b>1</b><small>Context</small></span>
-      <svg viewBox="0 0 640 360" role="presentation" focusable="false">
-        <path d="M316 176 C242 108 196 98 112 108" />
-        <path d="M316 176 C403 98 466 93 538 119" />
-        <path d="M316 176 C234 217 176 242 104 277" />
-        <path d="M316 176 C393 223 455 249 545 270" />
-        <path d="M112 108 C151 171 148 221 104 277" />
-        <path d="M538 119 C500 172 503 221 545 270" />
-      </svg>
-    </div>
   );
 }
 
@@ -69,12 +41,6 @@ export function IdentityGateway({
             Identity, curriculum, delivery, assessment and communication stay inside one governed workspace, with every consequential transition traceable.
           </p>
         </div>
-        <IdentityNetwork />
-        <dl className="identity-proof-grid">
-          <div><dt>Context</dt><dd>Membership derived</dd></div>
-          <div><dt>Boundary</dt><dd>Tenant isolated</dd></div>
-          <div><dt>Evidence</dt><dd>Audit retained</dd></div>
-        </dl>
       </section>
 
       <section className="identity-action-panel">

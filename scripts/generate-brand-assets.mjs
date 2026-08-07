@@ -1,10 +1,28 @@
+/**
+ * Generates the Veza PNG/ICO brand assets consumed by both apps.
+ *
+ * Sources are the master artwork in assets/ — previously this script crop-
+ * scraped them out of "Brand CI.png" (a flattened board screenshot) and scaled
+ * with a nearest-neighbour sampler, which produced blocky, off-colour icons.
+ * The masters are clean RGBA, so we key nothing and box-filter on the way down.
+ *
+ * Pure Node: no image dependencies, just zlib.
+ */
 import fs from "node:fs";
 import path from "node:path";
 import zlib from "node:zlib";
 
 const ROOT = path.resolve(import.meta.dirname, "..");
-const SOURCE = path.join(ROOT, "Brand CI.png");
-const OUTPUT = path.join(ROOT, "apps", "web", "public", "branding");
+const ASSETS = path.join(ROOT, "assets");
+const WEB_PUBLIC = path.join(ROOT, "apps", "web", "public");
+const CONTROL_PUBLIC = path.join(ROOT, "apps", "control-plane", "public");
+
+const SYMBOL = path.join(ASSETS, "veza_symbol_only.png");
+const LOGO_WHITE = path.join(ASSETS, "veza_logo_white_text_horizontal.png");
+const LOGO_DARK = path.join(ASSETS, "veza_logo_black_text_horizontal.png");
+
+/** Slate 900 — the Brand CI icon-mark tile. */
+const TILE = [15, 23, 42];
 
 const PNG_SIGNATURE = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]);
 
@@ -28,12 +46,11 @@ function chunk(type, data) {
 
 function decodePng(file) {
   const input = fs.readFileSync(file);
-  if (!input.subarray(0, 8).equals(PNG_SIGNATURE)) throw new Error("Brand CI source is not a PNG file");
+  if (!input.subarray(0, 8).equals(PNG_SIGNATURE)) throw new Error(`${file} is not a PNG file`);
 
   let offset = 8;
   let width = 0;
   let height = 0;
-  let bitDepth = 0;
   let colorType = 0;
   const compressed = [];
 
@@ -45,9 +62,12 @@ function decodePng(file) {
     if (type === "IHDR") {
       width = data.readUInt32BE(0);
       height = data.readUInt32BE(4);
-      bitDepth = data[8];
+      const bitDepth = data[8];
       colorType = data[9];
-      if (bitDepth !== 8 || ![2, 6].includes(colorType)) throw new Error(`Unsupported PNG format: bit depth ${bitDepth}, colour type ${colorType}`);
+      const interlace = data[12];
+      if (bitDepth !== 8 || ![2, 6].includes(colorType) || interlace !== 0) {
+        throw new Error(`Unsupported PNG in ${file}: depth ${bitDepth}, colour type ${colorType}, interlace ${interlace}`);
+      }
     } else if (type === "IDAT") compressed.push(data);
     else if (type === "IEND") break;
   }
@@ -59,13 +79,13 @@ function decodePng(file) {
   let sourceOffset = 0;
   let previous = Buffer.alloc(stride);
 
-  function paeth(a, b, c) {
+  const paeth = (a, b, c) => {
     const estimate = a + b - c;
     const pa = Math.abs(estimate - a);
     const pb = Math.abs(estimate - b);
     const pc = Math.abs(estimate - c);
     return pa <= pb && pa <= pc ? a : pb <= pc ? b : c;
-  }
+  };
 
   for (let y = 0; y < height; y += 1) {
     const filter = raw[sourceOffset++];
@@ -106,143 +126,237 @@ function encodePng(image) {
   ihdr.writeUInt32BE(image.height, 4);
   ihdr[8] = 8;
   ihdr[9] = 6;
-  return Buffer.concat([PNG_SIGNATURE, chunk("IHDR", ihdr), chunk("IDAT", zlib.deflateSync(scanlines, { level: 9 })), chunk("IEND", Buffer.alloc(0))]);
+  return Buffer.concat([
+    PNG_SIGNATURE,
+    chunk("IHDR", ihdr),
+    chunk("IDAT", zlib.deflateSync(scanlines, { level: 9 })),
+    chunk("IEND", Buffer.alloc(0)),
+  ]);
 }
 
-function crop(image, [left, top, right, bottom]) {
-  const width = right - left;
-  const height = bottom - top;
-  const pixels = Buffer.alloc(width * height * 4);
-  for (let y = 0; y < height; y += 1) {
-    for (let x = 0; x < width; x += 1) {
-      const src = ((top + y) * image.width + left + x) * 4;
-      const dst = (y * width + x) * 4;
-      image.pixels.copy(pixels, dst, src, src + 4);
-    }
-  }
-  return { width, height, pixels };
-}
-
-function keyBackground(image, background, tolerance, softRange = 26) {
-  const pixels = Buffer.from(image.pixels);
-  for (let index = 0; index < pixels.length; index += 4) {
-    const distance = Math.max(
-      Math.abs(pixels[index] - background[0]),
-      Math.abs(pixels[index + 1] - background[1]),
-      Math.abs(pixels[index + 2] - background[2]),
-    );
-    const alpha = Math.max(0, Math.min(255, Math.round(((distance - tolerance) / softRange) * 255)));
-    pixels[index + 3] = alpha;
-    if (alpha > 0 && alpha < 255) {
-      const ratio = alpha / 255;
-      pixels[index] = Math.max(0, Math.min(255, Math.round((pixels[index] - (1 - ratio) * background[0]) / ratio)));
-      pixels[index + 1] = Math.max(0, Math.min(255, Math.round((pixels[index + 1] - (1 - ratio) * background[1]) / ratio)));
-      pixels[index + 2] = Math.max(0, Math.min(255, Math.round((pixels[index + 2] - (1 - ratio) * background[2]) / ratio)));
-    }
-  }
-  return { ...image, pixels };
-}
-
-function trim(image, padding = 2) {
+/** Crop to the opaque bounding box, ignoring near-transparent compression dust. */
+function trim(image, threshold = 40) {
   let minX = image.width;
   let minY = image.height;
   let maxX = -1;
   let maxY = -1;
   for (let y = 0; y < image.height; y += 1) {
     for (let x = 0; x < image.width; x += 1) {
-      if (image.pixels[(y * image.width + x) * 4 + 3] > 8) {
-        minX = Math.min(minX, x);
-        minY = Math.min(minY, y);
-        maxX = Math.max(maxX, x);
-        maxY = Math.max(maxY, y);
+      if (image.pixels[(y * image.width + x) * 4 + 3] > threshold) {
+        if (x < minX) minX = x;
+        if (y < minY) minY = y;
+        if (x > maxX) maxX = x;
+        if (y > maxY) maxY = y;
       }
     }
   }
   if (maxX < minX) return image;
-  return crop(image, [Math.max(0, minX - padding), Math.max(0, minY - padding), Math.min(image.width, maxX + padding + 1), Math.min(image.height, maxY + padding + 1)]);
+  const width = maxX - minX + 1;
+  const height = maxY - minY + 1;
+  const pixels = Buffer.alloc(width * height * 4);
+  for (let y = 0; y < height; y += 1) {
+    const src = ((minY + y) * image.width + minX) * 4;
+    image.pixels.copy(pixels, y * width * 4, src, src + width * 4);
+  }
+  return { width, height, pixels };
 }
 
-function resize(image, targetWidth) {
-  const targetHeight = Math.max(1, Math.round((image.height / image.width) * targetWidth));
-  const pixels = Buffer.alloc(targetWidth * targetHeight * 4);
+/**
+ * Area-average resample. Alpha is premultiplied for the duration so that
+ * transparent pixels cannot bleed their (arbitrary) RGB into the edges.
+ */
+function resize(image, targetWidth, targetHeight = Math.max(1, Math.round((image.height / image.width) * targetWidth))) {
+  const out = Buffer.alloc(targetWidth * targetHeight * 4);
+  const scaleX = image.width / targetWidth;
+  const scaleY = image.height / targetHeight;
+
   for (let y = 0; y < targetHeight; y += 1) {
-    const sourceY = Math.min(image.height - 1, Math.floor((y / targetHeight) * image.height));
+    const y0 = y * scaleY;
+    const y1 = (y + 1) * scaleY;
+    const startY = Math.floor(y0);
+    const endY = Math.min(image.height, Math.ceil(y1));
+
     for (let x = 0; x < targetWidth; x += 1) {
-      const sourceX = Math.min(image.width - 1, Math.floor((x / targetWidth) * image.width));
-      const src = (sourceY * image.width + sourceX) * 4;
+      const x0 = x * scaleX;
+      const x1 = (x + 1) * scaleX;
+      const startX = Math.floor(x0);
+      const endX = Math.min(image.width, Math.ceil(x1));
+
+      let r = 0;
+      let g = 0;
+      let b = 0;
+      let a = 0;
+      let weight = 0;
+
+      for (let sy = startY; sy < endY; sy += 1) {
+        const coverY = Math.min(y1, sy + 1) - Math.max(y0, sy);
+        if (coverY <= 0) continue;
+        for (let sx = startX; sx < endX; sx += 1) {
+          const coverX = Math.min(x1, sx + 1) - Math.max(x0, sx);
+          if (coverX <= 0) continue;
+          const w = coverX * coverY;
+          const src = (sy * image.width + sx) * 4;
+          const alpha = image.pixels[src + 3] / 255;
+          r += image.pixels[src] * alpha * w;
+          g += image.pixels[src + 1] * alpha * w;
+          b += image.pixels[src + 2] * alpha * w;
+          a += image.pixels[src + 3] * w;
+          weight += w;
+        }
+      }
+
       const dst = (y * targetWidth + x) * 4;
-      image.pixels.copy(pixels, dst, src, src + 4);
+      if (weight === 0) continue;
+      const alpha = a / weight;
+      const unpremultiply = alpha > 0 ? 255 / alpha : 0;
+      out[dst] = Math.max(0, Math.min(255, Math.round((r / weight) * unpremultiply)));
+      out[dst + 1] = Math.max(0, Math.min(255, Math.round((g / weight) * unpremultiply)));
+      out[dst + 2] = Math.max(0, Math.min(255, Math.round((b / weight) * unpremultiply)));
+      out[dst + 3] = Math.max(0, Math.min(255, Math.round(alpha)));
     }
   }
-  return { width: targetWidth, height: targetHeight, pixels };
+  return { width: targetWidth, height: targetHeight, pixels: out };
 }
 
-function roundedIcon(mark, size) {
-  const pixels = Buffer.alloc(size * size * 4);
-  const radius = Math.round(size * 0.22);
+/** Rounded-rectangle coverage mask, supersampled 4x for clean corners. */
+function roundedMask(size, radiusRatio) {
+  const radius = size * radiusRatio;
+  const mask = new Float64Array(size * size);
+  const samples = 4;
+  const step = 1 / samples;
   for (let y = 0; y < size; y += 1) {
     for (let x = 0; x < size; x += 1) {
-      const dx = Math.max(radius - x, 0, x - (size - radius - 1));
-      const dy = Math.max(radius - y, 0, y - (size - radius - 1));
-      const inside = dx * dx + dy * dy <= radius * radius;
-      const dst = (y * size + x) * 4;
-      pixels[dst] = 5;
-      pixels[dst + 1] = 12;
-      pixels[dst + 2] = 37;
-      pixels[dst + 3] = inside ? 255 : 0;
+      let hits = 0;
+      for (let sy = 0; sy < samples; sy += 1) {
+        for (let sx = 0; sx < samples; sx += 1) {
+          const px = x + (sx + 0.5) * step;
+          const py = y + (sy + 0.5) * step;
+          const dx = Math.max(radius - px, 0, px - (size - radius));
+          const dy = Math.max(radius - py, 0, py - (size - radius));
+          if (dx * dx + dy * dy <= radius * radius) hits += 1;
+        }
+      }
+      mask[y * size + x] = hits / (samples * samples);
     }
   }
-  const scaled = resize(mark, Math.round(size * 0.6));
+  return mask;
+}
+
+/** Dark rounded tile with the gradient mark centred on it (Brand CI 01). */
+function appIcon(mark, size, { padding = 0.16, rounded = true } = {}) {
+  const pixels = Buffer.alloc(size * size * 4);
+  const mask = rounded ? roundedMask(size, 0.2237) : null;
+
+  for (let i = 0; i < size * size; i += 1) {
+    const coverage = mask ? mask[i] : 1;
+    pixels[i * 4] = TILE[0];
+    pixels[i * 4 + 1] = TILE[1];
+    pixels[i * 4 + 2] = TILE[2];
+    pixels[i * 4 + 3] = Math.round(coverage * 255);
+  }
+
+  const box = size * (1 - 2 * padding);
+  const scale = Math.min(box / mark.width, box / mark.height);
+  const scaled = resize(mark, Math.max(1, Math.round(mark.width * scale)), Math.max(1, Math.round(mark.height * scale)));
   const offsetX = Math.round((size - scaled.width) / 2);
-  const offsetY = Math.round((size - scaled.height) / 2);
+  // The V's visual mass sits high; nudge up slightly so it reads centred.
+  const offsetY = Math.round((size - scaled.height) / 2 - size * 0.012);
+
   for (let y = 0; y < scaled.height; y += 1) {
+    const ty = offsetY + y;
+    if (ty < 0 || ty >= size) continue;
     for (let x = 0; x < scaled.width; x += 1) {
+      const tx = offsetX + x;
+      if (tx < 0 || tx >= size) continue;
       const src = (y * scaled.width + x) * 4;
-      const dst = ((offsetY + y) * size + offsetX + x) * 4;
+      const dst = (ty * size + tx) * 4;
       const alpha = scaled.pixels[src + 3] / 255;
-      for (let channel = 0; channel < 3; channel += 1) pixels[dst + channel] = Math.round(scaled.pixels[src + channel] * alpha + pixels[dst + channel] * (1 - alpha));
-      pixels[dst + 3] = Math.max(pixels[dst + 3], scaled.pixels[src + 3]);
+      if (alpha <= 0) continue;
+      for (let c = 0; c < 3; c += 1) {
+        pixels[dst + c] = Math.round(scaled.pixels[src + c] * alpha + pixels[dst + c] * (1 - alpha));
+      }
+      // Keep the tile silhouette: the mark never punches outside the mask.
+      pixels[dst + 3] = Math.max(pixels[dst + 3], Math.round(alpha * 255 * (mask ? mask[ty * size + tx] : 1)));
     }
   }
   return { width: size, height: size, pixels };
 }
 
-function write(name, image) {
-  fs.mkdirSync(OUTPUT, { recursive: true });
-  fs.writeFileSync(path.join(OUTPUT, name), encodePng(image));
+/** Multi-resolution ICO with PNG-compressed frames. */
+function encodeIco(frames) {
+  const payloads = frames.map((frame) => encodePng(frame));
+  const header = Buffer.alloc(6);
+  header.writeUInt16LE(0, 0);
+  header.writeUInt16LE(1, 2);
+  header.writeUInt16LE(frames.length, 4);
+
+  const directory = Buffer.alloc(16 * frames.length);
+  let offset = header.length + directory.length;
+  frames.forEach((frame, index) => {
+    const entry = index * 16;
+    directory[entry] = frame.width >= 256 ? 0 : frame.width;
+    directory[entry + 1] = frame.height >= 256 ? 0 : frame.height;
+    directory[entry + 2] = 0;
+    directory[entry + 3] = 0;
+    directory.writeUInt16LE(1, entry + 4);
+    directory.writeUInt16LE(32, entry + 6);
+    directory.writeUInt32LE(payloads[index].length, entry + 8);
+    directory.writeUInt32LE(offset, entry + 12);
+    offset += payloads[index].length;
+  });
+
+  return Buffer.concat([header, directory, ...payloads]);
 }
 
-const source = decodePng(SOURCE);
-const variants = {
-  "veza-logo-primary.png": { box: [430, 88, 600, 174], background: [255, 255, 255], width: 1024 },
-  "veza-logo-horizontal.png": { box: [724, 88, 928, 176], background: [255, 255, 255], width: 1200 },
-  "veza-logo-stacked.png": { box: [620, 184, 756, 302], background: [255, 255, 255], width: 800 },
-  "veza-logo-monochrome.png": { box: [790, 192, 950, 286], background: [255, 255, 255], width: 900 },
-  "veza-logo-white.png": { box: [48, 42, 346, 172], background: [5, 12, 37], width: 1400 },
+function write(dir, name, buffer) {
+  fs.mkdirSync(dir, { recursive: true });
+  fs.writeFileSync(path.join(dir, name), buffer);
+}
+
+// ---------------------------------------------------------------------------
+
+const mark = trim(decodePng(SYMBOL));
+const logoWhite = trim(decodePng(LOGO_WHITE));
+const logoDark = trim(decodePng(LOGO_DARK));
+
+const brandingDirs = [path.join(WEB_PUBLIC, "branding"), path.join(CONTROL_PUBLIC, "branding")];
+const publicDirs = [WEB_PUBLIC, CONTROL_PUBLIC];
+
+// Wordmark lockups (Brand CI 01).
+const lockups = {
+  "veza-logo-white.png": resize(logoWhite, 1400),
+  "veza-logo-dark.png": resize(logoDark, 1400),
+  "veza-logo-primary.png": resize(logoDark, 1024),
+  "veza-logo-horizontal.png": resize(logoDark, 1200),
 };
-
-for (const [name, specification] of Object.entries(variants)) {
-  const transparent = trim(keyBackground(crop(source, specification.box), specification.background, specification.background[0] > 200 ? 5 : 8));
-  write(name, resize(transparent, specification.width));
+for (const [name, image] of Object.entries(lockups)) {
+  const png = encodePng(image);
+  for (const dir of brandingDirs) write(dir, name, png);
 }
 
-const mark = trim(keyBackground(crop(source, [614, 84, 712, 178]), [255, 255, 255], 5));
-write("veza-icon-mark.png", resize(mark, 768));
-for (const size of [16, 32, 48, 64, 128, 180, 192, 256, 512]) write(`veza-app-icon-${size}.png`, roundedIcon(mark, size));
+// Transparent mark, for in-app use.
+for (const size of [64, 128, 768]) {
+  const png = encodePng(resize(mark, size, Math.round((mark.height / mark.width) * size)));
+  const name = size === 768 ? "veza-icon-mark.png" : `veza-symbol-${size}.png`;
+  for (const dir of brandingDirs) write(dir, name, png);
+}
 
-const faviconPng = encodePng(roundedIcon(mark, 64));
-const directory = Buffer.alloc(6 + 16);
-directory.writeUInt16LE(0, 0);
-directory.writeUInt16LE(1, 2);
-directory.writeUInt16LE(1, 4);
-directory[6] = 64;
-directory[7] = 64;
-directory[8] = 0;
-directory[9] = 0;
-directory.writeUInt16LE(1, 10);
-directory.writeUInt16LE(32, 12);
-directory.writeUInt32LE(faviconPng.length, 14);
-directory.writeUInt32LE(22, 18);
-fs.writeFileSync(path.join(ROOT, "apps", "web", "public", "favicon.ico"), Buffer.concat([directory, faviconPng]));
+// App icons. Small sizes get less padding so the V still reads at 16px.
+const iconSizes = [16, 32, 48, 64, 128, 180, 192, 256, 512];
+for (const size of iconSizes) {
+  const png = encodePng(appIcon(mark, size, { padding: size <= 32 ? 0.1 : 0.16 }));
+  for (const dir of brandingDirs) write(dir, `veza-app-icon-${size}.png`, png);
+}
 
-console.log(`Generated ${Object.keys(variants).length + 10} Veza PNG and favicon assets in ${path.relative(ROOT, OUTPUT)}`);
+// Android adaptive icons are masked hard, so go full-bleed with deep padding.
+const maskable = encodePng(appIcon(mark, 512, { padding: 0.28, rounded: false }));
+for (const dir of brandingDirs) write(dir, "veza-app-icon-maskable-512.png", maskable);
+
+// Multi-resolution favicon.
+const ico = encodeIco([16, 24, 32, 48, 64, 128, 256].map((size) => appIcon(mark, size, { padding: size <= 32 ? 0.1 : 0.16 })));
+for (const dir of publicDirs) write(dir, "favicon.ico", ico);
+
+console.log(
+  `Generated ${Object.keys(lockups).length + iconSizes.length + 4} brand assets from assets/ into ` +
+    `${brandingDirs.map((dir) => path.relative(ROOT, dir)).join(", ")} (+ favicon.ico)`,
+);
