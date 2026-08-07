@@ -23,7 +23,8 @@ export class SearchController {
       permissions.tenantRead,
       this.authorization.buildTenantResource(),
     );
-    if (!request.membership) throw new Error("Tenant membership was not resolved");
-    return this.searchService.search(input, request.membership);
+    const membership = request.workspaceSession?.membership;
+    if (!membership) throw new Error("Tenant membership was not resolved");
+    return this.searchService.search(input, membership);
   }
 }
