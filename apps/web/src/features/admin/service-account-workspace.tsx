@@ -8,7 +8,7 @@ import type {
 } from "../../server/service-account-api";
 
 interface SecretDisclosure {
-  readonly clientId?: string;
+  readonly clientId?: string | undefined;
   readonly clientSecret: string;
   readonly secretPrefix: string;
   readonly accountId: string;
