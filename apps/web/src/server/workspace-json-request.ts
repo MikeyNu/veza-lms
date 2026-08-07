@@ -2,6 +2,8 @@ import "server-only";
 
 import { cookies } from "next/headers";
 import { membershipCookieName } from "./auth-config";
+import { demoModeEnabled } from "./demo-mode";
+import { resolveDemoWorkspaceRequest } from "./demo-workspace-data";
 import { getWebOidcSession } from "./web-session";
 
 const membershipIdPattern =
@@ -75,6 +77,13 @@ export async function requestWorkspaceJson(
   path: string,
   options: WorkspaceJsonRequestOptions,
 ): Promise<unknown> {
+  responseLimit(options.maximumBytes);
+  timeout(options.timeoutMs);
+
+  if (demoModeEnabled()) {
+    return resolveDemoWorkspaceRequest(path, options.init);
+  }
+
   const auth = await credentials();
   const maximumBytes = responseLimit(options.maximumBytes);
   const headers = new Headers(options.init?.headers);
