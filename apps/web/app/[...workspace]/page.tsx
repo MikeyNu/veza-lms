@@ -6,7 +6,7 @@ import { requireWorkspaceSession } from "../../src/server/require-workspace-sess
 
 export const dynamic = "force-dynamic";
 
-const fallbackKeys = new Set<NavigationKey>(["calendar", "support", "help"]);
+const fallbackKeys = new Set<NavigationKey>(["calendar", "support"]);
 
 export default async function WorkspaceRoute({ params }: { params: Promise<{ workspace: string[] }> }) {
   const [{ workspace }, resolution] = await Promise.all([params, requireWorkspaceSession()]);
