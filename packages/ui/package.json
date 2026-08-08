@@ -8,6 +8,7 @@
     "./src/styles.css",
     "./src/system-v2.css",
     "./src/radix-v2.css",
+    "./src/form-controls-v2.css",
     "./src/system.css"
   ],
   "exports": {
