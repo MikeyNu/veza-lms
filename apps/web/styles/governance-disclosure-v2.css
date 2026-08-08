@@ -1,0 +1,78 @@
+/* Compact governance disclosures. They are controls, not dashboard cards. */
+
+.vz-governance-rail .vz-action-panel {
+  overflow: hidden;
+  border: 1px solid var(--veza-line) !important;
+  border-radius: var(--veza-radius-control) !important;
+  background: var(--veza-surface) !important;
+  box-shadow: none !important;
+}
+
+.vz-governance-rail .vz-action-panel > summary {
+  display: flex;
+  min-height: var(--veza-control-height) !important;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0 0.75rem !important;
+  border: 0 !important;
+  background: transparent !important;
+  color: var(--veza-ink-soft) !important;
+  font-size: var(--veza-text-sm) !important;
+  font-weight: 650 !important;
+  line-height: 1.2;
+  list-style: none;
+  cursor: pointer;
+}
+
+.vz-governance-rail .vz-action-panel > summary::-webkit-details-marker {
+  display: none;
+}
+
+.vz-governance-rail .vz-action-panel > summary::marker {
+  content: "";
+}
+
+.vz-governance-rail .vz-action-panel > summary:hover {
+  background: var(--veza-surface-subtle) !important;
+}
+
+.vz-governance-rail .vz-action-panel > summary:focus-visible {
+  outline: 0;
+  box-shadow: inset var(--veza-focus);
+}
+
+.vz-governance-rail .vz-action-panel > summary > span {
+  display: grid !important;
+  width: 1.6rem !important;
+  min-width: 1.6rem !important;
+  height: 1.6rem !important;
+  place-items: center;
+  border: 0 !important;
+  border-radius: 0.4rem !important;
+  background: var(--veza-indigo-50) !important;
+  color: var(--veza-indigo-700) !important;
+  font-size: 1rem !important;
+  font-weight: 500 !important;
+  line-height: 1 !important;
+}
+
+.vz-governance-rail .vz-action-panel[open] > summary {
+  border-bottom: 1px solid var(--veza-line) !important;
+  background: var(--veza-surface-subtle) !important;
+}
+
+.vz-governance-rail .vz-action-panel[open] > summary > span {
+  rotate: 45deg;
+}
+
+.vz-governance-rail .vz-action-panel > form,
+.vz-governance-rail .vz-action-panel > .vz-governance-form {
+  padding: 0.85rem !important;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .vz-governance-rail .vz-action-panel > summary > span {
+    transition: rotate var(--veza-motion-fast) var(--veza-ease), background-color var(--veza-motion-fast) var(--veza-ease);
+  }
+}
