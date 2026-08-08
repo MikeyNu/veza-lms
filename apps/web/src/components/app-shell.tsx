@@ -59,7 +59,6 @@ export function AppShell({
         tenantName={session.tenant.displayName}
         workspaceName={workspaceLabel(session)}
         displayName={name}
-        {...(session.principal.email ? { email: session.principal.email } : {})}
         initials={initials(session.principal.displayName)}
         {...(action ? { primaryAction: action } : {})}
         demo={demo}
