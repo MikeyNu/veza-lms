@@ -33,6 +33,13 @@
     "test:visual": "python tests/visual_regression.py",
     "dev": "tsc -p tsconfig.json --watch --preserveWatchOutput"
   },
+  "dependencies": {
+    "class-variance-authority": "0.7.1",
+    "clsx": "2.1.1",
+    "lucide-react": "1.27.0",
+    "radix-ui": "1.6.5",
+    "tailwind-merge": "3.6.0"
+  },
   "peerDependencies": {
     "react": ">=19.2.0"
   },
