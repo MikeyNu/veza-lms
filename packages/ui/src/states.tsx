@@ -1,42 +1,30 @@
 import type { HTMLAttributes, ReactNode } from "react";
-import { ButtonLink, Link } from "./primitives.js";
-import { cx, type VezaTone } from "./utilities.js";
+import { Button } from "./primitives.js";
+import { cx } from "./utilities.js";
+
+export type VezaTone = "neutral" | "information" | "success" | "warning" | "critical";
 
 export interface EmptyStateProps extends HTMLAttributes<HTMLElement> {
   readonly title: string;
   readonly description: ReactNode;
-  readonly primaryAction?: { readonly label: string; readonly href: string };
-  readonly secondaryAction?: { readonly label: string; readonly href: string };
+  readonly actions?: ReactNode;
   readonly compact?: boolean;
 }
 
-export function EmptyState({
-  title,
-  description,
-  primaryAction,
-  secondaryAction,
-  compact = false,
-  className,
-  ...props
-}: EmptyStateProps) {
+export function EmptyState({ title, description, actions, compact = false, className, ...props }: EmptyStateProps) {
   return (
     <section {...props} className={cx("vz-empty-state", compact && "vz-empty-state--compact", className)}>
       <div className="vz-empty-state__rule" aria-hidden="true" />
       <h2>{title}</h2>
       <div className="vz-empty-state__description">{description}</div>
-      {primaryAction || secondaryAction ? (
-        <div className="vz-empty-state__actions">
-          {primaryAction ? <ButtonLink href={primaryAction.href}>{primaryAction.label}</ButtonLink> : null}
-          {secondaryAction ? <Link href={secondaryAction.href} variant="standalone">{secondaryAction.label}</Link> : null}
-        </div>
-      ) : null}
+      {actions ? <div className="vz-empty-state__actions">{actions}</div> : null}
     </section>
   );
 }
 
 export interface LoadingStateProps extends HTMLAttributes<HTMLDivElement> {
   readonly label?: string;
-  readonly detail?: string;
+  readonly detail?: ReactNode;
   readonly inline?: boolean;
 }
 
@@ -70,13 +58,23 @@ export interface SkeletonProps extends HTMLAttributes<HTMLSpanElement> {
   readonly width?: string;
   readonly height?: string;
   readonly shape?: "text" | "circle" | "block";
+  readonly tone?: "default" | "inverse";
 }
 
-export function Skeleton({ width, height, shape = "text", className, style, ...props }: SkeletonProps) {
+export function Skeleton({
+  width,
+  height,
+  shape = "text",
+  tone = "default",
+  className,
+  style,
+  ...props
+}: SkeletonProps) {
   return (
     <span
       {...props}
       aria-hidden="true"
+      data-tone={tone}
       className={cx("vz-skeleton", `vz-skeleton--${shape}`, className)}
       style={{ ...style, ...(width ? { width } : {}), ...(height ? { height } : {}) }}
     />
@@ -160,4 +158,25 @@ export function AuditHistory({ entries, label = "Audit history" }: { readonly en
       ))}
     </section>
   );
+}
+
+export interface ProgressStateProps extends HTMLAttributes<HTMLDivElement> {
+  readonly label: string;
+  readonly value: number;
+  readonly detail?: ReactNode;
+}
+
+export function ProgressState({ label, value, detail, className, ...props }: ProgressStateProps) {
+  const bounded = Math.min(100, Math.max(0, value));
+  return (
+    <div {...props} className={cx("vz-progress-state", className)}>
+      <div><strong>{label}</strong><span>{bounded}%</span></div>
+      <progress value={bounded} max={100}>{bounded}%</progress>
+      {detail ? <small>{detail}</small> : null}
+    </div>
+  );
+}
+
+export function RetryAction({ onRetry, label = "Retry" }: { readonly onRetry: () => void; readonly label?: string }) {
+  return <Button variant="secondary" size="small" onClick={onRetry}>{label}</Button>;
 }
