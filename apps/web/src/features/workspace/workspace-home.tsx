@@ -29,15 +29,17 @@ function nextStepFor(role: BaselineRoleKey, session: WorkspaceSession): NextStep
       : {
           eyebrow: "NEXT OPERATIONAL GATE",
           title: "Configure institution structure",
-          description: "Campuses, academic periods and organisational units are introduced in the next implementation slice.",
+          description: "Campuses, academic periods and organisational units remain governed through institution administration.",
           href: "/admin/institution-setup",
           action: "Open administration",
         };
   }
-  if (role === "registrar") return { eyebrow: "REGISTRY READINESS", title: "Prepare people and enrolment controls", description: "Learner records will remain unavailable until the institution structure and academic periods have been approved.", href: "/people", action: "Open people" };
-  if (role === "curriculum-manager" || role === "course-manager") return { eyebrow: "CURRICULUM READINESS", title: "Prepare the academic catalogue", description: "Programmes, courses and curriculum versions are introduced after institution structure is established.", href: "/learning", action: "Open learning" };
-  if (role === "instructor" || role === "assessor" || role === "moderator" || role === "learner") return { eyebrow: "LEARNING READINESS", title: "Learning delivery is not open yet", description: "Your access is verified. Classes, assessments and progress become available only after the institution publishes its academic structure.", href: "/learning", action: "View learning status" };
-  if (role === "guardian-sponsor") return { eyebrow: "RELATIONSHIP STATUS", title: "No learner relationship is assigned yet", description: "A guardian summary appears only after the institution records a valid learner relationship and disclosure policy.", href: "/insights", action: "View learner summary" };
+  if (role === "registrar") return { eyebrow: "REGISTRY READINESS", title: "Review people and enrolment controls", description: "Manage authoritative person records, enrolment evidence and academic operations within the institution boundary.", href: "/people", action: "Open people" };
+  if (role === "curriculum-manager" || role === "course-manager") return { eyebrow: "CURRICULUM OPERATIONS", title: "Review the academic catalogue", description: "Programme, course and delivery structures are governed from the learning workspace.", href: "/learning", action: "Open learning" };
+  if (role === "instructor") return { eyebrow: "TEACHING OPERATIONS", title: "Open your teaching workspace", description: "Review assigned learning delivery, learner activity and published course structure.", href: "/learning", action: "Open classes" };
+  if (role === "learner") return { eyebrow: "LEARNING", title: "Continue your learning", description: "Resume published course work and review the next activity that needs attention.", href: "/learning", action: "Open my learning" };
+  if (role === "assessor" || role === "moderator") return { eyebrow: "ASSESSMENT", title: "Review assessment work", description: "Assessment access is limited to the marking, moderation and release responsibilities assigned to this membership.", href: "/assessments", action: "Open assessments" };
+  if (role === "guardian-sponsor") return { eyebrow: "RELATIONSHIP STATUS", title: "Review learner information", description: "A learner summary appears only when an active relationship and disclosure policy permit access.", href: "/insights", action: "View learner summary" };
   if (role === "auditor") return { eyebrow: "EVIDENCE ACCESS", title: "Review the tenant evidence boundary", description: "Audit evidence is available only within this verified tenant context and remains read-only.", href: "/evidence", action: "Open evidence room" };
   return { eyebrow: "SUPPORT BOUNDARY", title: "Support access is scoped and audited", description: "Tenant content remains unavailable unless an approved support case grants a time-bounded diagnostic scope.", href: "/support", action: "Open support cases" };
 }
@@ -83,5 +85,8 @@ function TenantFoundationOverview({ session }: { session: WorkspaceSession }) {
 }
 
 export function WorkspaceHome({ session, demo }: { session: WorkspaceSession; demo: boolean }) {
-  return demo ? <DashboardOverview session={session}/> : <TenantFoundationOverview session={session}/>;
+  const role = primaryRole(session);
+  return demo && role === "learner"
+    ? <DashboardOverview session={session}/>
+    : <TenantFoundationOverview session={session}/>;
 }
