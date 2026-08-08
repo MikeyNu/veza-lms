@@ -1,0 +1,179 @@
+/* Form control integration for Veza Design System v2. */
+
+.vz-field__label-copy {
+  min-width: 0;
+  color: var(--veza-ink);
+}
+
+.vz-field__label-accessory {
+  flex: none;
+  color: var(--veza-muted);
+  font-size: var(--veza-text-sm);
+  font-weight: var(--veza-weight-regular);
+}
+
+.vz-field__optional {
+  color: inherit;
+  font: inherit;
+}
+
+.vz-choice__mark {
+  display: grid;
+  width: 1.125rem;
+  height: 1.125rem;
+  margin: 0;
+  margin-block-start: 0.0625rem;
+  padding: 0;
+  place-items: center;
+  border: 1px solid var(--veza-line-emphasis);
+  border-radius: 0.25rem;
+  background: var(--veza-surface);
+  color: var(--veza-white);
+  font: inherit;
+  line-height: 0;
+  cursor: pointer;
+  transition:
+    border-color var(--veza-motion-fast) var(--veza-ease),
+    background-color var(--veza-motion-fast) var(--veza-ease),
+    box-shadow var(--veza-motion-fast) var(--veza-ease);
+}
+
+.vz-choice__mark:hover:not([data-disabled]) {
+  border-color: var(--veza-institution-accent);
+}
+
+.vz-choice__mark:focus-visible {
+  outline: 0;
+  border-color: var(--veza-institution-accent);
+  box-shadow: var(--veza-focus);
+}
+
+.vz-choice__mark[data-state="checked"],
+.vz-choice__mark[data-state="indeterminate"] {
+  border-color: var(--veza-institution-accent);
+  background: var(--veza-institution-accent);
+}
+
+.vz-choice__indicator {
+  display: grid;
+  width: 100%;
+  height: 100%;
+  place-items: center;
+  color: var(--veza-institution-accent-contrast);
+  line-height: 0;
+}
+
+.vz-choice__mark--radio {
+  border-radius: 50%;
+  color: var(--veza-institution-accent);
+}
+
+.vz-choice__mark--radio[data-state="checked"] {
+  border-color: var(--veza-institution-accent);
+  background: var(--veza-surface);
+}
+
+.vz-choice__radio-dot {
+  display: block;
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.vz-choice:has(.vz-choice__mark[data-disabled]) {
+  color: var(--veza-muted);
+  opacity: 0.58;
+}
+
+.vz-choice:has(.vz-choice__mark[data-disabled]) :where(label, .vz-choice__mark) {
+  cursor: not-allowed;
+}
+
+.vz-radio-group--horizontal {
+  grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+}
+
+.vz-switch__track {
+  position: relative;
+  display: inline-flex;
+  width: 2.5rem;
+  height: 1.375rem;
+  flex: 0 0 2.5rem;
+  align-items: center;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--veza-line-emphasis);
+  border-radius: var(--veza-radius-pill);
+  background: var(--veza-slate-300);
+  cursor: pointer;
+  transition:
+    border-color var(--veza-motion-fast) var(--veza-ease),
+    background-color var(--veza-motion-fast) var(--veza-ease),
+    box-shadow var(--veza-motion-fast) var(--veza-ease);
+}
+
+.vz-switch__track:hover:not([data-disabled]) {
+  border-color: var(--veza-institution-accent);
+}
+
+.vz-switch__track:focus-visible {
+  outline: 0;
+  border-color: var(--veza-institution-accent);
+  box-shadow: var(--veza-focus);
+}
+
+.vz-switch__track[data-state="checked"] {
+  border-color: var(--veza-institution-accent);
+  background: var(--veza-institution-accent);
+}
+
+.vz-switch__thumb,
+.vz-switch__track > .vz-switch__thumb {
+  position: absolute;
+  inset-block-start: 0.125rem;
+  inset-inline-start: 0.125rem;
+  width: 1rem;
+  height: 1rem;
+  border-radius: 50%;
+  background: var(--veza-white);
+  box-shadow: 0 1px 2px rgb(15 23 42 / 0.2);
+  transform: translateX(0);
+  transition: transform var(--veza-motion-fast) var(--veza-ease);
+  will-change: transform;
+}
+
+.vz-switch__track[data-state="checked"] .vz-switch__thumb {
+  transform: translateX(1.0625rem);
+}
+
+[dir="rtl"] .vz-switch__track[data-state="checked"] .vz-switch__thumb {
+  transform: translateX(-1.0625rem);
+}
+
+.vz-switch:has(.vz-switch__track[data-disabled]) {
+  color: var(--veza-muted);
+  opacity: 0.58;
+}
+
+.vz-switch:has(.vz-switch__track[data-disabled]) :where(label, .vz-switch__track) {
+  cursor: not-allowed;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vz-choice__mark,
+  .vz-switch__track,
+  .vz-switch__thumb {
+    transition: none;
+  }
+}
+
+@media (forced-colors: active) {
+  .vz-choice__mark[data-state="checked"],
+  .vz-switch__track[data-state="checked"] {
+    forced-color-adjust: none;
+    border-color: Highlight;
+    background: Highlight;
+    color: HighlightText;
+  }
+}
