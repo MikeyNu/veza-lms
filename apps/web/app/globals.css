@@ -49,4 +49,5 @@
 @import "../styles/calendar-reference.css" layer(veza-reference);
 @import "../styles/analytics-reference.css" layer(veza-reference);
 @import "../styles/studio-reference.css" layer(veza-reference);
+@import "../styles/duplicate-review-v2.css" layer(veza-reference);
 @import "../styles/shell-interaction-v2.css" layer(veza-reference);
