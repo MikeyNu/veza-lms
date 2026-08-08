@@ -49,6 +49,7 @@ export * from "./combobox.js";
 export * from "./data.js";
 export * from "./file-upload.js";
 export * from "./forms.js";
+export * from "./icons.js";
 export * from "./layout.js";
 export * from "./overlays.js";
 export * from "./primitives.js";
