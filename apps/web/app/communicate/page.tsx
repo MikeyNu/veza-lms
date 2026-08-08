@@ -5,12 +5,12 @@ import {
   loadCommunicationsWorkspace,
   loadRecipientCommunicationsWorkspace,
 } from "../../src/server/communications-api";
-import { requireWorkspaceSession } from "../../src/server/require-workspace-session";
+import { requireWorkspaceAccess } from "../../src/server/require-workspace-access";
 
 export const dynamic = "force-dynamic";
 
 export default async function CommunicatePage() {
-  const resolution = await requireWorkspaceSession();
+  const resolution = await requireWorkspaceAccess("/communicate");
   const roles = new Set(resolution.session.membership.roles);
   const canAdminister = roles.has("tenant-owner") || roles.has("institution-admin");
 
