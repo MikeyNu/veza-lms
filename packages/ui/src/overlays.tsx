@@ -135,9 +135,9 @@ export function Popover({
 }: PopoverProps) {
   return (
     <PopoverPrimitive.Root
-      open={open}
+      {...(open !== undefined ? { open } : {})}
       defaultOpen={defaultOpen}
-      onOpenChange={onOpenChange}
+      {...(onOpenChange ? { onOpenChange } : {})}
       modal={modal}
     >
       <PopoverPrimitive.Trigger className="vz-popover__trigger" data-slot="popover-trigger">
@@ -183,7 +183,7 @@ export interface TooltipProps {
 
 export function Tooltip({ trigger, content, placement = "top", delayDuration }: TooltipProps) {
   return (
-    <TooltipPrimitive.Root delayDuration={delayDuration}>
+    <TooltipPrimitive.Root {...(delayDuration !== undefined ? { delayDuration } : {})}>
       <TooltipPrimitive.Trigger asChild>{trigger}</TooltipPrimitive.Trigger>
       <TooltipPrimitive.Portal>
         <TooltipPrimitive.Content
@@ -254,10 +254,10 @@ export function DropdownMenu({ trigger, entries, label, align = "end", placement
             return (
               <DropdownMenuPrimitive.Item
                 key={entry.key}
-                disabled={entry.disabled}
+                {...(entry.disabled !== undefined ? { disabled: entry.disabled } : {})}
                 onSelect={entry.onSelect}
                 className="vz-dropdown-menu__item"
-                data-destructive={entry.destructive || undefined}
+                {...(entry.destructive ? { "data-destructive": true } : {})}
               >
                 {entry.icon ? <span className="vz-dropdown-menu__icon" aria-hidden="true">{entry.icon}</span> : null}
                 <span className="vz-dropdown-menu__copy">{entry.label}</span>
