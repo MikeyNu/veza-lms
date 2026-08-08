@@ -263,11 +263,11 @@ export function RadioGroup({
   return (
     <RadioGroupPrimitive.Root
       name={name}
-      value={value}
-      defaultValue={defaultValue}
-      onValueChange={onChange}
-      required={required}
-      disabled={disabled}
+      {...(value !== undefined ? { value } : {})}
+      {...(defaultValue !== undefined ? { defaultValue } : {})}
+      {...(onChange ? { onValueChange: onChange } : {})}
+      {...(required !== undefined ? { required } : {})}
+      {...(disabled !== undefined ? { disabled } : {})}
       orientation={orientation}
       className={cn("vz-radio-group", `vz-radio-group--${orientation}`, className)}
       data-slot="radio-group"
@@ -280,8 +280,8 @@ export function RadioGroup({
             <RadioGroupPrimitive.Item
               id={controlId}
               value={option.value}
-              disabled={option.disabled}
-              aria-describedby={descriptionId}
+              {...(option.disabled !== undefined ? { disabled: option.disabled } : {})}
+              {...(descriptionId ? { "aria-describedby": descriptionId } : {})}
               className="vz-choice__mark vz-choice__mark--radio"
               data-slot="radio"
             >
@@ -315,6 +315,7 @@ export function Switch({
   const generatedId = useId();
   const controlId = id ?? `vz-switch-${generatedId.replaceAll(":", "")}`;
   const descriptionId = description ? `${controlId}-description` : undefined;
+  const describedBy = joinIds(props["aria-describedby"], descriptionId);
 
   return (
     <div className={cn("vz-switch", className)} data-slot="switch-field">
@@ -325,9 +326,9 @@ export function Switch({
       <SwitchPrimitive.Root
         {...props}
         id={controlId}
-        aria-describedby={joinIds(props["aria-describedby"], descriptionId)}
+        {...(describedBy ? { "aria-describedby": describedBy } : {})}
         className="vz-switch__track"
-        onCheckedChange={onCheckedChange}
+        {...(onCheckedChange ? { onCheckedChange } : {})}
         data-slot="switch"
       >
         <SwitchPrimitive.Thumb className="vz-switch__thumb" />
