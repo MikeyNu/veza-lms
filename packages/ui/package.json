@@ -1,11 +1,13 @@
 {
   "name": "@veza/ui",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "private": true,
   "type": "module",
   "sideEffects": [
     "./src/tokens.css",
-    "./src/styles.css"
+    "./src/styles.css",
+    "./src/system-v2.css",
+    "./src/system.css"
   ],
   "exports": {
     ".": {
@@ -15,6 +17,7 @@
     },
     "./tokens.css": "./src/tokens.css",
     "./styles.css": "./src/styles.css",
+    "./system.css": "./src/system.css",
     "./catalogue": {
       "types": "./src/catalogue.ts",
       "import": "./dist/catalogue.js",
