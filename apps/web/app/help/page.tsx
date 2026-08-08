@@ -1,5 +1,8 @@
+import type { WorkspaceSession } from "@veza/contracts";
 import Link from "next/link";
 import { AppShell } from "../../src/components/app-shell";
+import { Icon } from "../../src/components/icon";
+import { canAccessWorkspacePath } from "../../src/features/workspace/access-policy";
 import { primaryRole } from "../../src/features/workspace/navigation";
 import { requireWorkspaceSession } from "../../src/server/require-workspace-session";
 
@@ -20,6 +23,18 @@ const roleGuidance = {
   },
 } as const;
 
+const helpTopics = [
+  { href: "/learning", title: "Learning and course access", description: "Lessons, course rooms and learner progress" },
+  { href: "/assessments", title: "Assessments and results", description: "Assignments, marking, moderation and grade evidence" },
+  { href: "/calendar", title: "Calendar and timetable", description: "Scheduled teaching, sessions and attendance context" },
+  { href: "/communicate", title: "Messages and announcements", description: "Institution-scoped communication" },
+  { href: "/people", title: "People and membership", description: "Person records, invitations and institutional membership" },
+] as const;
+
+function authorisedHelpTopics(session: WorkspaceSession) {
+  return helpTopics.filter((topic) => canAccessWorkspacePath(session, topic.href));
+}
+
 export default async function HelpPage() {
   const resolution = await requireWorkspaceSession();
   const role = primaryRole(resolution.session);
@@ -27,6 +42,8 @@ export default async function HelpPage() {
     title: "Veza help",
     description: "Start with the workspace that owns the task. Use institutional support for access and policy questions, and platform support for verified service incidents.",
   };
+  const topics = authorisedHelpTopics(resolution.session);
+  const canOpenSupport = canAccessWorkspacePath(resolution.session, "/support");
 
   return (
     <AppShell session={resolution.session} active="help">
@@ -36,22 +53,31 @@ export default async function HelpPage() {
             <h1 id="help-title">{guidance.title}</h1>
             <p>{guidance.description}</p>
           </div>
-          <Link className="help-support-link" href="/support">Open support cases</Link>
+          {canOpenSupport ? <Link className="help-support-link" href="/support">Open support cases</Link> : null}
         </header>
 
         <div className="help-layout">
           <section className="help-directory" aria-labelledby="help-directory-title">
             <header>
               <h2 id="help-directory-title">Choose what you need help with</h2>
-              <p>Each route keeps the task inside its authorised institutional boundary.</p>
+              <p>Only workspaces authorised for your current role are shown here.</p>
             </header>
-            <nav aria-label="Help topics">
-              <Link href="/learning"><span>Learning and course access</span><small>Lessons, course rooms and learner progress</small></Link>
-              <Link href="/assessments"><span>Assessments and results</span><small>Assignments, marking, moderation and grade evidence</small></Link>
-              <Link href="/calendar"><span>Calendar and timetable</span><small>Scheduled teaching, sessions and attendance context</small></Link>
-              <Link href="/communicate"><span>Messages and announcements</span><small>Institution-scoped communication</small></Link>
-              <Link href="/people"><span>People and membership</span><small>Available only when your role permits people administration</small></Link>
-            </nav>
+            {topics.length ? (
+              <nav aria-label="Help topics">
+                {topics.map((topic) => (
+                  <Link href={topic.href} key={topic.href}>
+                    <span>{topic.title}</span>
+                    <small>{topic.description}</small>
+                    <Icon name="chevron-right" size="small" />
+                  </Link>
+                ))}
+              </nav>
+            ) : (
+              <div className="help-directory-empty">
+                <strong>No task workspace is available for this role.</strong>
+                <p>Use the account menu for profile guidance or ask an institution administrator to review your membership.</p>
+              </div>
+            )}
           </section>
 
           <aside className="help-guidance" aria-labelledby="help-guidance-title">
