@@ -1,5 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import {
+  canAccessPathForRoles,
+  canonicalLandingPath,
+  roleModulesForDemo,
+} from "../../../../src/features/workspace/access-policy";
+import {
   demoModeEnabled,
   demoRoleCookieName,
   isDemoRole,
@@ -29,7 +34,16 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ message: "Demo role is invalid" }, { status: 400 });
   }
 
-  const response = NextResponse.redirect(new URL(safeReturnPath(request), request.url), 303);
+  const requestedReturnPath = safeReturnPath(request);
+  const permittedReturnPath = canAccessPathForRoles(
+    [role],
+    requestedReturnPath,
+    roleModulesForDemo(),
+  )
+    ? requestedReturnPath
+    : canonicalLandingPath(role);
+
+  const response = NextResponse.redirect(new URL(permittedReturnPath, request.url), 303);
   response.cookies.set(demoRoleCookieName, role, {
     httpOnly: true,
     sameSite: "lax",
