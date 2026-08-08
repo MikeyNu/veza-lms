@@ -1,3 +1,4 @@
+import { ButtonLink, StatusIndicator } from "@veza/ui";
 import Link from "next/link";
 import { Icon } from "../../components/icon";
 import { ProgressRing } from "./progress-ring";
@@ -7,20 +8,21 @@ export function LearningOverview() {
     <section className="bento" aria-label="Learning overview">
       <article className="continue-card panel">
         <div className="card-top">
-          <span className="pill">In progress</span>
-          <span className="course-position">Lesson 4 of 8</span>
+          <StatusIndicator label="In progress" tone="information" quiet />
         </div>
         <div className="continue-content">
-          <div>
+          <div className="continue-copy">
             <p className="muted">Advanced Product Design</p>
             <h2>Designing for complex systems</h2>
             <p className="lesson-meta">Continue from the last completed activity. Approximately 38 minutes remain in this lesson.</p>
-            <Link className="dark-button" href="/learning">
-              <span className="play"><Icon name="play" /></span>
+            <ButtonLink href="/learning" leadingIcon={<Icon name="play" size="small" />}>
               Continue learning
-            </Link>
+            </ButtonLink>
           </div>
-          <ProgressRing value={72} />
+          <aside className="continue-progress" aria-label="Current lesson progress">
+            <span className="course-position">Lesson 4 of 8</span>
+            <ProgressRing value={72} label="Advanced Product Design progress" />
+          </aside>
         </div>
       </article>
 
