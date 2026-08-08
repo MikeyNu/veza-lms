@@ -29,7 +29,7 @@
   color: var(--muted);
 }
 
-/* Eyebrow label — CI: 0.75rem / 600 / 0.08em tracking */
+/* Eyebrow label - CI: 0.75rem / 600 / 0.08em tracking */
 .vz-progress-summary span {
   font-size: var(--veza-text-xs);
   font-weight: 600;
@@ -103,7 +103,7 @@
   color: var(--brand-strong);
 }
 
-/* Uppercase micro-label — CI: 0.75rem / 600 / 0.08em */
+/* Uppercase micro-label - CI: 0.75rem / 600 / 0.08em */
 .vz-progress-course small {
   color: var(--muted);
   font-size: var(--veza-text-xs);
@@ -149,7 +149,7 @@
   font-size: var(--veza-text-xs);
 }
 
-/* Progress bar — CI: 6px tall, pill radius, track var(--line), fill var(--brand) */
+/* Progress bar - CI: 6px tall, pill radius, track var(--line), fill var(--brand) */
 .vz-progress-course > .vz-course-progress {
   grid-column: 1 / -1;
   height: 0.375rem; /* 6px */

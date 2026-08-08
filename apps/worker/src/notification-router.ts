@@ -110,19 +110,22 @@ function contractFor(delivery: ClaimedConsumerDelivery): NotificationContract {
   if (!templateKey || !topicKey || !recipient || channels.length === 0) {
     throw new Error("notification-contract-invalid");
   }
+  const recipientUserId = stringValue(source, "recipientUserId");
+  const recipientPersonId = stringValue(source, "recipientPersonId");
+  const institutionId = stringValue(source, "institutionId");
   return {
     templateKey,
     topicKey,
     policy: source.policy === "required" ? "required" : "optional",
     channels,
-    recipientUserId: stringValue(source, "recipientUserId"),
-    recipientPersonId: stringValue(source, "recipientPersonId"),
+    ...(recipientUserId !== undefined ? { recipientUserId } : {}),
+    ...(recipientPersonId !== undefined ? { recipientPersonId } : {}),
     recipient,
     variables,
     deduplicationKey:
       stringValue(source, "deduplicationKey") ??
       `${delivery.eventName}:${delivery.outboxEventId}:${delivery.replaySequence}`,
-    institutionId: stringValue(source, "institutionId"),
+    ...(institutionId !== undefined ? { institutionId } : {}),
   };
 }
 
@@ -142,6 +145,8 @@ async function ensureInvitationTemplate(
      RETURNING id`,
     [tenantId, actorId],
   );
+  const templateId = template.rows[0]?.id;
+  if (!templateId) throw new Error("invitation-template-upsert-failed");
   await client.query(
     `INSERT INTO notification_template_versions (
        tenant_id, template_id, version_number, subject_template,
@@ -154,7 +159,7 @@ async function ensureInvitationTemplate(
        'active',$3
      )
      ON CONFLICT (tenant_id, template_id, version_number) DO NOTHING`,
-    [tenantId, template.rows[0].id, actorId],
+    [tenantId, templateId, actorId],
   );
 }
 
@@ -196,7 +201,9 @@ export class NotificationRouter implements ConsumerHandler {
           actorId,
         ],
       );
-      return result.rows[0].id;
+      const intentId = result.rows[0]?.id;
+      if (!intentId) throw new Error("notification-intent-create-failed");
+      return intentId;
     });
     return {
       handlerVersion: "communications.notification-router.v1",

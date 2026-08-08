@@ -107,7 +107,7 @@
   line-height: 1.55;
 }
 
-/* Flat solid fill — no gradient on buttons per CI */
+/* Flat solid fill - no gradient on buttons per CI */
 .dark-button {
   display: inline-flex;
   min-height: 2.65rem;

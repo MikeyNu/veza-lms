@@ -176,6 +176,24 @@ export const SearchInput = forwardRef<HTMLInputElement, InputHTMLAttributes<HTML
   return <input {...props} ref={ref} type="search" className={cn("vz-input", "vz-input--search", className)} data-slot="search-input" />;
 });
 
+export interface DateInputProps extends Omit<InputHTMLAttributes<HTMLInputElement>, "type"> {}
+
+export const DateInput = forwardRef<HTMLInputElement, DateInputProps>(function DateInput(
+  { className, ...props },
+  ref,
+) {
+  return <input {...props} ref={ref} type="date" className={cn("vz-input", "vz-input--date", className)} data-slot="date-input" />;
+});
+
+export interface TimeInputProps extends Omit<InputHTMLAttributes<HTMLInputElement>, "type"> {}
+
+export const TimeInput = forwardRef<HTMLInputElement, TimeInputProps>(function TimeInput(
+  { className, ...props },
+  ref,
+) {
+  return <input {...props} ref={ref} type="time" className={cn("vz-input", "vz-input--time", className)} data-slot="time-input" />;
+});
+
 export const Textarea = forwardRef<HTMLTextAreaElement, TextareaHTMLAttributes<HTMLTextAreaElement>>(function Textarea(
   { className, rows = 4, ...props },
   ref,
@@ -281,11 +299,11 @@ export function RadioGroup({
     <RadioGroupPrimitive.Root
       {...ariaProps}
       name={name}
-      value={value}
-      defaultValue={defaultValue}
-      disabled={disabled}
+      {...(value !== undefined ? { value } : {})}
+      {...(defaultValue !== undefined ? { defaultValue } : {})}
+      {...(disabled !== undefined ? { disabled } : {})}
       orientation={orientation}
-      onValueChange={onValueChange}
+      {...(onValueChange !== undefined ? { onValueChange } : {})}
       className={cn("vz-radio-group", orientation === "horizontal" && "vz-radio-group--horizontal", className)}
       data-slot="radio-group"
     >
@@ -334,9 +352,11 @@ export function Switch({ label, description, className, id, onCheckedChange, ...
       <SwitchPrimitive.Root
         {...props}
         id={controlId}
-        aria-describedby={joinIds(props["aria-describedby"], descriptionId)}
+        {...(joinIds(props["aria-describedby"], descriptionId) !== undefined
+          ? { "aria-describedby": joinIds(props["aria-describedby"], descriptionId) }
+          : {})}
         className="vz-switch__track"
-        onCheckedChange={onCheckedChange}
+        {...(onCheckedChange !== undefined ? { onCheckedChange } : {})}
         data-slot="switch"
       >
         <SwitchPrimitive.Thumb className="vz-switch__thumb" />

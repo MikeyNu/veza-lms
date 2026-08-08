@@ -104,7 +104,7 @@ function Body() {
       <Section title="File handling"><FileUpload label="Evidence files" description="Upload approved evidence. Every file is scanned before use." items={files} maximumFiles={3} maximumSizeBytes={10 * 1024 * 1024} accept="image/*,.pdf" onFilesSelected={(selectedFiles) => setFiles((current) => [...current, ...selectedFiles.map((file) => ({ id: `${file.name}-${file.lastModified}`, file }))])} onRemove={(id) => setFiles((current) => current.filter((item) => item.id !== id))} /></Section>
     </main>
 
-    <Dialog open={palette} onClose={() => setPalette(false)} title="Command palette" description="Search the current authorised workspace."><CommandPalette open={palette} onClose={() => setPalette(false)} label="Find a workspace action" items={[{ id: "people", label: "Open people", group: "Navigation", keywords: ["learner", "staff"], onSelect: () => setPalette(false) },{ id: "audit", label: "Open audit evidence", group: "Navigation", onSelect: () => setPalette(false) },{ id: "new", label: "Create programme", group: "Create", onSelect: () => setPalette(false) }]} /></Dialog>
+    <CommandPalette open={palette} onOpenChange={setPalette} title="Find a workspace action" commands={[{ id: "people", label: "Open people", group: "Navigation", keywords: ["learner", "staff"], onSelect: () => setPalette(false) },{ id: "audit", label: "Open audit evidence", group: "Navigation", onSelect: () => setPalette(false) },{ id: "new", label: "Create programme", group: "Create", onSelect: () => setPalette(false) }]} />
   </div>;
 }
 

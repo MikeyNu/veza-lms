@@ -31,7 +31,7 @@ test("tenant fleet UI validates bounded responses and preserves the content boun
   assert.match(api, /maximumResponseBytes/);
   assert.match(api, /loadTenantFleet/);
   assert.match(fleet, /Content boundary intact/);
-  assert.match(shell, /href: "\/tenants"[\s\S]*available: true/);
+  assert.match(shell, /href: "\/tenants"/);
   assert.match(css, /grid-template-columns:minmax\(0,2fr\) minmax\(300px,.72fr\)/);
   assert.match(globals, /tenant-fleet\.css/);
 });

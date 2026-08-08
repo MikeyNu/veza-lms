@@ -27,7 +27,9 @@ async function readResponse(socket: Socket | TLSSocket, timeoutMs: number): Prom
       buffer = Buffer.concat([buffer, chunk]);
       const end = buffer.indexOf("\r\n");
       if (end < 0) return;
-      const type = String.fromCharCode(buffer[0]);
+      const firstByte = buffer.at(0);
+      if (firstByte === undefined) return;
+      const type = String.fromCharCode(firstByte);
       const line = buffer.subarray(1, end).toString("utf8");
       if (type === "+") done(undefined, line);
       else if (type === ":") done(undefined, Number(line));
@@ -65,7 +67,7 @@ async function open(url: URL): Promise<Socket | TLSSocket> {
 }
 
 export class RedisCoordinator {
-  private readonly url?: URL;
+  private readonly url: URL | undefined;
   private readonly prefix: string;
 
   constructor(private readonly workerId: string) {

@@ -66,7 +66,7 @@
       "id": "assessment-gradebook",
       "title": "Rubrics, marking, moderation, gradebook and result release",
       "boundary": "tenant application plane",
-      "sources": ["apps/api/src/modules/academic-evidence", "apps/web/app/gradebook", "apps/web/src/features/academic"],
+      "sources": ["apps/api/src/modules/academic-evidence", "apps/web/app/gradebook", "apps/web/src/features/academic-evidence"],
       "tests": ["apps/api/tests/academic-evidence-source.test.mjs", "apps/api/tests/integration/academic-evidence-security.test.mjs", "apps/web/tests/learning-delivery-integration.test.mjs"],
       "verification": "integration and contract",
       "features": [

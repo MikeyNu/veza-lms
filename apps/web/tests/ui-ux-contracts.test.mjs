@@ -18,7 +18,7 @@ function escapePattern(value) {
 
 test("global stylesheet imports resolve to real files", () => {
   const globals = read("apps/web/app/globals.css");
-  const imports = [...globals.matchAll(/@import\s+"([^"]+)";/g)].map((match) => match[1]);
+  const imports = [...globals.matchAll(/@import\s+"([^"]+)"(?:\s+layer\([^)]+\))?;/g)].map((match) => match[1]);
   const localImports = imports.filter((value) => value.startsWith("../"));
 
   assert.ok(localImports.length >= 27, "all application style domains should be explicitly loaded");

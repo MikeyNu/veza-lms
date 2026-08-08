@@ -43,7 +43,7 @@ test("pre-workspace and external identity calls do not invent tenant context", a
     source("../src/server/workspace-api.ts"),
     source("../src/server/invitation-api.ts"),
   ]);
-  assert.match(workspace, /loadWorkspaceOptions/);
+  assert.match(workspace, /listWorkspaceOptions/);
   assert.match(workspace, /loadWorkspaceSession/);
   assert.match(workspace, /"x-veza-membership-id": membershipId/);
   assert.doesNotMatch(workspace, /x-veza-tenant-id/);

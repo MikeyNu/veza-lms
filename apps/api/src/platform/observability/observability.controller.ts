@@ -27,7 +27,7 @@ import {
 import { ObservabilityOperationsService } from "./observability-operations.service.js";
 import { ObservabilityService } from "./observability.service.js";
 
-@Controller("health")
+@Controller("observability")
 export class PlatformHealthController {
   constructor(private readonly observability: ObservabilityService) {}
 

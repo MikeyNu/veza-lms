@@ -48,11 +48,13 @@ test("operator identity and provisioning responses are runtime validated and bou
   assert.doesNotMatch(route, /content-type": upstream\.headers/);
 });
 
-test("unimplemented control-plane sections are visibly non-interactive", async () => {
+test("control-plane navigation exposes the implemented operator sections", async () => {
   const shell = await readFile(new URL("../src/components/control-plane-shell.tsx", import.meta.url), "utf8");
-  assert.match(shell, /available: false/);
-  assert.match(shell, /aria-disabled="true"/);
-  assert.match(shell, /Introduced in a later implementation gate/);
+  for (const href of ["/tenants", "/plans", "/releases", "/support", "/health", "/audit", "/delivery-failures", "/events", "/observability"]) {
+    assert.match(shell, new RegExp(`href: "${href}"`));
+  }
+  assert.match(shell, /<Link className=/);
+  assert.doesNotMatch(shell, /Introduced in a later implementation gate/);
 });
 
 test("operator entry requires MFA assurance and avoids a redundant sign-in loop", async () => {

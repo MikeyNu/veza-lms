@@ -21,7 +21,7 @@
         {"id":"web-bff-ui.learning-workspace","name":"Learning workspace","status":"implemented","entryPoint":"/learning"},
         {"id":"web-bff-ui.course-room","name":"Course room","status":"implemented","entryPoint":"/courses/:enrolmentId"},
         {"id":"web-bff-ui.assessment-workspace","name":"Assessment workspace","status":"implemented","entryPoint":"/assessments"},
-        {"id":"web-bff-ui.gradebook-workspace","name":"Gradebook workspace","status":"implemented","entryPoint":"/gradebook"},
+        {"id":"web-bff-ui.gradebook-workspace","name":"Gradebook workspace","status":"implemented","entryPoint":"/gradebook/:courseRunId"},
         {"id":"web-bff-ui.evidence-room","name":"Evidence room","status":"implemented","entryPoint":"/evidence"},
         {"id":"web-bff-ui.insights-workspace","name":"Insights workspace","status":"implemented","entryPoint":"/insights"},
         {"id":"web-bff-ui.communications-workspace","name":"Role-adaptive communications workspace","status":"implemented","entryPoint":"/communicate"},

@@ -7,7 +7,7 @@ test("composite widgets expose keyboard and screen-reader semantics", async () =
   const tabs = await readSource("tabs.tsx");
   const command = await readSource("command-palette.tsx");
   for (const token of ["role=\"combobox\"", "aria-activedescendant", "role=\"listbox\"", "role=\"option\"", "ArrowDown", "ArrowUp", "Home", "End", "Escape"]) assert.ok(combobox.includes(token), `Combobox missing ${token}`);
-  for (const token of ["role=\"tablist\"", "role=\"tab\"", "role=\"tabpanel\"", "aria-selected", "aria-controls", "ArrowLeft", "ArrowRight", "Home", "End"]) assert.ok(tabs.includes(token), `Tabs missing ${token}`);
+  for (const token of ["TabsPrimitive.List", "TabsPrimitive.Trigger", "TabsPrimitive.Content", "aria-label", "orientation", "activationMode=\"automatic\""]) assert.ok(tabs.includes(token), `Tabs missing ${token}`);
   for (const token of ["Ctrl", "metaKey", "role=\"combobox\"", "role=\"listbox\"", "role=\"option\"", "Escape", "Enter"]) assert.ok(command.includes(token), `Command palette missing ${token}`);
 });
 
@@ -22,8 +22,10 @@ test("forms, uploads and feedback use native or explicit accessible boundaries",
   assert.match(upload, /type="file"/);
   assert.match(upload, /<progress/);
   assert.match(upload, /role="alert"/);
-  assert.match(overlays, /<dialog/);
-  assert.match(overlays, /aria-labelledby/);
+  assert.match(overlays, /DialogPrimitive\.Content/);
+  assert.match(overlays, /DialogPrimitive\.Title/);
+  assert.match(overlays, /DialogPrimitive\.Description/);
+  assert.match(overlays, /DialogPrimitive\.Overlay/);
   assert.match(data, /<caption/);
   assert.match(data, /aria-sort/);
 });

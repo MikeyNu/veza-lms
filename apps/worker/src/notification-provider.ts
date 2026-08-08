@@ -69,18 +69,20 @@ class HttpNotificationProvider implements NotificationProvider {
       });
       const body = (await response.json().catch(() => ({}))) as Record<string, unknown>;
       if (!response.ok) {
+        const providerStatus = typeof body.status === "string" ? body.status : undefined;
         return {
           accepted: false,
           errorCode: `provider-http-${response.status}`,
-          providerStatus: typeof body.status === "string" ? body.status : undefined,
+          ...(providerStatus !== undefined ? { providerStatus } : {}),
         };
       }
+      const providerMessageId =
+        typeof body.messageId === "string"
+          ? body.messageId
+          : response.headers.get("x-provider-message-id") ?? undefined;
       return {
         accepted: true,
-        providerMessageId:
-          typeof body.messageId === "string"
-            ? body.messageId
-            : response.headers.get("x-provider-message-id") ?? undefined,
+        ...(providerMessageId !== undefined ? { providerMessageId } : {}),
         providerStatus: typeof body.status === "string" ? body.status : "accepted",
       };
     } catch (error) {

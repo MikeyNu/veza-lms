@@ -1,8 +1,6 @@
 import type { HTMLAttributes, ReactNode } from "react";
 import { Button } from "./primitives.js";
-import { cx } from "./utilities.js";
-
-export type VezaTone = "neutral" | "information" | "success" | "warning" | "critical";
+import { cx, type VezaTone } from "./utilities.js";
 
 export interface EmptyStateProps extends HTMLAttributes<HTMLElement> {
   readonly title: string;

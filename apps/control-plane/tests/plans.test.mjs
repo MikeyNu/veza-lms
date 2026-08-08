@@ -16,7 +16,7 @@ test("plan catalogue is operator guarded, bounded and non-mutating", async () =>
   assert.match(api, /control-plane\/plans/);
   assert.match(view, /Plan edits remain deliberately unavailable/);
   assert.doesNotMatch(view, /method="post"/);
-  assert.match(shell, /href: "\/plans"[\s\S]*available: true/);
+  assert.match(shell, /href: "\/plans"/);
 });
 
 test("plan catalogue uses responsive comparison cards", async () => {

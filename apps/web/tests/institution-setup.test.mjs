@@ -39,10 +39,10 @@ test("institution setup uses a responsive three-column task hierarchy", async ()
     source("../app/globals.css"),
     source("../src/features/workspace/navigation.ts"),
   ]);
-  assert.match(css, /grid-template-columns: minmax\(240px,.72fr\) minmax\(580px,1.75fr\) minmax\(250px,.76fr\)/);
+  assert.match(css.replaceAll(/\s+/g, ""), /grid-template-columns:minmax\(240px,.72fr\)minmax\(580px,1.75fr\)minmax\(250px,.76fr\)/);
   assert.match(css, /activation-rail/);
   assert.match(css, /setup-bento/);
-  assert.match(css, /@media \(max-width: 620px\)/);
+  assert.match(css, /@media \(max-width:\s*620px\)/);
   assert.match(globals, /institution-setup\.css/);
   assert.match(navigation, /href: "\/admin\/institution-setup"/);
 });

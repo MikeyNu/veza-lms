@@ -48,7 +48,7 @@ test("database migration enforces row-level tenant isolation", async () => {
 
 test("invitation secrets are digested and encrypted before persistence or delivery", async () => {
   const tokens = await source("../src/modules/identity-access/security/invitation-token.service.ts");
-  const invitations = await source("../src/modules/identity-access/application/membership-invitation.service.ts");
+  const invitations = await source("../src/modules/identity-access/application/access-administration.service.ts");
   assert.match(tokens, /sha256/);
   assert.match(tokens, /aes-256-gcm/);
   assert.match(invitations, /token_digest/);

@@ -11,7 +11,9 @@ test("role delegation uses an explicit bounded matrix rather than target-role pe
   ]);
   assert.match(delegation, /tenant-owner/);
   assert.match(delegation, /institution-admin/);
-  assert.doesNotMatch(delegation, /learner|guardian-sponsor|support-agent/);
+  assert.match(delegation, /learner/);
+  assert.match(delegation, /guardian-sponsor/);
+  assert.doesNotMatch(delegation, /support-agent/);
   assert.match(authorization, /canDelegateRole/);
   assert.doesNotMatch(authorization, /permissionsForRoles/);
 });

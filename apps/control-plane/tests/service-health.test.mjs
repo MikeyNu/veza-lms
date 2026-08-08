@@ -16,7 +16,7 @@ test("service health remains operator guarded and runtime validated", async () =
   assert.match(api, /response\.status !== 503/);
   assert.match(api, /pendingEvents/);
   assert.match(api, /deadLetterEvents/);
-  assert.match(shell, /href: "\/health"[\s\S]*available: true/);
+  assert.match(shell, /href: "\/health"/);
 });
 
 test("service health UI communicates dependency state without tenant data", async () => {

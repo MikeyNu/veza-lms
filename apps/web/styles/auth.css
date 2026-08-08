@@ -12,7 +12,7 @@
   flex-direction: column;
   padding: clamp(2.25rem, 5vw, 4.75rem);
   overflow: hidden;
-  color: white;                  /* was #eef2f9 — tokenised to white */
+  color: white;                  /* was #eef2f9 - tokenised to white */
   background: var(--sidebar);
 }
 
@@ -39,7 +39,7 @@
 .auth-brand-lockup strong {
   display: block;
   color: white;
-  font-size: var(--veza-text-h3);             /* was 1.15rem — aligned to scale */
+  font-size: var(--veza-text-h3);             /* was 1.15rem - aligned to scale */
   letter-spacing: var(--veza-tracking-display); /* kept -0.03em via token */
   text-transform: capitalize;
 }
@@ -61,7 +61,7 @@
   margin: auto 0;
 }
 
-/* Eyebrow on the dark brand panel — recoloured teal → indigo-100 */
+/* Eyebrow on the dark brand panel - recoloured teal to indigo-100 */
 .auth-copy .eyebrow {
   color: var(--veza-indigo-100);             /* was #5eead4 (old teal) */
   font-size: var(--veza-text-xs);            /* 0.75rem per CI eyebrow spec */
@@ -77,7 +77,7 @@
   font-size: clamp(var(--veza-text-3xl), 6vw, var(--veza-text-4xl)); /* CI display scale */
   font-weight: 700;
   line-height: var(--veza-leading-tight);    /* was 0.96 */
-  letter-spacing: var(--veza-tracking-display); /* was -0.065em — extreme; now -0.03em */
+  letter-spacing: var(--veza-tracking-display); /* was -0.065em - extreme; now -0.03em */
 }
 
 .auth-copy > p:last-child {
@@ -127,7 +127,7 @@
 .auth-form > p:not(.eyebrow, .auth-error) {
   margin: 0.75rem 0 1.7rem;
   color: var(--muted);
-  font-size: var(--veza-text-xs);            /* was 0.75rem — at minimum, use token */
+  font-size: var(--veza-text-xs);            /* was 0.75rem - at minimum, use token */
   line-height: 1.6;
 }
 
@@ -156,7 +156,7 @@
   font-weight: 600;                           /* was 800 */
 }
 
-/* Primary action: flat var(--brand) fill — no gradient, no brand-strong */
+/* Primary action: flat var(--brand) fill - no gradient, no brand-strong */
 .auth-sso {
   border: 1px solid var(--brand);
   background: var(--brand);
@@ -384,7 +384,7 @@
 
 .pending-guidance strong {
   display: block;
-  font-size: var(--veza-text-xs);            /* was 0.75rem — at threshold, use token */
+  font-size: var(--veza-text-xs);            /* was 0.75rem - at threshold, use token */
 }
 
 .pending-guidance p {
