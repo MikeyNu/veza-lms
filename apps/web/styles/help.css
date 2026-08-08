@@ -25,14 +25,20 @@
 
 .help-support-link {
   display: inline-flex;
-  min-height: 2.25rem;
+  min-height: var(--veza-control-height);
   align-items: center;
-  padding: 0 0.75rem;
-  border: 1px solid var(--veza-brand);
-  border-radius: var(--veza-radius-tile);
-  color: var(--veza-brand-strong);
+  padding: 0 0.8rem;
+  border: 1px solid var(--veza-line-strong);
+  border-radius: var(--veza-radius-control);
+  background: var(--veza-surface);
+  color: var(--veza-ink-soft);
   font-size: var(--veza-text-sm);
   font-weight: var(--veza-weight-semibold);
+}
+
+.help-support-link:hover {
+  border-color: var(--veza-indigo-300);
+  color: var(--veza-indigo-700);
 }
 
 .help-layout {
@@ -65,16 +71,25 @@
 
 .help-directory nav a {
   display: grid;
-  grid-template-columns: minmax(13rem, 0.9fr) minmax(0, 1.1fr);
+  grid-template-columns: minmax(13rem, 0.9fr) minmax(0, 1.1fr) 1rem;
   gap: 1rem;
   align-items: center;
-  min-height: 3.75rem;
-  padding: 0.7rem 0;
+  min-height: 4.15rem;
+  margin-inline: -0.55rem;
+  padding: 0.8rem 0.55rem;
   border-bottom: 1px solid var(--veza-line);
+  border-radius: 0.35rem;
+  transition: background-color var(--veza-motion-fast) var(--veza-ease), color var(--veza-motion-fast) var(--veza-ease);
 }
 
 .help-directory nav a:hover {
-  color: var(--veza-brand-strong);
+  background: var(--veza-surface-subtle);
+  color: var(--veza-indigo-700);
+}
+
+.help-directory nav a:focus-visible {
+  outline: 0;
+  box-shadow: var(--veza-focus);
 }
 
 .help-directory nav span {
@@ -82,6 +97,30 @@
 }
 
 .help-directory nav small {
+  color: var(--veza-muted);
+  font-size: var(--veza-text-sm);
+  line-height: var(--veza-leading-sm);
+}
+
+.help-directory nav a > svg {
+  justify-self: end;
+  color: var(--veza-slate-400);
+  transition: translate var(--veza-motion-fast) var(--veza-ease), color var(--veza-motion-fast) var(--veza-ease);
+}
+
+.help-directory nav a:hover > svg {
+  translate: 2px 0;
+  color: var(--veza-indigo-600);
+}
+
+.help-directory-empty {
+  padding: 1.25rem 0;
+  border-block: 1px solid var(--veza-line);
+}
+
+.help-directory-empty p {
+  max-width: 38rem;
+  margin: 0.3rem 0 0;
   color: var(--veza-muted);
   font-size: var(--veza-text-sm);
 }
@@ -139,7 +178,7 @@
 }
 
 .help-security-note strong {
-  color: var(--veza-brand-strong);
+  color: var(--veza-indigo-700);
   font-size: var(--veza-text-sm);
 }
 
@@ -170,7 +209,23 @@
   }
 
   .help-directory nav a {
-    grid-template-columns: minmax(0, 1fr);
-    gap: 0.2rem;
+    grid-template-columns: minmax(0, 1fr) 1rem;
+    gap: 0.2rem 0.75rem;
+  }
+
+  .help-directory nav small {
+    grid-column: 1;
+  }
+
+  .help-directory nav a > svg {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .help-directory nav a,
+  .help-directory nav a > svg {
+    transition: none;
   }
 }
