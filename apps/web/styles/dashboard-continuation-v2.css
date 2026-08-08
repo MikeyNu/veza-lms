@@ -1,0 +1,169 @@
+/* Learner continuation surface. Geometry follows the supplied learner reference. */
+
+.continue-card {
+  min-height: 17.5rem;
+  padding: 1.45rem 1.55rem;
+}
+
+.continue-card .card-top {
+  min-height: 1.75rem;
+  justify-content: flex-start;
+}
+
+.continue-card .vz-status {
+  min-height: 1.75rem;
+  padding-inline: 0.65rem;
+  border: 0;
+  background: var(--veza-indigo-50);
+  color: var(--veza-indigo-700);
+  font-size: var(--veza-text-xs);
+  font-weight: 750;
+  letter-spacing: 0.055em;
+  text-transform: uppercase;
+}
+
+.continue-card .vz-status__dot {
+  width: 0.4rem;
+  height: 0.4rem;
+  background: var(--veza-indigo-600);
+}
+
+.continue-content {
+  grid-template-columns: minmax(0, 1fr) 7.25rem;
+  align-items: center;
+  max-width: none;
+  margin-top: 1.55rem;
+  gap: 2rem;
+}
+
+.continue-copy {
+  min-width: 0;
+}
+
+.continue-card .muted {
+  margin-bottom: 0.45rem;
+  color: var(--veza-slate-500);
+  font-size: var(--veza-text-sm);
+  line-height: var(--veza-leading-sm);
+}
+
+.continue-card h2 {
+  max-width: 44rem;
+  color: var(--veza-slate-900);
+  font-size: clamp(1.8rem, 2.7vw, 2.45rem);
+  font-weight: 650;
+  line-height: 1.08;
+  letter-spacing: -0.035em;
+}
+
+.continue-card .lesson-meta {
+  max-width: 42rem;
+  margin: 0.75rem 0 1.25rem;
+  color: var(--veza-slate-500);
+  font-size: var(--veza-text-sm);
+  line-height: var(--veza-leading-sm);
+}
+
+.continue-card .vz-button {
+  width: fit-content;
+}
+
+.continue-progress {
+  display: grid;
+  justify-items: center;
+  align-self: stretch;
+  align-content: space-between;
+  gap: 1.1rem;
+  padding-block: 0.1rem 0.25rem;
+}
+
+.continue-progress .course-position {
+  color: var(--veza-slate-500);
+  font-size: var(--veza-text-sm);
+  font-weight: 650;
+  white-space: nowrap;
+}
+
+.continue-card .ring {
+  position: relative;
+  display: grid;
+  width: 5.4rem;
+  height: 5.4rem;
+  place-items: center;
+  overflow: visible;
+  border: 0 !important;
+  border-radius: 50%;
+  outline: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.continue-card .ring svg {
+  display: block;
+  width: 5.4rem;
+  height: 5.4rem;
+  overflow: visible;
+  border: 0 !important;
+  outline: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.continue-card .ring circle {
+  fill: none;
+  stroke-width: 4;
+}
+
+.continue-card .ring-track {
+  stroke: var(--veza-slate-100);
+}
+
+.continue-card .ring-value {
+  stroke: var(--veza-indigo-600);
+  stroke-linecap: round;
+}
+
+.continue-card .ring strong {
+  color: var(--veza-slate-900);
+  font-size: var(--veza-text-sm);
+  font-weight: 800;
+}
+
+@media (max-width: 720px) {
+  .continue-content {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 1rem;
+  }
+
+  .continue-progress {
+    align-content: center;
+  }
+
+  .continue-progress .course-position {
+    display: none;
+  }
+}
+
+@media (max-width: 520px) {
+  .continue-content {
+    grid-template-columns: 1fr;
+  }
+
+  .continue-progress {
+    grid-template-columns: auto 1fr;
+    justify-items: start;
+    align-items: center;
+    order: -1;
+  }
+
+  .continue-progress .course-position {
+    display: inline;
+    grid-column: 2;
+  }
+
+  .continue-card .ring,
+  .continue-card .ring svg {
+    width: 4.5rem;
+    height: 4.5rem;
+  }
+}
