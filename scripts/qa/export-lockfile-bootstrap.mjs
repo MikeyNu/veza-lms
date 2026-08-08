@@ -11,6 +11,7 @@ const chunkSize = 12000;
 const chunks = Array.from({ length: Math.ceil(encoded.length / chunkSize) }, (_, index) =>
   encoded.slice(index * chunkSize, (index + 1) * chunkSize),
 );
+const sha256 = (value) => createHash("sha256").update(value).digest("hex");
 
 await mkdir(publicDirectory, { recursive: true });
 await Promise.all(
@@ -31,7 +32,9 @@ await writeFile(
       chunks: chunks.length,
       chunkSize,
       encodedLength: encoded.length,
-      sha256: createHash("sha256").update(lockfile).digest("hex"),
+      sha256: sha256(lockfile),
+      encodedSha256: sha256(encoded),
+      chunkSha256: chunks.map(sha256),
     },
     null,
     2,
