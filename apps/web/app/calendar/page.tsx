@@ -1,5 +1,5 @@
 import { AppShell } from "../../src/components/app-shell";
-import { requireWorkspaceSession } from "../../src/server/require-workspace-session";
+import { requireWorkspaceAccess } from "../../src/server/require-workspace-access";
 
 export const dynamic = "force-dynamic";
 
@@ -35,7 +35,7 @@ function demoMode(): boolean {
 }
 
 export default async function CalendarPage() {
-  const resolution = await requireWorkspaceSession();
+  const resolution = await requireWorkspaceAccess("/calendar");
   const demo = demoMode();
   const events = demo ? demoEvents : [];
   const selected = events.find((event) => event.id === "statistics-lab");
