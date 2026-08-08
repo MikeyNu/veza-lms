@@ -1,5 +1,7 @@
 import {
+  ArrowDown,
   ArrowRight,
+  ArrowUp,
   BarChart3,
   Bell,
   BookOpen,
@@ -8,14 +10,18 @@ import {
   CalendarCheck,
   Check,
   CheckCircle2,
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
+  ChevronUp,
   CircleHelp,
   Clock3,
   Download,
+  ExternalLink,
   FileCheck2,
   FileText,
   Grid2X2,
+  GripVertical,
   Headphones,
   Home,
   ListFilter,
@@ -23,13 +29,17 @@ import {
   MoreHorizontal,
   PencilRuler,
   Play,
+  Plus,
   Presentation,
   Search,
   Share2,
   ShieldCheck,
   SlidersHorizontal,
+  Trash2,
+  Upload,
   Users,
   Video,
+  X,
   type LucideIcon,
   type LucideProps,
 } from "lucide-react";
@@ -45,6 +55,8 @@ export type IconName =
   | "search"
   | "bell"
   | "arrow"
+  | "arrow-up"
+  | "arrow-down"
   | "play"
   | "people"
   | "studio"
@@ -59,8 +71,16 @@ export type IconName =
   | "more"
   | "bookmark"
   | "download"
+  | "upload"
+  | "external-link"
+  | "plus"
+  | "close"
+  | "delete"
+  | "grip"
   | "chevron-left"
   | "chevron-right"
+  | "chevron-up"
+  | "chevron-down"
   | "check-circle"
   | "filter"
   | "sliders"
@@ -79,6 +99,8 @@ const iconMap = {
   search: Search,
   bell: Bell,
   arrow: ArrowRight,
+  "arrow-up": ArrowUp,
+  "arrow-down": ArrowDown,
   play: Play,
   people: Users,
   studio: PencilRuler,
@@ -93,8 +115,16 @@ const iconMap = {
   more: MoreHorizontal,
   bookmark: Bookmark,
   download: Download,
+  upload: Upload,
+  "external-link": ExternalLink,
+  plus: Plus,
+  close: X,
+  delete: Trash2,
+  grip: GripVertical,
   "chevron-left": ChevronLeft,
   "chevron-right": ChevronRight,
+  "chevron-up": ChevronUp,
+  "chevron-down": ChevronDown,
   "check-circle": CheckCircle2,
   filter: ListFilter,
   sliders: SlidersHorizontal,
@@ -117,10 +147,9 @@ export interface IconProps extends Omit<LucideProps, "name" | "size" | "strokeWi
 /**
  * Shared Veza product icon.
  *
- * Lucide provides the geometry while Veza owns semantic names, optical sizes
- * and the Brand CI 2px stroke contract. Icons are decorative unless `label`
- * is supplied. Icon-only controls must still expose their accessible name on
- * the control itself rather than relying on this component.
+ * Lucide provides geometry while Veza owns semantic names, optical sizes and
+ * the Brand CI 2px stroke contract. Icons are decorative unless `label` is
+ * supplied. Icon-only controls expose their accessible name on the control.
  */
 export function Icon({
   name,
