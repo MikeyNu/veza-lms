@@ -10,6 +10,7 @@ import {
   type InputHTMLAttributes,
   type ReactNode,
 } from "react";
+import { Icon } from "./icons.js";
 import { containsRef, cx } from "./utilities.js";
 
 export interface ComboboxOption {
@@ -27,7 +28,7 @@ export interface ComboboxProps
   readonly options: readonly ComboboxOption[];
   readonly value?: string;
   readonly defaultValue?: string;
-  readonly onValueChange?: (value: string, option: ComboboxOption | undefined) => void
+  readonly onValueChange?: (value: string, option: ComboboxOption | undefined) => void;
   readonly noResultsText?: string;
   readonly clearLabel?: string;
   readonly renderOption?: (option: ComboboxOption, selected: boolean) => ReactNode;
@@ -122,7 +123,7 @@ export function Combobox({
   };
 
   return (
-    <div className={cx("vz-combobox", className)} ref={rootRef}>
+    <div className={cx("vz-combobox", className)} ref={rootRef} data-slot="combobox">
       <label className="vz-field__label" htmlFor={inputId}>{label}</label>
       <div className="vz-combobox__control">
         <input
@@ -160,7 +161,7 @@ export function Combobox({
                 if (!filtered[index]?.disabled) {
                   setActiveIndex(index);
                   break;
-              }
+                }
               }
             } else if (event.key === "Enter" && open && activeIndex >= 0) {
               event.preventDefault();
@@ -170,13 +171,15 @@ export function Combobox({
               event.preventDefault();
               setQuery(selectedOption?.label ?? "");
               setOpen(false);
-          } else if (event.key === "Tab") {
+            } else if (event.key === "Tab") {
               setOpen(false);
             }
           }}
         />
         {selectedValue ? (
-          <button type="button" className="vz-combobox__clear" aria-label={clearLabel} onClick={() => commit(undefined)}>×</button>
+          <button type="button" className="vz-combobox__clear" aria-label={clearLabel} onClick={() => commit(undefined)}>
+            <Icon name="close" size="small" />
+          </button>
         ) : null}
         <button
           type="button"
@@ -189,7 +192,7 @@ export function Combobox({
             inputRef.current?.focus();
           }}
         >
-          <span aria-hidden="true">⌄</span>
+          <Icon name="chevron-down" size="small" className={open ? "is-open" : undefined} />
         </button>
       </div>
       <input type="hidden" name={inputProps.name} value={selectedValue} />
@@ -219,11 +222,11 @@ export function Combobox({
                   {renderOption ? renderOption(option, selected) : (
                     <>
                       <span><strong>{option.label}</strong>{option.description ? <small>{option.description}</small> : null}</span>
-                      {selected ? <span aria-hidden="true">✓</span> : null}
+                      {selected ? <Icon name="check" size="small" /> : null}
                     </>
                   )}
                 </div>
-             );
+              );
             })}
           </div>
         </div>
