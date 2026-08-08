@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { AppShell } from "../src/components/app-shell";
+import { canonicalLandingPathForRoles } from "../src/features/workspace/access-policy";
 import { WorkspaceHome } from "../src/features/workspace/workspace-home";
 import { resolveWorkspaceSession } from "../src/server/workspace-session";
 
@@ -10,5 +11,9 @@ export default async function DashboardPage() {
   if (resolution.status === "signed-out") redirect("/sign-in");
   if (resolution.status === "select-workspace") redirect("/select-workspace");
   if (resolution.status === "access-pending") redirect("/access-pending");
+
+  const landing = canonicalLandingPathForRoles(resolution.session.membership.roles);
+  if (landing !== "/") redirect(landing);
+
   return <AppShell session={resolution.session}><WorkspaceHome session={resolution.session} demo={resolution.demo}/></AppShell>;
 }
