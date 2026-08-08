@@ -33,7 +33,7 @@ function Body() {
   const [rtl, setRtl] = useState(false);
   const [longText, setLongText] = useState(false);
   const [motion, setMotion] = useState(false);
-  const [accent, setAccent] = useState("#0d9488");
+  const [accent, setAccent] = useState("#4F46E5");
   const [dialog, setDialog] = useState(false);
   const [drawer, setDrawer] = useState(false);
   const [palette, setPalette] = useState(false);
@@ -52,10 +52,10 @@ function Body() {
       <div><strong>Test conditions</strong><span>Applied to every component example.</span></div>
       <Field label="Density"><Select value={density} onChange={(event) => setDensity(event.currentTarget.value as VezaDensity)}><option value="comfortable">Comfortable</option><option value="compact">Compact</option><option value="reduced">Reduced learner mode</option></Select></Field>
       <Field label="Institution accent"><TextInput type="color" value={accent} onChange={(event) => setAccent(event.currentTarget.value)} /></Field>
-      <Switch label="High contrast" checked={contrast} onChange={(event) => setContrast(event.currentTarget.checked)} />
-      <Switch label="Long text" checked={longText} onChange={(event) => setLongText(event.currentTarget.checked)} />
-      <Switch label="Right-to-left" checked={rtl} onChange={(event) => setRtl(event.currentTarget.checked)} />
-      <Switch label="Reduced motion" checked={motion} onChange={(event) => setMotion(event.currentTarget.checked)} />
+      <Switch label="High contrast" checked={contrast} onCheckedChange={setContrast} />
+      <Switch label="Long text" checked={longText} onCheckedChange={setLongText} />
+      <Switch label="Right-to-left" checked={rtl} onCheckedChange={setRtl} />
+      <Switch label="Reduced motion" checked={motion} onCheckedChange={setMotion} />
     </aside>
 
     <main className="ds-main">
@@ -99,16 +99,15 @@ function Body() {
 
       <Section title="Context rail and inspector" description="The dominant task remains central. Context and inspection remain stable but subordinate."><div className="ds-workspace-frame"><SplitWorkspace rail={<ContextRail label="Course context" title={<strong>PMGT 101</strong>} items={[{ id: "overview", label: "Overview", active: true },{ id: "learners", label: "Learners", meta: "84" },{ id: "assessment", label: "Assessment", meta: "4" }]} />} inspector={<InspectorPanel title="Selected learner" description="Naledi Mokoena"><StatusIndicator tone="success" label="Identity linked" /><StatusIndicator tone="information" label="Submission received" /></InspectorPanel>}><Section divided={false} title="Submission evidence"><DataTable caption="Submission attempts" rows={rows.slice(0, 2)} columns={columns.slice(0, 3)} getRowId={(row) => row.id} /></Section></SplitWorkspace></div></Section>
 
-      <Section title="Structured authoring" description="Typed blocks and accessible media primitives replace generic rich-text blobs.">
-        <StructuredEditorStatus state="saved" detail="Revision 18" /><RichTextToolbar actions={[{ id: "bold", label: "Bold", icon: <strong>B</strong>, onAction: () => undefined },{ id: "italic", label: "Italic", icon: <em>I</em>, onAction: () => undefined }]} />
-        <StructuredContent label="Lesson content"><ContentBlock blockId="heading" type="heading" label="Heading" selected draggable><EditableRegion label="Lesson heading" value="Understanding stakeholder communication" /></ContentBlock><ContentBlock blockId="paragraph" type="paragraph" label="Paragraph" draggable><EditableRegion label="Paragraph" value="This lesson introduces the evidence required during project initiation." /></ContentBlock><ContentBlock blockId="image" type="image" label="Image" invalid controls={<Button size="small" variant="secondary">Add alternative text</Button>}><div className="ds-media-placeholder"><strong>Image block</strong><span>Alternative text is required.</span></div></ContentBlock></StructuredContent>
-        <BlockPalette onInsert={() => undefined} items={[{ type: "heading", label: "Heading", description: "Semantic section heading." },{ type: "paragraph", label: "Paragraph", description: "Structured narrative content." },{ type: "image", label: "Image", description: "Accessible media asset." },{ type: "activity", label: "Activity", description: "Completion-aware learner task." }]} />
-        <FileUpload label="Lesson attachments" accept="image/*,.pdf,.docx" maximumSizeBytes={15 * 1024 * 1024} items={files} onFilesSelected={(value) => setFiles((current) => [...current, ...value.map((file) => ({ id: crypto.randomUUID(), file, state: "selected" as const }))])} onRemove={(id) => setFiles((current) => current.filter((item) => item.id !== id))} />
-      </Section>
-      <footer className="ds-footer"><span>/design-system</span><span>Production requires VEZA_ENABLE_DESIGN_SYSTEM_CATALOGUE=true</span><span>{rtl ? "RTL" : "LTR"}</span></footer>
+      <Section title="Authoring blocks" description="Structured content remains inspectable and movable without drag-only interaction."><div className="ds-authoring"><BlockPalette items={[{ type: "heading", label: "Heading", description: "Section hierarchy" },{ type: "paragraph", label: "Paragraph", description: "Body content" },{ type: "outcome", label: "Outcome", description: "Mapped learning outcome" }]} onInsert={() => undefined} /><StructuredContent label="Lesson content"><ContentBlock blockId="b1" type="heading" label="Introduction" selected draggable controls={<IconButton label="Block menu" icon={<span>•••</span>} />}><EditableRegion label="Heading text" value="Project initiation and accountable delivery" multiline={false} /></ContentBlock><ContentBlock blockId="b2" type="paragraph" label="Overview" draggable><EditableRegion label="Paragraph text" value="A project begins with a clearly stated purpose, accountable ownership and explicit delivery evidence." /></ContentBlock></StructuredContent><InspectorPanel title="Block settings"><RichTextToolbar actions={[{ id: "bold", label: "Bold", icon: <b>B</b>, onAction: () => undefined },{ id: "italic", label: "Italic", icon: <i>I</i>, onAction: () => undefined }]} /><StructuredEditorStatus state="saved" detail="Saved 14 seconds ago" /></InspectorPanel></div></Section>
+
+      <Section title="File handling"><FileUpload label="Evidence files" description="Upload approved evidence. Every file is scanned before use." items={files} maximumFiles={3} maximumSizeBytes={10 * 1024 * 1024} accept="image/*,.pdf" onFilesSelected={(selectedFiles) => setFiles((current) => [...current, ...selectedFiles.map((file) => ({ id: `${file.name}-${file.lastModified}`, file }))])} onRemove={(id) => setFiles((current) => current.filter((item) => item.id !== id))} /></Section>
     </main>
-    <CommandPalette open={palette} onOpenChange={setPalette} commands={[{ id: "people", label: "Open people workspace", group: "Navigation", shortcut: ["G", "P"], onSelect: () => undefined },{ id: "course", label: "Create course run", group: "Actions", shortcut: ["C", "R"], onSelect: () => undefined },{ id: "settings", label: "Institution terminology", group: "Settings", onSelect: () => undefined }]} />
+
+    <Dialog open={palette} onClose={() => setPalette(false)} title="Command palette" description="Search the current authorised workspace."><CommandPalette open={palette} onClose={() => setPalette(false)} label="Find a workspace action" items={[{ id: "people", label: "Open people", group: "Navigation", keywords: ["learner", "staff"], onSelect: () => setPalette(false) },{ id: "audit", label: "Open audit evidence", group: "Navigation", onSelect: () => setPalette(false) },{ id: "new", label: "Create programme", group: "Create", onSelect: () => setPalette(false) }]} /></Dialog>
   </div>;
 }
 
-export function DesignSystemCatalogue() { return <ToastProvider><Body /></ToastProvider>; }
+export function DesignSystemCatalogue() {
+  return <ToastProvider><Body /></ToastProvider>;
+}
