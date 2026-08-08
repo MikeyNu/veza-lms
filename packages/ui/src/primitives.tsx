@@ -1,13 +1,44 @@
-import type {
-  AnchorHTMLAttributes,
-  ButtonHTMLAttributes,
-  HTMLAttributes,
-  ReactNode,
+import { cva } from "class-variance-authority";
+import {
+  forwardRef,
+  type AnchorHTMLAttributes,
+  type ButtonHTMLAttributes,
+  type HTMLAttributes,
+  type ReactNode,
 } from "react";
-import { cx } from "./utilities.js";
+import { Icon } from "./icons.js";
+import { cn } from "./utilities.js";
 
 export type ButtonVariant = "primary" | "secondary" | "quiet" | "danger";
 export type ButtonSize = "small" | "medium" | "large";
+
+const buttonVariants = cva("vz-button", {
+  variants: {
+    variant: {
+      primary: "vz-button--primary",
+      secondary: "vz-button--secondary",
+      quiet: "vz-button--quiet",
+      danger: "vz-button--danger",
+    },
+    size: {
+      small: "vz-button--small",
+      medium: "vz-button--medium",
+      large: "vz-button--large",
+    },
+  },
+  defaultVariants: {
+    variant: "primary",
+    size: "medium",
+  },
+});
+
+function ButtonIconSlot({ children, position }: { readonly children: ReactNode; readonly position: "leading" | "trailing" }) {
+  return (
+    <span className="vz-button__icon" data-position={position} aria-hidden="true">
+      {children}
+    </span>
+  );
+}
 
 export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   readonly variant?: ButtonVariant;
@@ -17,131 +48,195 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   readonly trailingIcon?: ReactNode;
 }
 
-export function Button({
-  variant = "primary",
-  size = "medium",
-  loading = false,
-  leadingIcon,
-  trailingIcon,
-  className,
-  children,
-  disabled,
-  type = "button",
-  ...props
-}: ButtonProps) {
+/**
+ * Primary Veza action control.
+ *
+ * Icon and label boxes are deliberately separated so SVG view boxes cannot
+ * move the text baseline or alter control height. Route-level icon margins are
+ * not part of the component contract.
+ */
+export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button(
+  {
+    variant = "primary",
+    size = "medium",
+    loading = false,
+    leadingIcon,
+    trailingIcon,
+    className,
+    children,
+    disabled,
+    type = "button",
+    ...props
+  },
+  ref,
+) {
   return (
     <button
       {...props}
+      ref={ref}
       type={type}
       disabled={disabled || loading}
       aria-busy={loading || undefined}
-      className={cx("vz-button", `vz-button--${variant}`, `vz-button--${size}`, className)}
+      data-slot="button"
+      data-loading={loading || undefined}
+      className={cn(buttonVariants({ variant, size }), className)}
     >
-      {loading ? <span className="vz-button__spinner" aria-hidden="true" /> : leadingIcon}
-      <span>{children}</span>
-      {!loading && trailingIcon}
+      {loading ? (
+        <span className="vz-button__spinner" aria-hidden="true" />
+      ) : leadingIcon ? (
+        <ButtonIconSlot position="leading">{leadingIcon}</ButtonIconSlot>
+      ) : null}
+      <span className="vz-button__label">{children}</span>
+      {!loading && trailingIcon ? <ButtonIconSlot position="trailing">{trailingIcon}</ButtonIconSlot> : null}
     </button>
   );
-}
+});
 
 export interface IconButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   readonly label: string;
   readonly variant?: ButtonVariant;
   readonly size?: ButtonSize;
   readonly icon: ReactNode;
+  readonly loading?: boolean;
 }
 
-export function IconButton({
-  label,
-  variant = "quiet",
-  size = "medium",
-  icon,
-  className,
-  type = "button",
-  ...props
-}: IconButtonProps) {
+export const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(function IconButton(
+  {
+    label,
+    variant = "quiet",
+    size = "medium",
+    icon,
+    loading = false,
+    className,
+    type = "button",
+    disabled,
+    ...props
+  },
+  ref,
+) {
   return (
     <button
       {...props}
+      ref={ref}
       type={type}
+      disabled={disabled || loading}
       aria-label={label}
-      title={props.title ?? label}
-      className={cx("vz-icon-button", `vz-button--${variant}`, `vz-button--${size}`, className)}
+      aria-busy={loading || undefined}
+      data-slot="icon-button"
+      data-loading={loading || undefined}
+      className={cn("vz-icon-button", `vz-button--${variant}`, `vz-button--${size}`, className)}
     >
-      {icon}
+      {loading ? (
+        <span className="vz-button__spinner" aria-hidden="true" />
+      ) : (
+        <span className="vz-icon-button__icon" aria-hidden="true">{icon}</span>
+      )}
     </button>
   );
-}
+});
 
 export interface LinkProps extends AnchorHTMLAttributes<HTMLAnchorElement> {
   readonly variant?: "default" | "quiet" | "standalone";
   readonly external?: boolean;
 }
 
-export function Link({
-  variant = "default",
-  external = false,
-  className,
-  children,
-  rel,
-  target,
-  ...props
-}: LinkProps) {
+function secureExternalRel(rel: string | undefined): string {
+  return Array.from(new Set([...(rel?.split(/\s+/).filter(Boolean) ?? []), "noreferrer", "noopener"])).join(" ");
+}
+
+export const Link = forwardRef<HTMLAnchorElement, LinkProps>(function Link(
+  {
+    variant = "default",
+    external = false,
+    className,
+    children,
+    rel,
+    target,
+    ...props
+  },
+  ref,
+) {
   return (
     <a
       {...props}
-      className={cx("vz-link", `vz-link--${variant}`, className)}
+      ref={ref}
+      className={cn("vz-link", `vz-link--${variant}`, className)}
       target={external ? "_blank" : target}
-      rel={external ? "noreferrer noopener" : rel}
+      rel={external ? secureExternalRel(rel) : rel}
+      data-slot="link"
     >
-      {children}
-      {external ? <span className="vz-link__external" aria-hidden="true">↗</span> : null}
+      <span className="vz-link__label">{children}</span>
+      {external ? (
+        <span className="vz-link__external" aria-hidden="true">
+          <Icon name="external-link" size="small" />
+        </span>
+      ) : null}
     </a>
   );
-}
+});
 
 export interface ButtonLinkProps extends AnchorHTMLAttributes<HTMLAnchorElement> {
   readonly variant?: ButtonVariant;
   readonly size?: ButtonSize;
+  readonly leadingIcon?: ReactNode;
+  readonly trailingIcon?: ReactNode;
 }
 
-export function ButtonLink({
-  variant = "primary",
-  size = "medium",
-  className,
-  children,
-  ...props
-}: ButtonLinkProps) {
+export const ButtonLink = forwardRef<HTMLAnchorElement, ButtonLinkProps>(function ButtonLink(
+  {
+    variant = "primary",
+    size = "medium",
+    leadingIcon,
+    trailingIcon,
+    className,
+    children,
+    ...props
+  },
+  ref,
+) {
   return (
     <a
       {...props}
-      className={cx("vz-button", `vz-button--${variant}`, `vz-button--${size}`, className)}
+      ref={ref}
+      data-slot="button-link"
+      className={cn(buttonVariants({ variant, size }), className)}
     >
-      <span>{children}</span>
+      {leadingIcon ? <ButtonIconSlot position="leading">{leadingIcon}</ButtonIconSlot> : null}
+      <span className="vz-button__label">{children}</span>
+      {trailingIcon ? <ButtonIconSlot position="trailing">{trailingIcon}</ButtonIconSlot> : null}
     </a>
   );
-}
+});
 
-export function VisuallyHidden({ className, ...props }: HTMLAttributes<HTMLSpanElement>) {
-  return <span {...props} className={cx("vz-visually-hidden", className)} />;
-}
+export const VisuallyHidden = forwardRef<HTMLSpanElement, HTMLAttributes<HTMLSpanElement>>(function VisuallyHidden(
+  { className, ...props },
+  ref,
+) {
+  return <span {...props} ref={ref} className={cn("vz-visually-hidden", className)} />;
+});
 
 export interface KbdProps extends HTMLAttributes<HTMLElement> {
   readonly children: ReactNode;
 }
 
-export function Kbd({ className, ...props }: KbdProps) {
-  return <kbd {...props} className={cx("vz-kbd", className)} />;
-}
+export const Kbd = forwardRef<HTMLElement, KbdProps>(function Kbd({ className, ...props }, ref) {
+  return <kbd {...props} ref={ref} className={cn("vz-kbd", className)} />;
+});
 
-export function Divider({ className, ...props }: HTMLAttributes<HTMLHRElement>) {
-  return <hr {...props} className={cx("vz-divider", className)} />;
-}
+export const Divider = forwardRef<HTMLHRElement, HTMLAttributes<HTMLHRElement>>(function Divider(
+  { className, ...props },
+  ref,
+) {
+  return <hr {...props} ref={ref} className={cn("vz-divider", className)} />;
+});
 
 export interface TruncatedTextProps extends HTMLAttributes<HTMLSpanElement> {
   readonly title: string;
 }
 
-export function TruncatedText({ title, className, children, ...props }: TruncatedTextProps) {
-  return <span {...props} title={title} className={cx("vz-truncate", className)}>{children}</span>;
-}
+export const TruncatedText = forwardRef<HTMLSpanElement, TruncatedTextProps>(function TruncatedText(
+  { title, className, children, ...props },
+  ref,
+) {
+  return <span {...props} ref={ref} title={title} className={cn("vz-truncate", className)}>{children}</span>;
+});
