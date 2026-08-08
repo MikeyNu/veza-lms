@@ -6,6 +6,7 @@ on:
       - main
     paths:
       - "packages/ui/package.json"
+      - ".github/workflows/refresh-ui-lockfile.yml"
   workflow_dispatch:
 
 permissions:
@@ -18,7 +19,7 @@ concurrency:
 jobs:
   refresh:
     name: Regenerate pnpm lockfile
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v6
