@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { AppShell } from "../../src/components/app-shell";
+import { canAccessWorkspacePath } from "../../src/features/workspace/access-policy";
 import { identityProviderRecoveryUrl, identityProviderSupportUrl } from "../../src/server/identity-provider-links";
 import { requireWorkspaceSession } from "../../src/server/require-workspace-session";
 
@@ -25,6 +26,7 @@ export default async function ProfilePage() {
   const providerSupportUrl = identityProviderSupportUrl();
   const displayName = session.principal.displayName ?? session.principal.email ?? "Veza user";
   const roles = session.membership.roles.map(label);
+  const canManageCommunicationPreferences = canAccessWorkspacePath(session, "/communicate");
 
   return (
     <AppShell session={session}>
@@ -81,7 +83,7 @@ export default async function ProfilePage() {
                   <h2 id="profile-preferences-title">Communication preferences</h2>
                   <p>Choose channel, digest and quiet-hour preferences without changing institution-required notifications.</p>
                 </div>
-                <Link href="/communicate#notification-preferences">Manage preferences</Link>
+                {canManageCommunicationPreferences ? <Link href="/communicate#notification-preferences">Manage preferences</Link> : <span className="profile-unavailable-action">Managed by your institution</span>}
               </header>
             </section>
           </main>
@@ -91,9 +93,9 @@ export default async function ProfilePage() {
               <h2>Account security</h2>
               <p>Password, MFA, recovery codes and account lockouts remain with your institution's identity provider.</p>
               <div className="profile-action-list">
-                {recoveryUrl ? <a href={recoveryUrl} rel="noreferrer">Password and MFA recovery</a> : <Link href="/account-help">Password and MFA help</Link>}
+                {recoveryUrl ? <a href={recoveryUrl} rel="noreferrer">Password and MFA recovery</a> : <Link href="/help">Password and MFA help</Link>}
                 {providerSupportUrl ? <a href={providerSupportUrl} rel="noreferrer">Identity-provider support</a> : null}
-                <Link href="/account-help">Account access guidance</Link>
+                <Link href="/help">Account access guidance</Link>
               </div>
             </section>
 
