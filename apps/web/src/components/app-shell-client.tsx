@@ -20,7 +20,6 @@ interface AppShellClientProps {
   readonly tenantName: string;
   readonly workspaceName: string;
   readonly displayName: string;
-  readonly email?: string;
   readonly initials: string;
   readonly primaryAction?: Readonly<{ label: string; href: Route }>;
   readonly demo: boolean;
@@ -104,7 +103,6 @@ export function AppShellClient({
   tenantName,
   workspaceName,
   displayName,
-  email,
   initials,
   primaryAction,
   demo,
@@ -223,7 +221,7 @@ export function AppShellClient({
                   { key: "sign-out", label: "Sign out", icon: <Icon name="log-out" />, destructive: true, onSelect: () => signOutForm.current?.requestSubmit() },
                 ]}
               />
-              <form ref={signOutForm} action="/api/auth/sign-out" method="post" className="profile-signout-form" aria-hidden="true" />
+              <form ref={signOutForm} action="/api/auth/sign-out" method="post" className="topbar-signout-form" aria-hidden="true" />
             </div>
           </header>
           <main className="app-main">{children}</main>
