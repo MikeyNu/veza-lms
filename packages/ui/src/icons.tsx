@@ -6,6 +6,7 @@ import {
   Bell,
   BookOpen,
   Bookmark,
+  Building2,
   Calendar,
   CalendarCheck,
   Check,
@@ -25,6 +26,7 @@ import {
   Headphones,
   Home,
   ListFilter,
+  LogOut,
   MessageSquare,
   MoreHorizontal,
   PencilRuler,
@@ -37,6 +39,7 @@ import {
   SlidersHorizontal,
   Trash2,
   Upload,
+  UserRound,
   Users,
   Video,
   X,
@@ -62,6 +65,9 @@ export type IconName =
   | "studio"
   | "message"
   | "admin"
+  | "building"
+  | "user"
+  | "log-out"
   | "help"
   | "classroom"
   | "evidence"
@@ -106,6 +112,9 @@ const iconMap = {
   studio: PencilRuler,
   message: MessageSquare,
   admin: ShieldCheck,
+  building: Building2,
+  user: UserRound,
+  "log-out": LogOut,
   help: CircleHelp,
   classroom: Presentation,
   evidence: FileCheck2,
