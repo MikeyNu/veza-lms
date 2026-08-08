@@ -1,37 +1,39 @@
-/* Veza design tokens, authored against Brand CI v1.0 (May 2025).
-   Sections 02 Colour Palette, 03 Typography and 05 UI Components are the
-   source of truth. Every role token below resolves to a CI palette value. */
+/* Veza design tokens, authored against the approved Brand CI.
+   Colour, typography, icon sizing and component geometry are source-of-truth
+   contracts. Feature styles must consume these roles instead of inventing
+   route-local values. */
 
 :root {
   color-scheme: light;
 
-  /* 02 Colour palette: Primary */
+  /* Brand CI: primary palette */
   --veza-indigo-600: #4f46e5;
   --veza-purple-600: #7c3aed;
   --veza-blue-500: #3b82f6;
   --veza-teal-500: #14b8a6;
 
-  /* 02 Colour palette: Neutrals */
+  /* Brand CI: neutrals */
   --veza-slate-900: #0f172a;
   --veza-slate-700: #334155;
   --veza-slate-500: #64748b;
   --veza-slate-300: #cbd5e1;
   --veza-slate-100: #f1f5f9;
   --veza-white: #ffffff;
-  /* Intermediate slates extend the documented neutral ramp. */
+
+  /* Intermediate neutral steps extend the documented ramp without changing it. */
   --veza-slate-800: #1e293b;
   --veza-slate-600: #475569;
   --veza-slate-400: #94a3b8;
   --veza-slate-200: #e2e8f0;
   --veza-slate-50: #f8fafc;
 
-  /* 02 Colour palette: Semantic */
+  /* Brand CI: semantic palette */
   --veza-green-500: #22c55e;
   --veza-amber-500: #f59e0b;
   --veza-red-500: #ef4444;
-  --veza-purple-500: #a855f7;
+  --veza-purple-500: #8b5cf6;
 
-  /* Tint and on-tint pairs for chips, banners and status surfaces. */
+  /* Derived tints. These support status and selected surfaces only. */
   --veza-indigo-50: #eef2ff;
   --veza-indigo-100: #e0e7ff;
   --veza-indigo-700: #4338ca;
@@ -48,7 +50,7 @@
   --veza-red-50: #fef2f2;
   --veza-red-700: #b91c1c;
 
-  /* Role tokens */
+  /* Semantic roles */
   --veza-ink: var(--veza-slate-900);
   --veza-ink-soft: var(--veza-slate-700);
   --veza-muted: var(--veza-slate-500);
@@ -91,11 +93,12 @@
   --veza-sidebar-hover: rgb(255 255 255 / 0.06);
   --veza-sidebar-line: rgb(255 255 255 / 0.08);
 
+  /* Institution accents are constrained overrides, not a replacement for semantic colours. */
   --veza-institution-accent: var(--institution-accent, var(--veza-brand));
   --veza-institution-accent-contrast: var(--institution-accent-contrast, #ffffff);
   --veza-institution-accent-soft: color-mix(in srgb, var(--veza-institution-accent) 10%, white);
 
-  /* Brand gradient is reserved for approved brand artwork and lockups. */
+  /* The gradient is reserved for approved brand artwork and logo-adjacent moments. */
   --veza-brand-gradient: linear-gradient(
     135deg,
     var(--veza-blue-500) 0%,
@@ -103,9 +106,7 @@
     var(--veza-purple-600) 100%
   );
 
-  /* 03 Typography.
-     Satoshi follows the documented Display 1 56/64 through Small 12/16 scale.
-     Existing token aliases are retained for stable call sites. */
+  /* Brand CI typography: Satoshi Display 1 56/64 through Small 12/16. */
   --veza-font-sans: Satoshi, "Satoshi Variable", Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --veza-font-mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
 
@@ -141,7 +142,7 @@
   --veza-tracking-body: 0;
   --veza-tracking-eyebrow: 0.08em;
 
-  /* Space */
+  /* Spacing uses a four-pixel base rhythm. */
   --veza-space-1: 0.25rem;
   --veza-space-2: 0.5rem;
   --veza-space-3: 0.75rem;
@@ -152,28 +153,32 @@
   --veza-space-10: 2.5rem;
   --veza-space-12: 3rem;
 
-  /* 05 UI components */
+  /* Component geometry */
   --veza-control-height: 2.5rem;
   --veza-control-height-small: 2.125rem;
+  --veza-control-height-large: 2.875rem;
+  --veza-icon-size-sm: 1rem;
+  --veza-icon-size-md: 1.125rem;
+  --veza-icon-size-lg: 1.5rem;
   --veza-row-height: 2.875rem;
   --veza-content-max: 110rem;
   --veza-context-rail-width: 18rem;
-  --veza-inspector-width: 22rem;
-  --veza-sidebar-width: 15rem;
+  --veza-inspector-width: 23rem;
+  --veza-sidebar-width: 14.5rem;
   --veza-topbar-height: 4rem;
 
-  --veza-radius-tile: 0.5rem;
-  --veza-radius-control: 0.625rem;
+  --veza-radius-tile: 0.375rem;
+  --veza-radius-control: 0.5rem;
   --veza-radius-panel: 0.75rem;
-  --veza-radius-overlay: 1rem;
+  --veza-radius-overlay: 0.875rem;
   --veza-radius-pill: 999px;
 
-  /* Reference cards use a hairline border and only the faintest lift. */
-  --veza-shadow-panel: 0 1px 2px rgb(15 23 42 / 0.04);
-  --veza-shadow-raised: 0 1px 3px rgb(15 23 42 / 0.06), 0 1px 2px rgb(15 23 42 / 0.04);
-  --veza-shadow-overlay: 0 16px 48px rgb(15 23 42 / 0.14), 0 2px 8px rgb(15 23 42 / 0.06);
+  /* Persistent surfaces stay restrained. Elevation communicates actual layering. */
+  --veza-shadow-panel: 0 1px 2px rgb(15 23 42 / 0.035);
+  --veza-shadow-raised: 0 2px 6px rgb(15 23 42 / 0.07), 0 1px 2px rgb(15 23 42 / 0.04);
+  --veza-shadow-overlay: 0 18px 52px rgb(15 23 42 / 0.16), 0 3px 10px rgb(15 23 42 / 0.07);
 
-  --veza-focus-color: color-mix(in srgb, var(--veza-institution-accent) 34%, transparent);
+  --veza-focus-color: color-mix(in srgb, var(--veza-institution-accent) 30%, transparent);
   --veza-focus: 0 0 0 3px var(--veza-focus-color);
   --veza-motion-fast: 120ms;
   --veza-motion-standard: 180ms;
@@ -187,6 +192,7 @@
 [data-veza-density="compact"] {
   --veza-control-height: 2.25rem;
   --veza-control-height-small: 2rem;
+  --veza-control-height-large: 2.625rem;
   --veza-row-height: 2.375rem;
   --veza-space-4: 0.75rem;
   --veza-space-5: 1rem;
@@ -196,6 +202,8 @@
 [data-veza-density="reduced"] {
   --veza-content-max: 72rem;
   --veza-control-height: 3rem;
+  --veza-control-height-small: 2.625rem;
+  --veza-control-height-large: 3.25rem;
   --veza-row-height: 3.5rem;
   --veza-text-md: 0.9375rem;
   --veza-leading-body: 1.65;
