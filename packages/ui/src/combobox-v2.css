@@ -1,0 +1,145 @@
+/* Combobox control geometry. Keeps the existing ARIA combobox contract while standardizing icon placement. */
+
+.vz-combobox {
+  display: grid;
+  min-width: 0;
+  gap: 0.4rem;
+}
+
+.vz-combobox__control {
+  position: relative;
+  min-width: 0;
+}
+
+.vz-combobox__control .vz-input {
+  width: 100%;
+  padding-inline-end: 4.6rem;
+}
+
+.vz-combobox__clear,
+.vz-combobox__toggle {
+  position: absolute;
+  inset-block-start: 50%;
+  display: grid;
+  width: 2rem;
+  height: 2rem;
+  translate: 0 -50%;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 0.4rem;
+  background: transparent;
+  color: var(--veza-muted);
+  line-height: 0;
+  cursor: pointer;
+}
+
+.vz-combobox__clear {
+  inset-inline-end: 2.35rem;
+}
+
+.vz-combobox__toggle {
+  inset-inline-end: 0.35rem;
+}
+
+.vz-combobox__clear:hover,
+.vz-combobox__toggle:hover {
+  background: var(--veza-surface-subtle);
+  color: var(--veza-ink-soft);
+}
+
+.vz-combobox__clear:focus-visible,
+.vz-combobox__toggle:focus-visible {
+  outline: 0;
+  box-shadow: var(--veza-focus);
+}
+
+.vz-combobox__clear > svg,
+.vz-combobox__toggle > svg {
+  width: 1rem;
+  height: 1rem;
+  transition: rotate var(--veza-motion-fast) var(--veza-ease);
+}
+
+.vz-combobox__toggle > svg.is-open {
+  rotate: 180deg;
+}
+
+.vz-combobox__popover {
+  position: absolute;
+  z-index: 40;
+  inset-inline: 0;
+  margin-top: 0.35rem;
+  overflow: hidden;
+  border: 1px solid var(--veza-line);
+  border-radius: var(--veza-radius-control);
+  background: var(--veza-surface);
+  box-shadow: var(--veza-shadow-overlay);
+}
+
+.vz-combobox__list {
+  max-height: 18rem;
+  overflow-y: auto;
+  padding: 0.3rem;
+}
+
+.vz-combobox__option {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 1rem;
+  min-height: 2.6rem;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 0.65rem;
+  border-radius: 0.4rem;
+  color: var(--veza-ink-soft);
+  cursor: pointer;
+}
+
+.vz-combobox__option > span:first-child {
+  display: grid;
+  min-width: 0;
+  gap: 0.08rem;
+}
+
+.vz-combobox__option strong {
+  font-size: var(--veza-text-sm);
+  font-weight: 650;
+}
+
+.vz-combobox__option small {
+  color: var(--veza-muted);
+  font-size: var(--veza-text-xs);
+  line-height: var(--veza-leading-xs);
+}
+
+.vz-combobox__option > svg {
+  justify-self: end;
+  color: var(--veza-indigo-600);
+}
+
+.vz-combobox__option.is-active {
+  background: var(--veza-surface-subtle);
+}
+
+.vz-combobox__option.is-selected {
+  color: var(--veza-ink);
+  font-weight: 650;
+}
+
+.vz-combobox__option.is-disabled {
+  cursor: not-allowed;
+  opacity: 0.48;
+}
+
+.vz-combobox__empty {
+  margin: 0;
+  padding: 0.8rem;
+  color: var(--veza-muted);
+  font-size: var(--veza-text-sm);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vz-combobox__toggle > svg {
+    transition: none;
+  }
+}
