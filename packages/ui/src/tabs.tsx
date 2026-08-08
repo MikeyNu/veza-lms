@@ -1,17 +1,14 @@
 "use client";
 
+import * as TabsPrimitive from "@radix-ui/react-tabs";
 import {
   Children,
   cloneElement,
   isValidElement,
-  useId,
-  useRef,
-  useState,
-  type KeyboardEvent,
   type ReactElement,
   type ReactNode,
 } from "react";
-import { cx } from "./utilities.js";
+import { cn } from "./utilities.js";
 
 export interface TabDefinition {
   readonly id: string;
@@ -31,6 +28,10 @@ export interface TabsProps {
   readonly label: string;
 }
 
+/**
+ * Accessible Veza tabs backed by Radix roving focus and keyboard behavior.
+ * Veza retains the underline visual language and public data-driven API.
+ */
 export function Tabs({
   tabs,
   value,
@@ -40,93 +41,59 @@ export function Tabs({
   className,
   label,
 }: TabsProps) {
-  const generatedId = useId().replaceAll(":", "");
   const firstEnabled = tabs.find((tab) => !tab.disabled)?.id ?? "";
-  const [internal, setInternal] = useState(defaultValue ?? firstEnabled);
-  const current = value ?? internal;
-  const refs = useRef(new Map<string, HTMLButtonElement>());
-  const select = (id: string) => {
-    if (value === undefined) setInternal(id);
-    onValueChange?.(id);
-  };
-  const move = (event: KeyboardEvent<HTMLDivElement>, direction: 1 | -1) => {
-    const enabled = tabs.filter((tab) => !tab.disabled);
-    const index = enabled.findIndex((tab) => tab.id === current);
-    if (index < 0) return;
-    const next = enabled[(index + direction + enabled.length) % enabled.length];
-    if (!next) return;
-    event.preventDefault();
-    select(next.id);
-    refs.current.get(next.id)?.focus();
-  };
-  const active = tabs.find((tab) => tab.id === current) ?? tabs.find((tab) => !tab.disabled);
+  const requestedDefault = tabs.some((tab) => tab.id === defaultValue && !tab.disabled)
+    ? defaultValue
+    : firstEnabled;
+  const controlledValue = value === undefined
+    ? undefined
+    : tabs.some((tab) => tab.id === value && !tab.disabled)
+      ? value
+      : firstEnabled;
+
+  if (tabs.length === 0 || !firstEnabled) return null;
+
   return (
-    <div className={cx("vz-tabs", `vz-tabs--${orientation}`, className)}>
-      <div
-        role="tablist"
-        aria-label={label}
-        aria-orientation={orientation}
-        className="vz-tabs__list"
-        onKeyDown={(event) => {
-          const previousKey = orientation === "horizontal" ? "ArrowLeft" : "ArrowUp";
-          const nextKey = orientation === "horizontal" ? "ArrowRight" : "ArrowDown";
-          if (event.key === previousKey) move(event, -1);
-          else if (event.key === nextKey) move(event, 1);
-          else if (event.key === "Home") {
-            const first = tabs.find((tab) => !tab.disabled);
-            if (first) {
-              event.preventDefault();
-              select(first.id);
-              refs.current.get(first.id)?.focus();
-            }
-          } else if (event.key === "End") {
-            const last = [...tabs].reverse().find((tab) => !tab.disabled);
-            if (last) {
-              event.preventDefault();
-              select(last.id);
-              refs.current.get(last.id)?.focus();
-            }
-          }
-        }}
-      >
-        {tabs.map((tab) => {
-          const selected = tab.id === active?.id;
-          return (
-            <button
-              key={tab.id}
-              ref={(node) => {
-                if (node) refs.current.set(tab.id, node);
-                else refs.current.delete(tab.id);
-              }}
-              id={`${generatedId}-${tab.id}-tab`}
-              type="button"
-              role="tab"
-              aria-selected={selected}
-              aria-controls={`${generatedId}-${tab.id}-panel`}
-              tabIndex={selected ? 0 : -1}
-              disabled={tab.disabled}
-              onClick={() => select(tab.id)}
-            >
-              <span>{tab.label}</span>{tab.badge ? <span className="vz-tabs__badge">{tab.badge}</span> : null}
-            </button>
-          );
-        })}
-      </div>
-      {active ? (
-        <div
-          id={`${generatedId}-${active.id}-panel`}
-          role="tabpanel"
-          aria-labelledby={`${generatedId}-${active.id}-tab`}
-          tabIndex={0}
+    <TabsPrimitive.Root
+      value={controlledValue}
+      defaultValue={requestedDefault}
+      onValueChange={onValueChange}
+      orientation={orientation}
+      activationMode="automatic"
+      className={cn("vz-tabs", `vz-tabs--${orientation}`, className)}
+      data-slot="tabs"
+    >
+      <TabsPrimitive.List aria-label={label} className="vz-tabs__list" data-slot="tabs-list">
+        {tabs.map((tab) => (
+          <TabsPrimitive.Trigger
+            key={tab.id}
+            value={tab.id}
+            disabled={tab.disabled}
+            className="vz-tabs__trigger"
+            data-slot="tabs-trigger"
+          >
+            <span className="vz-tabs__label">{tab.label}</span>
+            {tab.badge ? <span className="vz-tabs__badge">{tab.badge}</span> : null}
+          </TabsPrimitive.Trigger>
+        ))}
+      </TabsPrimitive.List>
+      {tabs.map((tab) => (
+        <TabsPrimitive.Content
+          key={tab.id}
+          value={tab.id}
           className="vz-tabs__panel"
+          data-slot="tabs-panel"
         >
-          {active.content}
-        </div>
-      ) : null}
-    </div>
+          {tab.content}
+        </TabsPrimitive.Content>
+      ))}
+    </TabsPrimitive.Root>
   );
 }
 
+/**
+ * Compatibility helper for feature modules that already own their tab list.
+ */
 export interface TabPanelsProps {
   readonly children: ReactNode;
   readonly activeId: string;
