@@ -41,8 +41,10 @@ export function Tabs({
   className,
   label,
 }: TabsProps) {
-  const firstEnabled = tabs.find((tab) => !tab.disabled)?.id ?? "";
-  const requestedDefault = tabs.some((tab) => tab.id === defaultValue && !tab.disabled)
+  const firstEnabled = tabs.find((tab) => !tab.disabled)?.id;
+  if (tabs.length === 0 || !firstEnabled) return null;
+
+  const requestedDefault = defaultValue && tabs.some((tab) => tab.id === defaultValue && !tab.disabled)
     ? defaultValue
     : firstEnabled;
   const controlledValue = value === undefined
@@ -51,13 +53,11 @@ export function Tabs({
       ? value
       : firstEnabled;
 
-  if (tabs.length === 0 || !firstEnabled) return null;
-
   return (
     <TabsPrimitive.Root
-      value={controlledValue}
+      {...(controlledValue !== undefined ? { value: controlledValue } : {})}
       defaultValue={requestedDefault}
-      onValueChange={onValueChange}
+      {...(onValueChange ? { onValueChange } : {})}
       orientation={orientation}
       activationMode="automatic"
       className={cn("vz-tabs", `vz-tabs--${orientation}`, className)}
@@ -68,7 +68,7 @@ export function Tabs({
           <TabsPrimitive.Trigger
             key={tab.id}
             value={tab.id}
-            disabled={tab.disabled}
+            {...(tab.disabled !== undefined ? { disabled: tab.disabled } : {})}
             className="vz-tabs__trigger"
             data-slot="tabs-trigger"
           >
