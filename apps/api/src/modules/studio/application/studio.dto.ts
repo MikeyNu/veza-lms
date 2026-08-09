@@ -84,6 +84,10 @@ export class SaveStudioRevisionDto {
   outcomeIds?: string[];
 }
 
+export class StartEditableLessonVersionDto {
+  @Type(() => Number) @IsInt() @Min(1) expectedLessonVersion!: number;
+}
+
 export class CreateReusableBlockDto {
   @IsString() @MinLength(3) @MaxLength(160) name!: string;
   @IsIn([

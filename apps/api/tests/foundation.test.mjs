@@ -77,13 +77,23 @@ test("invitation verification uses constant-time digest comparison", async () =>
 });
 
 test("database identities separate migration, application and control-plane authority", async () => {
-  const migrationRunner = await source("../scripts/migrate.mjs");
-  const migration = await source("../database/migrations/0001_tenant_identity_access.sql");
+  const [migrationRunner, migration, repair, localHelper] = await Promise.all([
+    source("../scripts/migrate.mjs"),
+    source("../database/migrations/0001_tenant_identity_access.sql"),
+    source("../database/migrations/0058_runtime_least_privilege_repair.sql"),
+    source("../../../scripts/dev/grant-local-privileges.mjs"),
+  ]);
   assert.match(migrationRunner, /MIGRATION_DATABASE_URL/);
   assert.doesNotMatch(migrationRunner, /CONTROL_PLANE_DATABASE_URL \?\?/);
   assert.match(migration, /veza_app is always/);
   assert.match(migration, /GRANT SELECT, INSERT ON audit_events TO veza_control/);
   assert.doesNotMatch(migration, /ALTER DEFAULT PRIVILEGES[\s\S]*veza_app/);
+  assert.match(repair, /REVOKE ALL PRIVILEGES ON ALL TABLES[\s\S]*veza_app/);
+  assert.match(repair, /GRANT SELECT ON[\s\S]*TO veza_app/);
+  assert.match(repair, /GRANT SELECT \(id, email, display_name, status\) ON users TO veza_app/);
+  assert.match(repair, /alert_events, alert_rules[\s\S]*people[\s\S]*slo_definitions[\s\S]*studio_lessons[\s\S]*TO veza_worker/);
+  assert.match(localHelper, /0058_runtime_least_privilege_repair\.sql/);
+  assert.doesNotMatch(localHelper, /GRANT[\s\S]*ON ALL TABLES/);
 });
 
 test("workspace choices are resolved from the authenticated principal without tenant input", async () => {
@@ -150,6 +160,14 @@ test("tenant activation is computed from durable institution facts", async () =>
   assert.match(activation, /safeguarding/);
   assert.match(activation, /WHERE id = \$1 AND status = 'provisioning'/);
   assert.match(activation, /tenant\.activated/);
+});
+
+test("learner home links resolve to implemented workspace routes", async () => {
+  const service = await source("../src/modules/learner-course/application/learner-course.service.ts");
+  assert.match(service, /href: `\/courses\/\$\{enrolment\.enrolmentId\}`/);
+  assert.match(service, /href: "\/calendar"/);
+  assert.doesNotMatch(service, /\/courses\/\$\{enrolment\.enrolmentId\}\/lessons\//);
+  assert.doesNotMatch(service, /\/courses\/\$\{event\.courseRunId\}\/calendar/);
 });
 
 test("high-consequence institution actions require MFA and scoped permission", async () => {

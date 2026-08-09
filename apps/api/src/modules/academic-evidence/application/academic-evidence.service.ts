@@ -411,7 +411,11 @@ export class AcademicEvidenceService {
         [input.awardRuleId, institutionId],
       );
       if (!rule.rowCount) throw new BadRequestException("Active award rule with approved template was not found");
-      const person = await client.query("SELECT display_name FROM people WHERE id=$1 AND status='active'", [input.learnerPersonId]);
+      const person = await client.query(
+        `SELECT concat_ws(' ',COALESCE(NULLIF(btrim(preferred_name),''),legal_given_names),legal_family_name) display_name
+         FROM people WHERE id=$1 AND status='active'`,
+        [input.learnerPersonId],
+      );
       if (!person.rowCount) throw new BadRequestException("Active learner person was not found");
       if (input.enrolmentId) {
         const completed = await client.query("SELECT 1 FROM enrolments WHERE id=$1 AND learner_person_id=$2 AND status='completed'", [input.enrolmentId, input.learnerPersonId]);

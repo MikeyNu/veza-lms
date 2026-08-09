@@ -12,7 +12,7 @@ async function post(operation: string, input: Record<string, unknown>): Promise<
   return body;
 }
 
-function Panel({ title, children }: { title: string; children: ReactNode }) { return <details className="vz-action-panel"><summary>{title}<span>+</span></summary>{children}</details>; }
+function Panel({ title, children }: { title: string; children: ReactNode }) { return <details className="vz-action-panel"><summary>{title}<span aria-hidden="true">+</span></summary>{children}</details>; }
 function value(row: Readonly<Record<string, unknown>>, key: string): string { const current = row[key]; return current === null || current === undefined ? "" : String(current); }
 function date(value?: string): string { return value ? new Intl.DateTimeFormat("en-ZA", { dateStyle: "medium", timeStyle: value.includes("T") ? "short" : undefined, timeZone: "Africa/Johannesburg" }).format(new Date(value)) : "Not set"; }
 

@@ -15,7 +15,13 @@ import { createHash, randomUUID } from "node:crypto";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
-import { exportJWK, exportPKCS8, generateKeyPair, importPKCS8, SignJWT } from "jose";
+import {
+  exportJWK,
+  exportPKCS8,
+  generateKeyPair,
+  importPKCS8,
+  SignJWT,
+} from "jose";
 
 const port = Number(process.env.DEV_OIDC_PORT ?? 4500);
 const issuer = process.env.DEV_OIDC_ISSUER ?? `http://localhost:${port}/`;
@@ -28,9 +34,13 @@ const keyFile = path.join(repoRoot, ".dev", "oidc-signing-key.pem");
 // API has already cached a JWKS for.
 async function signingKey() {
   try {
-    return await importPKCS8(await readFile(keyFile, "utf8"), "RS256");
+    return await importPKCS8(await readFile(keyFile, "utf8"), "RS256", {
+      extractable: true,
+    });
   } catch {
-    const { privateKey } = await generateKeyPair("RS256", { extractable: true });
+    const { privateKey } = await generateKeyPair("RS256", {
+      extractable: true,
+    });
     await mkdir(path.dirname(keyFile), { recursive: true });
     await writeFile(keyFile, await exportPKCS8(privateKey), "utf8");
     return privateKey;
@@ -38,7 +48,12 @@ async function signingKey() {
 }
 
 const privateKey = await signingKey();
-const publicJwk = { ...(await exportJWK(privateKey)), kid: keyId, alg: "RS256", use: "sig" };
+const publicJwk = {
+  ...(await exportJWK(privateKey)),
+  kid: keyId,
+  alg: "RS256",
+  use: "sig",
+};
 delete publicJwk.d;
 delete publicJwk.p;
 delete publicJwk.q;
@@ -50,7 +65,7 @@ delete publicJwk.qi;
 const accounts = {
   owner: {
     sub: "dev-tenant-owner",
-    email: "owner@akha.example",
+    email: "owner@candy.example",
     name: "Thandi Mokoena",
     platformRoles: [],
   },
@@ -58,15 +73,30 @@ const accounts = {
     sub: "dev-platform-operator",
     email: "operator@veza.example",
     name: "Platform Operator",
-    platformRoles: ["platform-operator", "platform-admin"],
+    platformRoles: ["veza:platform-operator"],
+  },
+  learner: {
+    sub: "dev-learner",
+    email: "learner@candy.example",
+    name: "Candy Learner",
+    platformRoles: [],
   },
 };
 
 const defaultAccount = process.env.DEV_OIDC_ACCOUNT ?? "owner";
+const controlPlaneClientId =
+  process.env.DEV_OIDC_CONTROL_PLANE_CLIENT_ID ?? "veza-control-plane";
 const codes = new Map();
 
-function accountFor(hint) {
+function accountFor(hint, clientId = "") {
   if (hint && accounts[hint]) return accounts[hint];
+  if (hint) {
+    const byEmail = Object.values(accounts).find(
+      (account) => account.email.toLowerCase() === hint.toLowerCase(),
+    );
+    if (byEmail) return byEmail;
+  }
+  if (clientId === controlPlaneClientId) return accounts.operator;
   return accounts[defaultAccount] ?? accounts.owner;
 }
 
@@ -160,12 +190,14 @@ const server = createServer(async (request, response) => {
   if (url.pathname === "/authorize") {
     const redirectUri = url.searchParams.get("redirect_uri");
     const state = url.searchParams.get("state");
-    if (!redirectUri || !state) return send(response, 400, { error: "invalid_request" });
+    if (!redirectUri || !state)
+      return send(response, 400, { error: "invalid_request" });
 
     const code = randomUUID();
+    const clientId = url.searchParams.get("client_id") ?? "";
     codes.set(code, {
-      account: accountFor(url.searchParams.get("login_hint")),
-      clientId: url.searchParams.get("client_id") ?? "",
+      account: accountFor(url.searchParams.get("login_hint"), clientId),
+      clientId,
       nonce: url.searchParams.get("nonce") ?? "",
       codeChallenge: url.searchParams.get("code_challenge") ?? "",
       createdAt: Date.now(),
@@ -187,9 +219,14 @@ const server = createServer(async (request, response) => {
     codes.delete(form.get("code") ?? "");
 
     const verifier = form.get("code_verifier") ?? "";
-    const challenge = createHash("sha256").update(verifier, "utf8").digest("base64url");
+    const challenge = createHash("sha256")
+      .update(verifier, "utf8")
+      .digest("base64url");
     if (record.codeChallenge && challenge !== record.codeChallenge) {
-      return send(response, 400, { error: "invalid_grant", error_description: "PKCE mismatch" });
+      return send(response, 400, {
+        error: "invalid_grant",
+        error_description: "PKCE mismatch",
+      });
     }
 
     const clientId =
@@ -201,7 +238,11 @@ const server = createServer(async (request, response) => {
         return decodeURIComponent(decoded.split(":")[0] ?? record.clientId);
       })();
 
-    const { idToken } = await mintTokens(record.account, clientId, record.nonce);
+    const { idToken } = await mintTokens(
+      record.account,
+      clientId,
+      record.nonce,
+    );
     const accessToken = await mintAccessTokenWithRoles(record.account);
     return send(response, 200, {
       access_token: accessToken,
@@ -214,12 +255,27 @@ const server = createServer(async (request, response) => {
   // Convenience for scripts that need a bearer token without a browser.
   if (url.pathname === "/dev/token") {
     const account = accountFor(url.searchParams.get("account"));
-    return send(response, 200, { access_token: await mintAccessTokenWithRoles(account), subject: account.sub });
+    return send(response, 200, {
+      access_token: await mintAccessTokenWithRoles(account),
+      subject: account.sub,
+    });
+  }
+
+  if (url.pathname === "/account/recovery" || url.pathname === "/help") {
+    const recovery = url.pathname === "/account/recovery";
+    return send(
+      response,
+      200,
+      `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${recovery ? "Local account recovery" : "Local identity support"}</title></head><body><main><h1>${recovery ? "Local account recovery" : "Local identity-provider support"}</h1><p>This development identity provider does not store passwords or recovery factors.</p><p>Use the seeded local identity to continue platform testing.</p><a href="http://localhost:3000/sign-in">Return to Veza sign-in</a></main></body></html>`,
+      "text/html; charset=utf-8",
+    );
   }
 
   send(response, 404, { error: "not_found" });
 });
 
 server.listen(port, "127.0.0.1", () => {
-  process.stdout.write(`Local OIDC provider on ${issuer} (accounts: ${Object.keys(accounts).join(", ")})\n`);
+  process.stdout.write(
+    `Local OIDC provider on ${issuer} (accounts: ${Object.keys(accounts).join(", ")})\n`,
+  );
 });

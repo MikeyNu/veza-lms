@@ -10,6 +10,8 @@ import { TenantRequestContextMiddleware } from "./tenant-request-context.middlew
 })
 export class TenancyModule implements NestModule {
   configure(consumer: MiddlewareConsumer): void {
-    consumer.apply(TenantRequestContextMiddleware).forRoutes({ path: "*", method: RequestMethod.ALL });
+    consumer
+      .apply(TenantRequestContextMiddleware)
+      .forRoutes({ path: "{*path}", method: RequestMethod.ALL });
   }
 }

@@ -3,6 +3,7 @@ import type { Route } from "next";
 import type { IconName } from "../../components/icon";
 import {
   canAccessNavigation,
+  canAccessWorkspacePath,
   type WorkspaceNavigationKey,
 } from "./access-policy";
 
@@ -57,7 +58,7 @@ export function primaryRole(session: WorkspaceSession): BaselineRoleKey {
 export function resolveNavigation(session: WorkspaceSession): readonly NavigationItem[] {
   const role = primaryRole(session);
   return definitions
-    .filter((item) => canAccessNavigation(session, item.key))
+    .filter((item) => canAccessWorkspacePath(session, item.href))
     .map((item) => ({
       key: item.key,
       label: item.labels[role] ?? item.labels.default,

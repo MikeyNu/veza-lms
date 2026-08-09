@@ -20,6 +20,7 @@ export interface WorkspaceRoutePolicy {
   readonly pattern: RegExp;
   readonly roles?: readonly BaselineRoleKey[];
   readonly modules?: readonly TenantModuleKey[];
+  readonly institutional?: boolean;
 }
 
 export const allWorkspaceRoles: readonly BaselineRoleKey[] = [
@@ -153,21 +154,21 @@ export const navigationAccess: Readonly<Record<WorkspaceNavigationKey, Readonly<
 const routePolicies: readonly WorkspaceRoutePolicy[] = [
   { id: "today", pattern: /^\/today\/?$/, roles: ["learner"] },
   { id: "course-room", pattern: /^\/courses\/[^/]+\/?$/, roles: ["learner"] },
-  { id: "studio-lesson", pattern: /^\/studio\/lessons\/[^/]+\/?$/, roles: studioRoles, modules: ["studio-pro"] },
-  { id: "studio", pattern: /^\/studio(?:\/.*)?$/, roles: studioRoles, modules: ["studio-pro"] },
-  { id: "gradebook", pattern: /^\/gradebook\/[^/]+\/?$/, roles: assessmentRoles },
-  { id: "assessments", pattern: /^\/assessments(?:\/.*)?$/, roles: assessmentRoles },
-  { id: "evidence-exports", pattern: /^\/evidence\/exports(?:\/.*)?$/, roles: reconciliationRoles },
-  { id: "evidence", pattern: /^\/evidence(?:\/.*)?$/, roles: evidenceRoles },
-  { id: "people-duplicates", pattern: /^\/people\/duplicates\/?$/, roles: reconciliationRoles },
-  { id: "people-invitations", pattern: /^\/people\/invitations(?:\/.*)?$/, roles: reconciliationRoles },
-  { id: "people", pattern: /^\/people(?:\/.*)?$/, roles: peopleRoles },
+  { id: "studio-lesson", pattern: /^\/studio\/lessons\/[^/]+\/?$/, roles: studioRoles, modules: ["studio-pro"], institutional: true },
+  { id: "studio", pattern: /^\/studio(?:\/.*)?$/, roles: studioRoles, modules: ["studio-pro"], institutional: true },
+  { id: "gradebook", pattern: /^\/gradebook\/[^/]+\/?$/, roles: assessmentRoles, institutional: true },
+  { id: "assessments", pattern: /^\/assessments(?:\/.*)?$/, roles: assessmentRoles, institutional: true },
+  { id: "evidence-exports", pattern: /^\/evidence\/exports(?:\/.*)?$/, roles: reconciliationRoles, institutional: true },
+  { id: "evidence", pattern: /^\/evidence(?:\/.*)?$/, roles: evidenceRoles, institutional: true },
+  { id: "people-duplicates", pattern: /^\/people\/duplicates\/?$/, roles: reconciliationRoles, institutional: true },
+  { id: "people-invitations", pattern: /^\/people\/invitations(?:\/.*)?$/, roles: reconciliationRoles, institutional: true },
+  { id: "people", pattern: /^\/people(?:\/.*)?$/, roles: peopleRoles, institutional: true },
   { id: "service-accounts", pattern: /^\/admin\/service-accounts(?:\/.*)?$/, roles: ["tenant-owner"] },
   { id: "administration", pattern: /^\/admin(?:\/.*)?$/, roles: administrationRoles },
-  { id: "learning", pattern: /^\/learning(?:\/.*)?$/, roles: learningRoles },
-  { id: "calendar", pattern: /^\/calendar(?:\/.*)?$/, roles: calendarRoles },
-  { id: "communications", pattern: /^\/communicate(?:\/.*)?$/, roles: communicationRoles },
-  { id: "insights", pattern: /^\/insights(?:\/.*)?$/, roles: insightRoles },
+  { id: "learning", pattern: /^\/learning(?:\/.*)?$/, roles: learningRoles, institutional: true },
+  { id: "calendar", pattern: /^\/calendar(?:\/.*)?$/, roles: calendarRoles, institutional: true },
+  { id: "communications", pattern: /^\/communicate(?:\/.*)?$/, roles: communicationRoles, institutional: true },
+  { id: "insights", pattern: /^\/insights(?:\/.*)?$/, roles: insightRoles, institutional: true },
   { id: "support", pattern: /^\/support(?:\/.*)?$/, roles: supportCaseRoles },
   { id: "design-system", pattern: /^\/design-system(?:\/.*)?$/, roles: internalDesignSystemRoles },
   { id: "profile", pattern: /^\/profile(?:\/.*)?$/, roles: allWorkspaceRoles },
@@ -213,12 +214,31 @@ export function canAccessPathForRoles(
   return true;
 }
 
+const selfServiceRoles: readonly BaselineRoleKey[] = ["learner", "guardian-sponsor"];
+
 export function canAccessWorkspacePath(session: WorkspaceSession, pathname: string): boolean {
-  return canAccessPathForRoles(
-    session.membership.roles,
-    pathname,
-    [...enabledModules(session)],
-  );
+  const policy = routePolicyForPath(pathname);
+  if (!policy) return true;
+  const roles = session.membership.roles;
+  const modules = [...enabledModules(session)];
+  if (policy.modules && !policy.modules.every((m) => modules.includes(m))) return false;
+  if (policy.roles && !rolesIntersect(roles, policy.roles)) return false;
+  if (policy.institutional) {
+    const hasSelfServiceAccess = roles.some(
+      (r) => selfServiceRoles.includes(r) && (policy.roles ?? []).includes(r),
+    );
+    if (!hasSelfServiceAccess && session.membership.institutionIds.length === 0) return false;
+  }
+  return true;
+}
+
+export function accessRoleForWorkspacePath(session: WorkspaceSession, pathname: string): BaselineRoleKey | undefined {
+  const policy = routePolicyForPath(pathname);
+  if (!policy?.roles) return undefined;
+  for (const role of selfServiceRoles) {
+    if (session.membership.roles.includes(role) && policy.roles.includes(role)) return role;
+  }
+  return session.membership.roles.find((r) => policy.roles?.includes(r));
 }
 
 export function canonicalLandingPath(role: BaselineRoleKey): Route {

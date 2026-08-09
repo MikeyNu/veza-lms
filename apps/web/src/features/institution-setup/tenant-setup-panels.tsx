@@ -21,8 +21,8 @@ export function ActivationRail({
   const completed = checks.filter((item) => item.passed).length;
   return <aside className="activation-rail">
     <div className="activation-score"><span>{checks.length ? `${completed}/${checks.length}` : "Scoped"}</span><div><strong>Activation evidence</strong><small>{tenantOwner ? "Tenant-wide launch gate" : "Institution configuration"}</small></div></div>
-    {checks.length ? <ol>{checks.map((item) => <li className={item.passed ? "passed" : "blocked"} key={item.key}><span>{item.passed ? "✓" : "!"}</span><div><strong>{item.label}</strong><small>{item.detail}</small></div></li>)}</ol> : <div className="scoped-admin-note"><strong>Scoped institution role</strong><p>You can configure the assigned institution. Tenant activation and tenant-wide operational settings remain with a tenant owner.</p></div>}
-    {tenantOwner && bundle.readiness ? <button className="activate-button" type="button" disabled={!bundle.readiness.ready || operation === "Tenant activation" || tenantStatus !== "provisioning"} onClick={onActivate}>{operation === "Tenant activation" ? "Activating…" : tenantStatus === "active" ? "Tenant active" : "Activate tenant"}</button> : null}
+    {checks.length ? <ol className="activation-checks">{checks.map((item) => <li className={item.passed ? "passed" : "blocked"} key={item.key}><span>{item.passed ? "✓" : "!"}</span><div><strong>{item.label}</strong><small>{item.detail}</small></div></li>)}</ol> : <div className="scoped-admin-note"><strong>Scoped institution role</strong><p>You can configure the assigned institution. Tenant activation and tenant-wide operational settings remain with a tenant owner.</p></div>}
+    {tenantOwner && bundle.readiness ? <button className="activation-action" type="button" disabled={!bundle.readiness.ready || operation === "Tenant activation" || tenantStatus !== "provisioning"} onClick={onActivate}>{operation === "Tenant activation" ? "Activating…" : tenantStatus === "active" ? "Tenant active" : "Activate tenant"}</button> : null}
   </aside>;
 }
 

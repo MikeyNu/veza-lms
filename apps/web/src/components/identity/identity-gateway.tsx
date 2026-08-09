@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { BreadcrumbFallback } from "../route-breadcrumbs";
 
 export interface IdentityGatewayProps {
   readonly eyebrow: string;
@@ -46,6 +47,7 @@ export function IdentityGateway({
 
       <section className="identity-action-panel">
         <div className="identity-action-shell">
+          <BreadcrumbFallback variant="identity" />
           <header className="identity-action-heading">
             <p>{eyebrow}</p>
             <h2>{title}</h2>

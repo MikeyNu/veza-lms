@@ -10,6 +10,7 @@ import type { NavigationItem, NavigationKey } from "../features/workspace/naviga
 import { CommandSearch } from "./command-search";
 import { Icon } from "./icon";
 import { NotificationPopover } from "./notification-popover";
+import { BreadcrumbFallback } from "./route-breadcrumbs";
 
 const SIDEBAR_STORAGE_KEY = "veza.sidebar.collapsed";
 
@@ -224,6 +225,7 @@ export function AppShellClient({
               <form ref={signOutForm} action="/api/auth/sign-out" method="post" className="topbar-signout-form" aria-hidden="true" />
             </div>
           </header>
+          <BreadcrumbFallback variant="workspace" />
           <main className="app-main">{children}</main>
         </div>
       </div>

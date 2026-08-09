@@ -1,5 +1,9 @@
 import { ForbiddenException, Injectable } from "@nestjs/common";
-import { assignmentsForRole, type PolicyAssignment, type PolicyConditions } from "@veza/authz";
+import {
+  assignmentsForRole,
+  type PolicyAssignment,
+  type PolicyConditions,
+} from "@veza/authz";
 import type {
   AuthenticatedPrincipal,
   BaselineRoleKey,
@@ -61,6 +65,10 @@ interface RoleRow extends QueryResultRow {
   readonly conditions: PolicyConditions;
 }
 
+interface InstitutionRow extends QueryResultRow {
+  readonly id: string;
+}
+
 interface EntitlementRow extends QueryResultRow {
   readonly module_key: TenantModuleKey;
   readonly state: EntitlementSummary["state"];
@@ -84,15 +92,25 @@ export class IdentitySessionRepository {
              VALUES ($1,$2,$3,$4)
              ON CONFLICT (identity_issuer, identity_subject) DO NOTHING
              RETURNING id, email, display_name, status`,
-            [external.issuer, external.subject, external.email ?? null, external.displayName ?? null],
+            [
+              external.issuer,
+              external.subject,
+              external.email ?? null,
+              external.displayName ?? null,
+            ],
           );
           const created = inserted.rows[0];
           if (created) {
             await client.query(
               `INSERT INTO platform_audit_events (
                  event_type, actor_id, resource_type, resource_id, correlation_id, metadata
-               ) VALUES ('platform-operator.identity-created',$1,'user',$1,$2,$3)`,
-              [created.id, correlationId, { issuer: external.issuer, subject: external.subject }],
+               ) VALUES ('platform-operator.identity-created',$1,'user',$2,$3,$4)`,
+              [
+                created.id,
+                created.id,
+                correlationId,
+                { issuer: external.issuer, subject: external.subject },
+              ],
             );
             return inserted;
           }
@@ -105,7 +123,12 @@ export class IdentitySessionRepository {
                AND identity_subject = $2
                AND status = 'active'
              RETURNING id, email, display_name, status`,
-            [external.issuer, external.subject, external.email ?? null, external.displayName ?? null],
+            [
+              external.issuer,
+              external.subject,
+              external.email ?? null,
+              external.displayName ?? null,
+            ],
           );
         })
       : await this.database.controlPlaneQuery<UserRow>(
@@ -130,7 +153,9 @@ export class IdentitySessionRepository {
     };
   }
 
-  async listWorkspaces(principal: AuthenticatedPrincipal): Promise<readonly WorkspaceOption[]> {
+  async listWorkspaces(
+    principal: AuthenticatedPrincipal,
+  ): Promise<readonly WorkspaceOption[]> {
     const result = await this.database.controlPlaneQuery<WorkspaceOptionRow>(
       `SELECT
          m.id AS membership_id,
@@ -168,17 +193,22 @@ export class IdentitySessionRepository {
         ...(row.logo_url ? { logoUrl: row.logo_url } : {}),
       },
       roles: row.roles,
-      label: row.roles.includes("learner") && row.roles.length === 1
-        ? "Learner workspace"
-        : row.roles.includes("instructor")
-          ? "Teaching workspace"
-          : "Institution workspace",
+      label:
+        row.roles.includes("learner") && row.roles.length === 1
+          ? "Learner workspace"
+          : row.roles.includes("instructor")
+            ? "Teaching workspace"
+            : "Institution workspace",
     }));
   }
 
-  async resolveWorkspace(principal: AuthenticatedPrincipal, membershipId: MembershipId): Promise<ResolvedWorkspaceSession> {
-    const membershipResult = await this.database.controlPlaneQuery<MembershipRow>(
-      `SELECT
+  async resolveWorkspace(
+    principal: AuthenticatedPrincipal,
+    membershipId: MembershipId,
+  ): Promise<ResolvedWorkspaceSession> {
+    const membershipResult =
+      await this.database.controlPlaneQuery<MembershipRow>(
+        `SELECT
          m.id AS membership_id,
          m.status AS membership_status,
          m.locale AS membership_locale,
@@ -201,10 +231,11 @@ export class IdentitySessionRepository {
          AND m.valid_from <= now()
          AND (m.valid_until IS NULL OR m.valid_until > now())
          AND t.status IN ('provisioning', 'active')`,
-      [membershipId, principal.userId],
-    );
+        [membershipId, principal.userId],
+      );
     const membership = membershipResult.rows[0];
-    if (!membership) throw new ForbiddenException("The selected membership is not available");
+    if (!membership)
+      throw new ForbiddenException("The selected membership is not available");
 
     const [rolesResult, entitlementsResult] = await Promise.all([
       this.database.controlPlaneQuery<RoleRow>(
@@ -228,26 +259,36 @@ export class IdentitySessionRepository {
     ]);
 
     const roles = [...new Set(rolesResult.rows.map((row) => row.role_key))];
-    const institutionIds = [...new Set(
-      rolesResult.rows
-        .filter((row) => row.scope_type === "institution")
-        .map((row) => row.scope_id as InstitutionId),
-    )];
-    const entitlements: readonly EntitlementSummary[] = entitlementsResult.rows.map((row) => ({
-      module: row.module_key,
-      state: row.state,
-      limits: row.limits,
-      ...(row.valid_until ? { validUntil: row.valid_until.toISOString() } : {}),
-    }));
-    if (roles.length === 0) throw new ForbiddenException("The selected membership has no active role assignment");
+    const institutionIds = await this.resolveInstitutionIds(
+      membership.tenant_id,
+      principal.userId,
+      rolesResult.rows,
+    );
+    const entitlements: readonly EntitlementSummary[] =
+      entitlementsResult.rows.map((row) => ({
+        module: row.module_key,
+        state: row.state,
+        limits: row.limits,
+        ...(row.valid_until
+          ? { validUntil: row.valid_until.toISOString() }
+          : {}),
+      }));
+    if (roles.length === 0)
+      throw new ForbiddenException(
+        "The selected membership has no active role assignment",
+      );
     if (!entitlements.some((entitlement) => entitlement.module === "core")) {
-      throw new ForbiddenException("The selected workspace does not have an active core entitlement");
+      throw new ForbiddenException(
+        "The selected workspace does not have an active core entitlement",
+      );
     }
 
     const workspace: WorkspaceSession = {
       principal: {
         userId: principal.userId,
-        ...(principal.displayName ? { displayName: principal.displayName } : {}),
+        ...(principal.displayName
+          ? { displayName: principal.displayName }
+          : {}),
         ...(principal.email ? { email: principal.email } : {}),
       },
       tenant: {
@@ -274,12 +315,129 @@ export class IdentitySessionRepository {
     };
 
     const policyAssignments = rolesResult.rows.flatMap((row) =>
-      assignmentsForRole(row.role_key, row.scope_type, row.scope_id).map((assignment) => ({
-        ...assignment,
-        ...(Object.keys(row.conditions).length > 0 ? { conditions: row.conditions } : {}),
-      })),
+      assignmentsForRole(row.role_key, row.scope_type, row.scope_id).map(
+        (assignment) => ({
+          ...assignment,
+          ...(Object.keys(row.conditions).length > 0
+            ? { conditions: row.conditions }
+            : {}),
+        }),
+      ),
     );
 
     return { principal, workspace, policyAssignments };
+  }
+
+  private async resolveInstitutionIds(
+    tenantId: string,
+    userId: string,
+    assignments: readonly RoleRow[],
+  ): Promise<readonly InstitutionId[]> {
+    const scopeIds = (scopeType: PolicyAssignment["scopeType"]) =>
+      assignments
+        .filter((assignment) => assignment.scope_type === scopeType)
+        .map((assignment) => assignment.scope_id);
+    const tenantWide = assignments.some(
+      (assignment) => assignment.scope_type === "tenant" && assignment.scope_id === tenantId,
+    );
+    const institutionScopeIds = scopeIds("institution");
+    const campusScopeIds = scopeIds("campus");
+    const programmeScopeIds = scopeIds("programme");
+    const courseScopeIds = scopeIds("course");
+    const cohortScopeIds = scopeIds("cohort");
+    const selfScopeIds = scopeIds("self");
+
+    if (
+      !tenantWide &&
+      institutionScopeIds.length === 0 &&
+      campusScopeIds.length === 0 &&
+      programmeScopeIds.length === 0 &&
+      courseScopeIds.length === 0 &&
+      cohortScopeIds.length === 0 &&
+      selfScopeIds.length === 0
+    ) {
+      return [];
+    }
+
+    const result = await this.database.withTenantTransaction(
+      tenantId,
+      async (client) =>
+        client.query<InstitutionRow>(
+          `SELECT institution.id
+           FROM institutions institution
+           WHERE institution.tenant_id = $1
+             AND institution.status <> 'archived'
+             AND (
+               $2::boolean
+               OR institution.id = ANY($3::uuid[])
+               OR institution.id IN (
+                 SELECT campus.institution_id
+                 FROM campuses campus
+                 WHERE campus.tenant_id = $1
+                   AND campus.id = ANY($4::uuid[])
+               )
+               OR institution.id IN (
+                 SELECT programme.institution_id
+                 FROM programmes programme
+                 WHERE programme.tenant_id = $1
+                   AND programme.id = ANY($5::uuid[])
+               )
+               OR institution.id IN (
+                 SELECT course.institution_id
+                 FROM course_definitions course
+                 WHERE course.tenant_id = $1
+                   AND course.id = ANY($6::uuid[])
+                 UNION
+                 SELECT course_run.institution_id
+                 FROM course_runs course_run
+                 WHERE course_run.tenant_id = $1
+                   AND course_run.id = ANY($6::uuid[])
+               )
+               OR institution.id IN (
+                 SELECT cohort.institution_id
+                 FROM cohorts cohort
+                 WHERE cohort.tenant_id = $1
+                   AND cohort.id = ANY($7::uuid[])
+               )
+               OR (
+                 cardinality($8::uuid[]) > 0
+                 AND institution.id IN (
+                   SELECT learner.institution_id
+                   FROM people person
+                   JOIN learner_profiles learner
+                     ON learner.tenant_id = person.tenant_id
+                    AND learner.person_id = person.id
+                   WHERE person.tenant_id = $1
+                     AND (person.linked_user_id = $9 OR person.id = ANY($8::uuid[]))
+                   UNION
+                   SELECT staff.institution_id
+                   FROM people person
+                   JOIN staff_profiles staff
+                     ON staff.tenant_id = person.tenant_id
+                    AND staff.person_id = person.id
+                   WHERE person.tenant_id = $1
+                     AND (person.linked_user_id = $9 OR person.id = ANY($8::uuid[]))
+                 )
+               )
+             )
+           ORDER BY
+             CASE institution.status WHEN 'active' THEN 0 ELSE 1 END,
+             institution.created_at,
+             institution.id`,
+          [
+            tenantId,
+            tenantWide,
+            institutionScopeIds,
+            campusScopeIds,
+            programmeScopeIds,
+            courseScopeIds,
+            cohortScopeIds,
+            selfScopeIds,
+            userId,
+          ],
+        ),
+    );
+
+    return result.rows.map((row) => row.id as InstitutionId);
   }
 }

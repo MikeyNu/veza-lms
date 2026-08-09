@@ -4,14 +4,21 @@ import { ConsumerRepository } from "./consumer-repository.js";
 import { ConsumerRuntime } from "./consumer-runtime.js";
 import { sanitizeDeliveryError } from "./delivery-error.js";
 import { EventBridgePublisher, StdoutPublisher } from "./event-publisher.js";
-import { ExportExpiryHandler, ExportProcessor, HttpExportObjectStore } from "./export-processor.js";
+import {
+  ExportExpiryHandler,
+  ExportProcessor,
+  HttpExportObjectStore,
+} from "./export-processor.js";
 import { MediaProcessor } from "./media-processor.js";
 import { MediaRetentionReconciliationHandler } from "./media-scheduler.js";
 import { CoreMetricRefresher } from "./metric-refresh.js";
 import { NotificationDispatcher } from "./notification-dispatcher.js";
 import { NotificationProviderRegistry } from "./notification-provider.js";
 import { NotificationRouter } from "./notification-router.js";
-import { NotificationDigestPreparationHandler } from "./notification-scheduler.js";
+import {
+  NotificationDeliveryReconciliationHandler,
+  NotificationDigestPreparationHandler,
+} from "./notification-scheduler.js";
 import {
   AlertEvaluationHandler,
   ApiRuntimeCleanupHandler,
@@ -19,10 +26,17 @@ import {
   WorkerHeartbeat,
 } from "./observability-runtime.js";
 import { OutboxRepository } from "./outbox-repository.js";
-import type { ClaimedOutboxEvent, EventPublisher, PublishResult } from "./outbox.types.js";
+import type {
+  ClaimedOutboxEvent,
+  EventPublisher,
+  PublishResult,
+} from "./outbox.types.js";
 import { PlatformScheduleReconciler } from "./platform-schedule-reconciler.js";
 import { nextAttemptAt, retryDelaySeconds } from "./retry.js";
-import { PlatformGovernanceSweepHandler, WorkerScheduler } from "./scheduler.js";
+import {
+  PlatformGovernanceSweepHandler,
+  WorkerScheduler,
+} from "./scheduler.js";
 import {
   SearchIndexPublisher,
   SearchProjectionEventHandler,
@@ -64,7 +78,9 @@ function wait(milliseconds: number, signal: AbortSignal): Promise<void> {
   });
 }
 
-function publisher(config: ReturnType<typeof loadWorkerConfig>): EventPublisher {
+function publisher(
+  config: ReturnType<typeof loadWorkerConfig>,
+): EventPublisher {
   return config.transport === "eventbridge"
     ? new EventBridgePublisher(
         config.eventBusName ?? "",
@@ -98,7 +114,10 @@ async function acknowledge(
       result.reference,
       latencyMs,
     );
-    if (!updated) log("warn", "Outbox acknowledgement lost its lease", { eventId: event.id });
+    if (!updated)
+      log("warn", "Outbox acknowledgement lost its lease", {
+        eventId: event.id,
+      });
     return;
   }
 
@@ -122,11 +141,15 @@ async function acknowledge(
     latencyMs,
   );
   if (!updated) {
-    log("warn", "Outbox failure acknowledgement lost its lease", { eventId: event.id });
+    log("warn", "Outbox failure acknowledgement lost its lease", {
+      eventId: event.id,
+    });
   } else {
     log(
       deadLetter ? "error" : "warn",
-      deadLetter ? "Outbox event moved to dead letter" : "Outbox delivery scheduled for retry",
+      deadLetter
+        ? "Outbox event moved to dead letter"
+        : "Outbox delivery scheduled for retry",
       {
         eventId: event.id,
         tenantId: event.tenantId,
@@ -144,12 +167,18 @@ async function processOutbox(
   eventPublisher: EventPublisher,
   config: ReturnType<typeof loadWorkerConfig>,
 ): Promise<number> {
-  const events = await repository.claim(config.workerId, config.batchSize, config.leaseSeconds);
+  const events = await repository.claim(
+    config.workerId,
+    config.batchSize,
+    config.leaseSeconds,
+  );
   if (events.length === 0) return 0;
   const startedAt = Date.now();
   const published = await eventPublisher.publish(events);
   const latencyMs = Date.now() - startedAt;
-  const byEventId = new Map(published.map((result) => [result.eventId, result]));
+  const byEventId = new Map(
+    published.map((result) => [result.eventId, result]),
+  );
   for (const event of events) {
     await acknowledge(
       repository,
@@ -195,7 +224,9 @@ async function main(): Promise<void> {
     statement_timeout: 30_000,
   });
   pool.on("error", (error) =>
-    log("error", "Unexpected PostgreSQL pool error", { error: sanitizeDeliveryError(error) }),
+    log("error", "Unexpected PostgreSQL pool error", {
+      error: sanitizeDeliveryError(error),
+    }),
   );
 
   const outboxRepository = new OutboxRepository(pool);
@@ -207,8 +238,14 @@ async function main(): Promise<void> {
     config.retryBaseSeconds,
     config.retryMaximumSeconds,
   );
-  consumerRuntime.register("communications.notification-router", new NotificationRouter(pool));
-  consumerRuntime.register("search.projection-events", new SearchProjectionEventHandler(pool));
+  consumerRuntime.register(
+    "communications.notification-router",
+    new NotificationRouter(pool),
+  );
+  consumerRuntime.register(
+    "search.projection-events",
+    new SearchProjectionEventHandler(pool),
+  );
   consumerRuntime.register("api.webhook-router", new WebhookRouter(pool));
 
   const scheduler = new WorkerScheduler(
@@ -221,6 +258,10 @@ async function main(): Promise<void> {
   scheduler.register(
     "communications.digest-preparation",
     new NotificationDigestPreparationHandler(pool),
+  );
+  scheduler.register(
+    "communications.delivery-reconciliation",
+    new NotificationDeliveryReconciliationHandler(pool),
   );
   scheduler.register(
     "support.session-expiry",
@@ -238,10 +279,19 @@ async function main(): Promise<void> {
     "search.projection-reconciliation",
     new SearchProjectionScheduleHandler(pool),
   );
-  scheduler.register("observability.slo-measurement", new SloMeasurementHandler(pool));
-  scheduler.register("observability.alert-evaluation", new AlertEvaluationHandler(pool));
+  scheduler.register(
+    "observability.slo-measurement",
+    new SloMeasurementHandler(pool),
+  );
+  scheduler.register(
+    "observability.alert-evaluation",
+    new AlertEvaluationHandler(pool),
+  );
   scheduler.register("api.runtime-cleanup", new ApiRuntimeCleanupHandler(pool));
-  scheduler.register("api.webhook-reconciliation", new WebhookReconciliationHandler(pool));
+  scheduler.register(
+    "api.webhook-reconciliation",
+    new WebhookReconciliationHandler(pool),
+  );
   scheduler.register("exports.expiry", new ExportExpiryHandler(pool));
 
   const notificationDispatcher = new NotificationDispatcher(
@@ -342,11 +392,20 @@ async function main(): Promise<void> {
         }
         if (now >= nextSchedulerAt) {
           const scheduled = await scheduler.processDue();
-          if (scheduled.claimed > 0) log("info", "Scheduled jobs processed", scheduled);
+          if (scheduled.claimed > 0)
+            log("info", "Scheduled jobs processed", scheduled);
           nextSchedulerAt = now + config.schedulerIntervalMs;
         }
 
-        const [outboxClaimed, consumers, notifications, media, search, webhooks, exports] = await Promise.all([
+        const [
+          outboxClaimed,
+          consumers,
+          notifications,
+          media,
+          search,
+          webhooks,
+          exports,
+        ] = await Promise.all([
           processOutbox(outboxRepository, eventPublisher, config),
           consumerRuntime.processDue(),
           notificationDispatcher.processDue(),
@@ -355,7 +414,8 @@ async function main(): Promise<void> {
           webhookDispatcher.processDue(),
           exportProcessor.processDue(),
         ]);
-        if (consumers.claimed > 0) log("info", "Event consumers processed", consumers);
+        if (consumers.claimed > 0)
+          log("info", "Event consumers processed", consumers);
         if (
           notifications.intentsPrepared > 0 ||
           notifications.deliveriesProcessed > 0 ||
@@ -363,10 +423,14 @@ async function main(): Promise<void> {
         ) {
           log("info", "Notification delivery cycle completed", notifications);
         }
-        if (media.claimed > 0) log("info", "Media processing cycle completed", media);
-        if (search.claimed > 0) log("info", "Search indexing cycle completed", search);
-        if (webhooks.claimed > 0) log("info", "Webhook delivery cycle completed", webhooks);
-        if (exports.claimed > 0) log("info", "Governed export cycle completed", exports);
+        if (media.claimed > 0)
+          log("info", "Media processing cycle completed", media);
+        if (search.claimed > 0)
+          log("info", "Search indexing cycle completed", search);
+        if (webhooks.claimed > 0)
+          log("info", "Webhook delivery cycle completed", webhooks);
+        if (exports.claimed > 0)
+          log("info", "Governed export cycle completed", exports);
         if (
           outboxClaimed === 0 &&
           consumers.claimed === 0 &&
@@ -381,7 +445,9 @@ async function main(): Promise<void> {
           await wait(config.pollIntervalMs, shutdown.signal);
         }
       } catch (error) {
-        log("error", "Worker polling cycle failed", { error: sanitizeDeliveryError(error) });
+        log("error", "Worker polling cycle failed", {
+          error: sanitizeDeliveryError(error),
+        });
         await safeHeartbeat(heartbeat, "degraded");
         await wait(config.pollIntervalMs, shutdown.signal);
       }
@@ -394,6 +460,8 @@ async function main(): Promise<void> {
 }
 
 void main().catch((error: unknown) => {
-  log("error", "Worker failed to start", { error: sanitizeDeliveryError(error) });
+  log("error", "Worker failed to start", {
+    error: sanitizeDeliveryError(error),
+  });
   process.exitCode = 1;
 });

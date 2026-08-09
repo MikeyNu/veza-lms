@@ -6,12 +6,21 @@ import pg from "pg";
 const { Pool } = pg;
 function required(name) {
   const value = process.env[name];
-  if (!value) throw new Error(`${name} is required for database integration tests`);
+  if (!value)
+    throw new Error(`${name} is required for database integration tests`);
   return value;
 }
 
-const appPool = new Pool({ connectionString: required("DATABASE_URL"), max: 3, statement_timeout: 10_000 });
-const controlPool = new Pool({ connectionString: required("CONTROL_PLANE_DATABASE_URL"), max: 2, statement_timeout: 10_000 });
+const appPool = new Pool({
+  connectionString: required("DATABASE_URL"),
+  max: 3,
+  statement_timeout: 10_000,
+});
+const controlPool = new Pool({
+  connectionString: required("CONTROL_PLANE_DATABASE_URL"),
+  max: 2,
+  statement_timeout: 10_000,
+});
 const suffix = randomUUID();
 const tenantA = randomUUID();
 const tenantB = randomUUID();
@@ -25,8 +34,12 @@ async function withTenant(tenantId, callback, commit = false) {
   const client = await appPool.connect();
   try {
     await client.query("BEGIN");
-    await client.query("SELECT set_config('app.tenant_id', $1, true)", [tenantId]);
-    await client.query("SELECT set_config('app.data_plane', 'application', true)");
+    await client.query("SELECT set_config('app.tenant_id', $1, true)", [
+      tenantId,
+    ]);
+    await client.query(
+      "SELECT set_config('app.data_plane', 'application', true)",
+    );
     const result = await callback(client);
     await client.query(commit ? "COMMIT" : "ROLLBACK");
     return result;
@@ -44,7 +57,14 @@ test.before(async () => {
      VALUES
        ($1, 'https://access.integration.invalid', $2, $3, 'Access administrator'),
        ($4, 'https://access.integration.invalid', $5, $6, 'Access member')`,
-    [actor, `actor-${suffix}`, `actor-${suffix}@example.invalid`, memberUser, `member-${suffix}`, `member-${suffix}@example.invalid`],
+    [
+      actor,
+      `actor-${suffix}`,
+      `actor-${suffix}@example.invalid`,
+      memberUser,
+      `member-${suffix}`,
+      `member-${suffix}@example.invalid`,
+    ],
   );
   await controlPool.query(
     `INSERT INTO tenants (
@@ -67,55 +87,69 @@ test.after(async () => {
 });
 
 test("overlapping grants for the same role and scope are rejected", async () => {
-  await withTenant(tenantA, async (client) => {
-    await client.query(
-      `INSERT INTO role_assignments (
+  await withTenant(
+    tenantA,
+    async (client) => {
+      await client.query(
+        `INSERT INTO role_assignments (
          id, tenant_id, membership_id, role_key, scope_type, scope_id, assigned_by
        ) VALUES ($1,$2,$3,'auditor','tenant',$2,$4)`,
-      [assignmentA, tenantA, membershipA, actor],
-    );
-    await assert.rejects(
-      client.query(
-        `INSERT INTO role_assignments (
+        [assignmentA, tenantA, membershipA, actor],
+      );
+      await client.query("SAVEPOINT expected_overlap");
+      await assert.rejects(
+        client.query(
+          `INSERT INTO role_assignments (
            tenant_id, membership_id, role_key, scope_type, scope_id, assigned_by
          ) VALUES ($1,$2,'auditor','tenant',$1,$3)`,
-        [tenantA, membershipA, actor],
-      ),
-      /conflicting key value violates exclusion constraint|role_assignments_no_overlapping_grant/i,
-    );
-  }, true);
+          [tenantA, membershipA, actor],
+        ),
+        /conflicting key value violates exclusion constraint|role_assignments_no_overlapping_grant/i,
+      );
+      await client.query("ROLLBACK TO SAVEPOINT expected_overlap");
+      await client.query("RELEASE SAVEPOINT expected_overlap");
+    },
+    true,
+  );
 });
 
 test("an ended role preserves evidence and can be reassigned later", async () => {
-  await withTenant(tenantA, async (client) => {
-    const endedAt = new Date();
-    await client.query(
-      `UPDATE role_assignments
+  await withTenant(
+    tenantA,
+    async (client) => {
+      const endedAt = new Date();
+      await client.query(
+        `UPDATE role_assignments
        SET valid_until = $3, ended_at = $3, ended_by = $4, end_reason = 'Responsibility transferred'
        WHERE tenant_id = $1 AND id = $2`,
-      [tenantA, assignmentA, endedAt, actor],
-    );
-    const ended = await client.query(
-      `SELECT ended_by, ended_at, end_reason FROM role_assignments WHERE tenant_id = $1 AND id = $2`,
-      [tenantA, assignmentA],
-    );
-    assert.equal(ended.rows[0]?.ended_by, actor);
-    assert.equal(ended.rows[0]?.end_reason, "Responsibility transferred");
-    await client.query(
-      `INSERT INTO role_assignments (
-         tenant_id, membership_id, role_key, scope_type, scope_id, assigned_by
-       ) VALUES ($1,$2,'auditor','tenant',$1,$3)`,
-      [tenantA, membershipA, actor],
-    );
-  }, true);
+        [tenantA, assignmentA, endedAt, actor],
+      );
+      const ended = await client.query(
+        `SELECT ended_by, ended_at, end_reason FROM role_assignments WHERE tenant_id = $1 AND id = $2`,
+        [tenantA, assignmentA],
+      );
+      assert.equal(ended.rows[0]?.ended_by, actor);
+      assert.equal(ended.rows[0]?.end_reason, "Responsibility transferred");
+      await client.query(
+        `INSERT INTO role_assignments (
+         tenant_id, membership_id, role_key, scope_type, scope_id, assigned_by, valid_from
+       ) VALUES ($1,$2,'auditor','tenant',$1,$3,$4)`,
+        [tenantA, membershipA, actor, endedAt],
+      );
+    },
+    true,
+  );
 });
 
 test("application RLS prevents reading another tenant access assignments", async () => {
   await withTenant(tenantA, async (client) => {
     const result = await client.query(
-      `SELECT membership_id FROM role_assignments WHERE membership_id = ANY($1::uuid[])`,
+      `SELECT DISTINCT membership_id FROM role_assignments WHERE membership_id = ANY($1::uuid[])`,
       [[membershipA, membershipB]],
     );
-    assert.deepEqual(result.rows.map((row) => row.membership_id), [membershipA]);
+    assert.deepEqual(
+      result.rows.map((row) => row.membership_id),
+      [membershipA],
+    );
   });
 });

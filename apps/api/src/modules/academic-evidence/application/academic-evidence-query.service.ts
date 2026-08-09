@@ -44,7 +44,8 @@ export class AcademicEvidenceQueryService {
         ),
         client.query(
           `SELECT s.id,s.assignment_id "assignmentId",a.title "assignmentTitle",
-                  s.enrolment_id "enrolmentId",p.display_name "learnerName",
+                  s.enrolment_id "enrolmentId",
+                  concat_ws(' ',COALESCE(NULLIF(btrim(p.preferred_name),''),p.legal_given_names),p.legal_family_name) "learnerName",
                   s.attempt_number "attemptNumber",s.status,s.submitted_at "submittedAt",
                   s.receipt_number "receiptNumber",s.receipt_checksum "receiptChecksum",
                   s.is_late "isLate",s.assignment_group_id "assignmentGroupId",
@@ -63,7 +64,8 @@ export class AcademicEvidenceQueryService {
              ORDER BY m.created_at DESC LIMIT 1
            ) mark ON true
            WHERE s.institution_id=$1
-           GROUP BY s.id,a.title,p.display_name,mark.id,mark.score,mark.status,
+           GROUP BY s.id,a.title,p.preferred_name,p.legal_given_names,p.legal_family_name,
+                    mark.id,mark.score,mark.status,
                     mark.feedback,mark.rubric_scores,mark.version,mark.released_at
            ORDER BY s.created_at DESC LIMIT 250`,
           [institutionId],
@@ -86,7 +88,8 @@ export class AcademicEvidenceQueryService {
         ),
         client.query(
           `SELECT c.id,c.verification_code "verificationCode",c.status,c.issued_at "issuedAt",
-                  p.display_name "learnerName",c.payload,c.revocation_reason "revocationReason",
+                  concat_ws(' ',COALESCE(NULLIF(btrim(p.preferred_name),''),p.legal_given_names),p.legal_family_name) "learnerName",
+                  c.payload,c.revocation_reason "revocationReason",
                   c.award_evaluation_id "awardEvaluationId"
            FROM issued_certificates c
            JOIN people p ON p.id=c.learner_person_id
@@ -118,9 +121,10 @@ export class AcademicEvidenceQueryService {
         client.query(
           `SELECT g.id,g.assignment_id "assignmentId",a.title "assignmentTitle",g.name,g.status,
                   COALESCE(jsonb_agg(jsonb_build_object(
-                    'learnerPersonId',m.learner_person_id,'learnerName',p.display_name,
+                    'learnerPersonId',m.learner_person_id,
+                    'learnerName',concat_ws(' ',COALESCE(NULLIF(btrim(p.preferred_name),''),p.legal_given_names),p.legal_family_name),
                     'joinedAt',m.joined_at,'leftAt',m.left_at
-                  ) ORDER BY p.display_name) FILTER (WHERE m.learner_person_id IS NOT NULL),'[]'::jsonb) members
+                  ) ORDER BY p.legal_family_name,p.legal_given_names) FILTER (WHERE m.learner_person_id IS NOT NULL),'[]'::jsonb) members
            FROM assignment_groups g
            JOIN assignments a ON a.id=g.assignment_id
            LEFT JOIN assignment_group_members m ON m.assignment_group_id=g.id
@@ -170,7 +174,7 @@ export class AcademicEvidenceQueryService {
       const learner = await client.query<{ id: string }>(
         `SELECT p.id FROM people p
          JOIN learner_profiles lp ON lp.person_id=p.id
-         WHERE p.linked_user_id=$1 AND p.status='active' AND lp.status IN ('active','applicant')
+         WHERE p.linked_user_id=$1 AND p.status='active' AND lp.status IN ('active','prospective')
          ORDER BY lp.created_at DESC LIMIT 1`,
         [context.actorId],
       );
@@ -265,7 +269,8 @@ export class AcademicEvidenceQueryService {
       const run = await client.query<{ title: string }>("SELECT title FROM course_runs WHERE id=$1", [courseRunId]);
       if (!run.rows[0]) throw new NotFoundException("Course run was not found");
       const rows = await client.query(
-        `SELECT e.id "enrolmentId",p.display_name "learnerName",
+        `SELECT e.id "enrolmentId",
+                concat_ws(' ',COALESCE(NULLIF(btrim(p.preferred_name),''),p.legal_given_names),p.legal_family_name) "learnerName",
                 item.id "gradebookItemId",item.title "itemTitle",item.maximum_score "maximumScore",
                 result.id "resultId",result.state,result.calculated_score "score",
                 result.override_score "overrideScore",result.is_missing "isMissing",
@@ -277,7 +282,7 @@ export class AcademicEvidenceQueryService {
          LEFT JOIN learner_grade_results result
            ON result.enrolment_id=e.id AND result.gradebook_item_id=item.id AND result.state<>'corrected'
          WHERE e.course_run_id=$1 AND item.course_run_id=$1
-         ORDER BY p.display_name,item.title`,
+         ORDER BY p.legal_family_name,p.legal_given_names,item.title`,
         [courseRunId],
       );
       return { courseRunId, courseTitle: run.rows[0].title, mode: "staff", rows: rows.rows };

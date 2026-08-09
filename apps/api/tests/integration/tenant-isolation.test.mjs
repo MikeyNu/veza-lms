@@ -7,7 +7,8 @@ const { Pool } = pg;
 
 function required(name) {
   const value = process.env[name];
-  if (!value) throw new Error(`${name} is required for database integration tests`);
+  if (!value)
+    throw new Error(`${name} is required for database integration tests`);
   return value;
 }
 
@@ -38,7 +39,9 @@ async function withTenant(tenantId, callback) {
   const client = await appPool.connect();
   try {
     await client.query("BEGIN");
-    await client.query("SELECT set_config('app.tenant_id', $1, true)", [tenantId]);
+    await client.query("SELECT set_config('app.tenant_id', $1, true)", [
+      tenantId,
+    ]);
     const result = await callback(client);
     await client.query("ROLLBACK");
     return result;
@@ -137,7 +140,9 @@ test.after(async () => {
 });
 
 test("application identity sees no tenant-owned rows without transaction-local context", async () => {
-  const current = await appPool.query("SELECT app.current_tenant_id() AS tenant_id");
+  const current = await appPool.query(
+    "SELECT app.current_tenant_id() AS tenant_id",
+  );
   assert.equal(current.rows[0]?.tenant_id, null);
 
   const tenants = await appPool.query(
@@ -153,19 +158,28 @@ test("application identity reads only the selected tenant", async () => {
       "SELECT id FROM tenants WHERE id = ANY($1::uuid[]) ORDER BY id",
       [[tenantA, tenantB]],
     );
-    assert.deepEqual(tenants.rows.map((row) => row.id), [tenantA]);
+    assert.deepEqual(
+      tenants.rows.map((row) => row.id),
+      [tenantA],
+    );
 
     const memberships = await client.query(
       "SELECT tenant_id FROM memberships WHERE id = ANY($1::uuid[]) ORDER BY tenant_id",
       [[membershipA, membershipB]],
     );
-    assert.deepEqual(memberships.rows.map((row) => row.tenant_id), [tenantA]);
+    assert.deepEqual(
+      memberships.rows.map((row) => row.tenant_id),
+      [tenantA],
+    );
 
     const assignments = await client.query(
       "SELECT tenant_id FROM role_assignments WHERE membership_id = ANY($1::uuid[])",
       [[membershipA, membershipB]],
     );
-    assert.deepEqual(assignments.rows.map((row) => row.tenant_id), [tenantA]);
+    assert.deepEqual(
+      assignments.rows.map((row) => row.tenant_id),
+      [tenantA],
+    );
   });
 });
 
@@ -191,8 +205,8 @@ test("invitation and audit evidence remain tenant isolated", async () => {
          tenant_id, plane, event_type, actor_id, membership_id,
          resource_type, resource_id, correlation_id, metadata
        ) VALUES ($1, 'application', 'integration.rls-verified', $2, $3,
-                 'tenant', $1::text, $4, '{}'::jsonb)`,
-      [tenantA, actorA, membershipA, `integration-${runId}`],
+                 'tenant', $4, $5, '{}'::jsonb)`,
+      [tenantA, actorA, membershipA, tenantA, `integration-${runId}`],
     );
 
     const invitations = await client.query(
@@ -205,7 +219,10 @@ test("invitation and audit evidence remain tenant isolated", async () => {
     const audit = await client.query(
       "SELECT tenant_id FROM audit_events WHERE event_type = 'integration.rls-verified'",
     );
-    assert.deepEqual(audit.rows.map((row) => row.tenant_id), [tenantA]);
+    assert.deepEqual(
+      audit.rows.map((row) => row.tenant_id),
+      [tenantA],
+    );
   });
 
   await withTenant(tenantB, async (client) => {

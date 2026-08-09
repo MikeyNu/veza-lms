@@ -1,0 +1,55 @@
+.ui-chart-x {
+  min-width: 0;
+  overflow: hidden;
+}
+
+.ui-chart-x > span {
+  min-width: 0;
+  overflow: hidden;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.people-workspace,
+.people-table-panel,
+.people-table-wrap,
+.calendar-workspace,
+.calendar-heading,
+.calendar-toolbar,
+.calendar-layout,
+.storage-asset-layout,
+.storage-assets-panel,
+.storage-asset-table-wrap,
+.storage-upload {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.ui-studio-editor {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.ui-editor-bar,
+.ui-editor-bar > div,
+.ui-editor-shell,
+.ui-block-palette,
+.ui-editor-inspector {
+  min-width: 0;
+  max-width: 100%;
+}
+
+html:has(.people-workspace) {
+  overflow-x: hidden;
+}
+
+@media (max-width: 700px) {
+  .ui-editor-bar > div {
+    flex-wrap: wrap;
+  }
+
+  .calendar-period-controls strong {
+    flex: 1 1 100%;
+    justify-content: center;
+  }
+}

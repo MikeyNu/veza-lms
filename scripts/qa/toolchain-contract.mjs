@@ -36,4 +36,26 @@ invariant(
   `pnpm-lock.yaml must resolve TypeScript ${typescriptVersion} for every workspace manifest`,
 );
 
-process.stdout.write(`Toolchain contract validated: TypeScript ${typescriptVersion} is pinned in ${manifests.length} workspace manifests.\n`);
+const pythonRequirementFiles = [
+  "qa/browser/requirements.txt",
+  "packages/ui/tests/visual-requirements.txt",
+];
+const pythonPins = new Map();
+for (const requirementFile of pythonRequirementFiles) {
+  const requirements = await readFile(join(repositoryRoot, requirementFile), "utf8");
+  for (const line of requirements.split(/\r?\n/)) {
+    const match = /^([A-Za-z0-9_.-]+)==([^\s#]+)$/.exec(line.trim());
+    if (!match) continue;
+    const packageName = match[1].toLowerCase();
+    const previous = pythonPins.get(packageName);
+    invariant(
+      previous === undefined || previous.version === match[2],
+      `${requirementFile} pins ${packageName} ${match[2]}, conflicting with ${previous?.file} ${previous?.version}`,
+    );
+    pythonPins.set(packageName, { version: match[2], file: requirementFile });
+  }
+}
+
+process.stdout.write(
+  `Toolchain contract validated: TypeScript ${typescriptVersion} is pinned in ${manifests.length} workspace manifests and Python QA pins are compatible.\n`,
+);

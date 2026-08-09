@@ -11,7 +11,7 @@ test("evidence room loads only through the verified membership boundary", async 
     source("../app/evidence/page.tsx"),
     source("../src/server/audit-api.ts"),
   ]);
-  assert.match(page, /requireWorkspaceSession/);
+  assert.match(page, /requireWorkspaceAccess/);
   assert.match(page, /tenant-owner/);
   assert.match(page, /institution-admin/);
   assert.match(page, /auditor/);

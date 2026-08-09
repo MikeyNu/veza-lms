@@ -4,6 +4,40 @@ import test from "node:test";
 
 const read = (path) => readFile(new URL(`../${path}`, import.meta.url), "utf8");
 
+test("API application mounts the service account controllers", async () => {
+  const [application, standardsModule, openApi, cache] = await Promise.all([
+    read("src/app.module.ts"),
+    read("src/platform/api-standards/api-standards.module.ts"),
+    read("src/platform/api-standards/openapi.service.ts"),
+    read("src/platform/cache/cache.service.ts"),
+  ]);
+  assert.match(application, /import \{ ApiStandardsModule \}/);
+  assert.match(application, /imports:[\s\S]*ApiStandardsModule/);
+  assert.match(standardsModule, /imports:\s*\[CacheModule, TenancyModule\]/);
+  assert.match(standardsModule, /ServiceAccountController/);
+  assert.match(openApi, /method: "get", path: "\/v1\/service-accounts"/);
+  assert.match(cache, /defaultKeyPrefix\(process\.env\.VEZA_ENVIRONMENT_LABEL\)/);
+  assert.match(cache, /replace\(\/\[\^a-z0-9\._-\]\+\/g, "-"\)/);
+});
+
+test("API application mounts permission-filtered workspace search", async () => {
+  const [application, controller, search] = await Promise.all([
+    read("src/app.module.ts"),
+    read("src/platform/search/search.controller.ts"),
+    read("src/platform/search/search.service.ts"),
+  ]);
+  assert.match(application, /import \{ SearchModule \}/);
+  assert.match(application, /imports:[\s\S]*SearchModule/);
+  assert.match(search, /\["programme-version", "course-blueprint", "course-run"\]/);
+  assert.match(search, /href: "\/learning"/);
+  assert.match(search, /studioManagementRoles/);
+  assert.match(search, /`\/studio\/lessons\/\$\{entityId\}`/);
+  assert.match(controller, /AuthenticationGuard, TenantMembershipGuard/);
+  assert.doesNotMatch(controller, /permissions\.tenantRead/);
+  assert.match(search, /document\.allowed_roles && \$3::text\[\]/);
+  assert.match(search, /document\.institution_id = ANY\(\$5::uuid\[\]\)/);
+});
+
 test("service account directory is tenant scoped and never returns secret material", async () => {
   const [controller, query] = await Promise.all([
     read("src/platform/api-standards/service-account.controller.ts"),
@@ -31,10 +65,13 @@ test("storage administration exposes quota, deletion and ESM safe accessibility 
 });
 
 test("observability mutations are operator guarded and audit every change", async () => {
-  const [controller, operations] = await Promise.all([
+  const [application, controller, operations] = await Promise.all([
+    read("src/app.module.ts"),
     read("src/platform/observability/observability.controller.ts"),
     read("src/platform/observability/observability-operations.service.ts"),
   ]);
+  assert.match(application, /import \{ ObservabilityModule \}/);
+  assert.match(application, /imports:[\s\S]*ObservabilityModule/);
   assert.match(controller, /PlatformOperatorGuard/);
   assert.match(controller, /@Post\("slos"\)/);
   assert.match(controller, /@Post\("alert-rules"\)/);

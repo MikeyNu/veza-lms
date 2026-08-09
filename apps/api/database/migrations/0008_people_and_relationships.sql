@@ -31,6 +31,7 @@ CREATE TABLE people (
   CHECK (preferred_name IS NULL OR length(trim(preferred_name)) BETWEEN 1 AND 120),
   CHECK ((status = 'merged') = (merged_into_person_id IS NOT NULL)),
   CHECK (merged_into_person_id IS NULL OR merged_into_person_id <> id),
+  UNIQUE (tenant_id, id),
   UNIQUE (tenant_id, source_system, source_reference)
 );
 

@@ -46,3 +46,16 @@ test("institution setup uses a responsive three-column task hierarchy", async ()
   assert.match(globals, /institution-setup\.css/);
   assert.match(navigation, /href: "\/admin\/institution-setup"/);
 });
+
+test("activation panel JSX class names match CSS selectors", async () => {
+  const [panels, css] = await Promise.all([
+    source("../src/features/institution-setup/tenant-setup-panels.tsx"),
+    source("../styles/institution-setup.css"),
+  ]);
+  assert.match(panels, /className="activation-checks"/, "activation-checks must be present in TSX");
+  assert.match(panels, /className="activation-action"/, "activation-action must be present in TSX");
+  assert.match(css, /\.activation-checks/, "activation-checks must have a CSS definition");
+  assert.match(css, /\.activation-action/, "activation-action must have a CSS definition");
+  assert.match(css, /\.activation-score/, "activation-score must have a CSS definition");
+  assert.match(css, /\.scoped-admin-note/, "scoped-admin-note must have a CSS definition");
+});

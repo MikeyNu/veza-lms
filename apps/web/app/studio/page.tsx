@@ -6,12 +6,12 @@ import {
   loadStudioLibrary,
   loadStudioWorkspace,
 } from "../../src/server/learning-platform-api";
-import { requireWorkspaceSession } from "../../src/server/require-workspace-session";
+import { requireWorkspaceAccess } from "../../src/server/require-workspace-access";
 
 export const dynamic = "force-dynamic";
 
 export default async function StudioPage() {
-  const resolution = await requireWorkspaceSession();
+  const resolution = await requireWorkspaceAccess("/studio");
   const allowed = [
     "tenant-owner",
     "institution-admin",

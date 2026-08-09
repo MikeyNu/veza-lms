@@ -49,3 +49,11 @@ test("enrolment workflows preserve transitions and reject unsafe completion", as
   assert.match(service, /Enrolment cannot move from/);
   assert.match(service, /Completed enrolments require a result/);
 });
+
+test("curriculum history compares text audit resource identifiers safely", async () => {
+  const service = await read(
+    "../src/modules/catalogue/application/catalogue-analysis.service.ts",
+  );
+  assert.match(service, /audit_events[\s\S]*?resource_id=ANY\(\$1::text\[\]\)/);
+  assert.doesNotMatch(service, /audit_events[\s\S]*?resource_id=ANY\(\$1::uuid\[\]\)/);
+});

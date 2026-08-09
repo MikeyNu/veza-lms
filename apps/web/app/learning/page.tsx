@@ -7,7 +7,7 @@ import { LearnerTodayWorkspace } from "../../src/features/learner/learner-worksp
 import { primaryRole } from "../../src/features/workspace/navigation";
 import { loadCatalogue, loadCatalogueReferences } from "../../src/server/catalogue-api";
 import { loadLearnerToday } from "../../src/server/learning-platform-api";
-import { requireWorkspaceSession } from "../../src/server/require-workspace-session";
+import { requireWorkspaceAccess } from "../../src/server/require-workspace-access";
 
 export const dynamic = "force-dynamic";
 
@@ -28,7 +28,7 @@ const deliveryManagerRoles: readonly BaselineRoleKey[] = [
 ];
 
 export default async function LearningPage() {
-  const resolution = await requireWorkspaceSession();
+  const resolution = await requireWorkspaceAccess("/learning");
   const role = primaryRole(resolution.session);
 
   if (role === "learner") {

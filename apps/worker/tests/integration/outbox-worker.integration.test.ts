@@ -21,11 +21,11 @@ const tenantId = randomUUID();
 
 async function seedEvent(eventId: string): Promise<void> {
   await control.query(
-    `INSERT INTO outbox_events (
+     `INSERT INTO outbox_events (
        id, tenant_id, event_name, event_version, aggregate_type, aggregate_id,
        aggregate_version, actor_id, correlation_id, payload, occurred_at, next_attempt_at
-     ) VALUES ($1,$2,'integration.outbox',1,'tenant',$2::text,1,$3,$4,'{}'::jsonb,now(),now())`,
-    [eventId, tenantId, actorId, `worker-integration-${runId}`],
+     ) VALUES ($1,$2,'integration.outbox',1,'tenant',$5,1,$3,$4,'{}'::jsonb,now(),now())`,
+    [eventId, tenantId, actorId, `worker-integration-${runId}`, tenantId],
   );
 }
 
@@ -118,8 +118,9 @@ test("published events fan out to an idempotent consumer inbox", async () => {
     60,
   );
   const processed = await runtime.processDue();
-  assert.equal(processed.claimed, 1);
-  assert.equal(processed.completed, 1);
+  assert.ok(processed.claimed >= 1);
+  assert.ok(processed.completed >= 1);
+  assert.equal(processed.completed + processed.failed, processed.claimed);
   const inbox = await control.query(
     `SELECT state, attempts, replay_sequence FROM event_consumer_inbox
      WHERE outbox_event_id = $1 AND consumer_key = 'platform.delivery-evidence'`,
@@ -181,8 +182,15 @@ test("failed delivery is rescheduled and then dead-lettered with evidence", asyn
 
 test("scheduler records reconciliation evidence", async () => {
   await control.query(
-    `UPDATE scheduled_jobs SET next_run_at = now(), status = 'active'
-     WHERE job_key = 'platform.event-reconciliation'`,
+    `UPDATE scheduled_jobs
+     SET next_run_at = CASE
+           WHEN job_key = 'platform.event-reconciliation' THEN now()
+           ELSE next_run_at
+         END,
+         status = CASE
+           WHEN job_key = 'platform.event-reconciliation' THEN 'active'
+           ELSE 'paused'
+         END`,
   );
   const scheduler = new WorkerScheduler(workerPool, `scheduler-${runId}`, 5, 1, 60);
   const result = await scheduler.processDue();

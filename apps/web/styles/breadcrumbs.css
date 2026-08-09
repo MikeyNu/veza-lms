@@ -1,0 +1,103 @@
+.breadcrumbs,
+.breadcrumbs-fallback {
+  min-height: 2.25rem;
+}
+
+.breadcrumbs {
+  color: #64748b;
+  font-size: 0.68rem;
+  font-weight: 550;
+}
+
+.breadcrumbs ol {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 0.42rem;
+  margin: 0;
+  padding: 0;
+  overflow-x: auto;
+  list-style: none;
+  scrollbar-width: none;
+}
+
+.breadcrumbs ol::-webkit-scrollbar {
+  display: none;
+}
+
+.breadcrumbs li {
+  display: inline-flex;
+  min-width: 0;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 0.42rem;
+  white-space: nowrap;
+}
+
+.breadcrumbs a {
+  color: #4f46e5;
+  text-decoration: none;
+  text-underline-offset: 0.2rem;
+}
+
+.breadcrumbs a:hover {
+  text-decoration: underline;
+}
+
+.breadcrumbs [aria-current="page"] {
+  max-width: min(24rem, 46vw);
+  overflow: hidden;
+  color: #334155;
+  font-weight: 650;
+  text-overflow: ellipsis;
+}
+
+.breadcrumb-separator {
+  color: #cbd5e1;
+  font-weight: 450;
+}
+
+.breadcrumbs--workspace,
+.breadcrumbs-fallback--workspace {
+  width: min(100%, 100rem);
+  margin: 0 auto;
+  padding: 0.78rem 1.65rem 0;
+}
+
+.breadcrumbs--identity,
+.breadcrumbs-fallback--identity {
+  margin-bottom: 1.25rem;
+}
+
+.breadcrumbs--standalone,
+.breadcrumbs-fallback--standalone {
+  width: min(100%, 100rem);
+  margin: 0 auto;
+  padding: 1rem 1.5rem 0;
+}
+
+.breadcrumbs--public,
+.breadcrumbs-fallback--public {
+  width: min(45rem, 100%);
+}
+
+.ui-verification-page {
+  align-content: center;
+  gap: 0.75rem;
+}
+
+@media (max-width: 700px) {
+  .breadcrumbs--workspace,
+  .breadcrumbs-fallback--workspace {
+    padding: 0.68rem 1.05rem 0;
+  }
+
+  .breadcrumbs--standalone,
+  .breadcrumbs-fallback--standalone {
+    padding-inline: 1rem;
+  }
+
+  .breadcrumbs [aria-current="page"] {
+    max-width: 52vw;
+  }
+}

@@ -4,6 +4,7 @@
 @import "@veza/ui/system.css" layer(veza-system);
 @import "../styles/reset.css" layer(base);
 @import "../styles/shell.css" layer(veza-shell);
+@import "../styles/breadcrumbs.css" layer(veza-shell);
 @import "../styles/workspace-states.css" layer(veza-features);
 @import "../styles/workspace-route-states.css" layer(veza-features);
 @import "../styles/command-search.css" layer(veza-features);

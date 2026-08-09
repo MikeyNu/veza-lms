@@ -45,6 +45,15 @@ function safeSegment(value: string, label: string): string {
   return value;
 }
 
+function defaultKeyPrefix(environmentLabel: string | undefined): string {
+  const environment = (environmentLabel?.trim() || "local")
+    .toLowerCase()
+    .replace(/[^a-z0-9._-]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 120);
+  return `veza:${environment || "local"}`;
+}
+
 function parseObject(value: string | null): Readonly<Record<string, unknown>> | undefined {
   if (!value) return undefined;
   const parsed = JSON.parse(value) as unknown;
@@ -57,7 +66,7 @@ function parseObject(value: string | null): Readonly<Record<string, unknown>> | 
 @Injectable()
 export class CacheService {
   private readonly prefix = safeSegment(
-    process.env.REDIS_KEY_PREFIX?.trim() || `veza:${process.env.VEZA_ENVIRONMENT_LABEL?.trim() || "local"}`,
+    process.env.REDIS_KEY_PREFIX?.trim() || defaultKeyPrefix(process.env.VEZA_ENVIRONMENT_LABEL),
     "REDIS_KEY_PREFIX",
   );
 

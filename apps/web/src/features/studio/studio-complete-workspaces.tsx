@@ -80,7 +80,7 @@ const palette: readonly StudioBlockType[] = [
 ];
 
 function Panel({ title, children }: { title: string; children: ReactNode }) {
-  return <details className="vz-action-panel"><summary>{title}<span>+</span></summary>{children}</details>;
+  return <details className="vz-action-panel"><summary>{title}<span aria-hidden="true">+</span></summary>{children}</details>;
 }
 
 async function sha256(data: ArrayBuffer | string) {

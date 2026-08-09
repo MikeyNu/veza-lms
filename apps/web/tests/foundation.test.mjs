@@ -81,7 +81,7 @@ test("every exposed workspace action resolves through a guarded route", async ()
   }
   assert.match(policy, /canAccessWorkspacePath/);
   for (const page of [peoplePage, learningPage, studioPage, assessmentsPage]) {
-    assert.match(page, /requireWorkspaceSession/);
+    assert.match(page, /requireWorkspaceAccess/);
     assert.match(page, /notFound\(\)/);
   }
   assert.match(invitationPage, /roles\.includes\("tenant-owner"\)/);

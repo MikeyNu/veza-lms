@@ -263,6 +263,27 @@
   display: none;
 }
 
+@media (max-width: 1180px) {
+  .shell .sidebar,
+  .shell--collapsed .sidebar {
+    width: 5.25rem;
+  }
+
+  .shell .main-area,
+  .shell--collapsed .main-area {
+    margin-inline-start: 5.25rem;
+    margin-left: 5.25rem;
+  }
+
+  .shell .brand-logo--full {
+    display: none;
+  }
+
+  .shell .brand-logo--symbol {
+    display: block;
+  }
+}
+
 @media (max-width: 900px) {
   .shell .sidebar,
   .shell--collapsed .sidebar {

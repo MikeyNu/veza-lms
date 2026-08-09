@@ -6,12 +6,12 @@ import { AssessmentWorkspace } from "../../src/features/academic-evidence/academ
 import { StaffGradebookDirectory } from "../../src/features/academic-evidence/staff-gradebook-workspace";
 import { loadAcademicEvidenceWorkspace } from "../../src/server/academic-evidence-api";
 import { loadCatalogue, loadCatalogueReferences } from "../../src/server/catalogue-api";
-import { requireWorkspaceSession } from "../../src/server/require-workspace-session";
+import { requireWorkspaceAccess } from "../../src/server/require-workspace-access";
 
 export const dynamic = "force-dynamic";
 
 export default async function AssessmentsPage() {
-  const resolution = await requireWorkspaceSession();
+  const resolution = await requireWorkspaceAccess("/assessments");
   const allowed = [
     "tenant-owner",
     "institution-admin",
