@@ -18,7 +18,7 @@ function escapePattern(value) {
 
 test("global stylesheet imports resolve to real files", () => {
   const globals = read("apps/web/app/globals.css");
-  const imports = [...globals.matchAll(/@import\s+"([^"]+)";/g)].map((match) => match[1]);
+  const imports = [...globals.matchAll(/@import\s+"([^"]+)"(?:\s+layer\([^)]+\))?;/g)].map((match) => match[1]);
   const localImports = imports.filter((value) => value.startsWith("../"));
 
   assert.ok(localImports.length >= 27, "all application style domains should be explicitly loaded");
@@ -179,4 +179,21 @@ test("responsive layout preserves explicit task order", () => {
   assert.match(hardening, /\.catalogue-actions[\s\S]*position:\s*static/);
   assert.match(profile, /@media \(max-width: 720px\)/);
   assert.match(communications, /@media \(max-width: 720px\)/);
+});
+
+test("sidebar collapse is React-managed; responsive rules do not reference removed shell selectors", () => {
+  const responsive = read("apps/web/styles/responsive.css");
+  const shell = read("apps/web/src/components/app-shell-client.tsx");
+
+  assert.doesNotMatch(responsive, /\.brand-copy/, ".brand-copy is not rendered in TSX and must not appear in responsive rules");
+  assert.doesNotMatch(responsive, /\.support-link > svg/, "support-link renders an icon wrapper span, not a direct svg child — bare svg rule is obsolete");
+  assert.match(shell, /collapsed/, "shell component manages collapsed state via React");
+});
+
+test("dropdown chevron geometry uses 1rem end inset and excludes multi-select listboxes", () => {
+  const geometry = read("packages/ui/src/component-geometry-v2.css");
+
+  assert.match(geometry, /inset-inline-end:\s*1rem/, "chevron indicator must be positioned at 1rem end inset");
+  assert.doesNotMatch(geometry, /inset-inline-end:\s*0\.8rem/, "legacy 0.8rem end inset must not remain");
+  assert.match(geometry, /\.vz-select:not\(\[multiple\]\)/, "appearance:none and extra padding must be scoped to single-select elements only");
 });

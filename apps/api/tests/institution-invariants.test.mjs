@@ -27,7 +27,7 @@ test("institution integration coverage uses the actual application and control-p
   assert.match(integration, /row-level security/);
   assert.match(integration, /cannot contain a cycle/);
   assert.match(packageJson, /test:integration/);
-  assert.match(workflow, /database-integration/);
+  assert.match(workflow, /postgresql-rls/);
   assert.match(workflow, /db:bootstrap:test/);
   assert.match(workflow, /db:migrate/);
 });

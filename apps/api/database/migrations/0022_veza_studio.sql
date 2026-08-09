@@ -15,11 +15,13 @@ CREATE TABLE studio_templates (
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now(),
   UNIQUE (tenant_id, id),
-  UNIQUE (tenant_id, institution_id, lower(name), template_kind),
   FOREIGN KEY (tenant_id, institution_id) REFERENCES institutions(tenant_id, id),
   CHECK (jsonb_typeof(block_document) = 'array'),
   CHECK (octet_length(block_document::text) <= 2097152)
 );
+
+CREATE UNIQUE INDEX studio_templates_name_kind_uq
+  ON studio_templates (tenant_id, institution_id, lower(name), template_kind);
 
 CREATE TABLE studio_course_spaces (
   id uuid PRIMARY KEY,
@@ -115,11 +117,13 @@ CREATE TABLE studio_reusable_blocks (
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now(),
   UNIQUE (tenant_id, id),
-  UNIQUE (tenant_id, institution_id, lower(name)),
   FOREIGN KEY (tenant_id, institution_id) REFERENCES institutions(tenant_id, id),
   CHECK (jsonb_typeof(content) = 'object'),
   CHECK (octet_length(content::text) <= 262144)
 );
+
+CREATE UNIQUE INDEX studio_reusable_blocks_name_uq
+  ON studio_reusable_blocks (tenant_id, institution_id, lower(name));
 
 CREATE TABLE studio_assets (
   id uuid PRIMARY KEY,

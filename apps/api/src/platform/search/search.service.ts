@@ -11,6 +11,39 @@ interface SearchCursor {
   readonly id: string;
 }
 
+const studioManagementRoles = new Set([
+  "tenant-owner",
+  "institution-admin",
+  "curriculum-manager",
+  "course-manager",
+  "instructor",
+  "auditor",
+]);
+
+function safeMetadata(
+  entityType: string,
+  entityId: string,
+  value: unknown,
+  roles: readonly string[],
+): Record<string, unknown> {
+  const metadata =
+    value && typeof value === "object" && !Array.isArray(value)
+      ? { ...(value as Record<string, unknown>) }
+      : {};
+  if (["programme-version", "course-blueprint", "course-run"].includes(entityType)) {
+    return { ...metadata, href: "/learning" };
+  }
+  if (entityType === "studio-lesson") {
+    return {
+      ...metadata,
+      href: roles.some((role) => studioManagementRoles.has(role))
+        ? `/studio/lessons/${entityId}`
+        : "/learning",
+    };
+  }
+  return metadata;
+}
+
 function encodeCursor(cursor: SearchCursor): string {
   return Buffer.from(JSON.stringify(cursor), "utf8").toString("base64url");
 }
@@ -165,7 +198,12 @@ export class SearchService {
           title: row.title,
           subtitle: row.subtitle,
           excerpt: row.excerpt,
-          metadata: row.metadata,
+          metadata: safeMetadata(
+            String(row.entity_type),
+            String(row.entity_id),
+            row.metadata,
+            membership.roles,
+          ),
           visibility: row.visibility,
           score: Number(row.score),
           updatedAt: row.updated_at,

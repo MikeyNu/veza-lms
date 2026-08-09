@@ -30,6 +30,7 @@ import {
   RequestStudioReviewDto,
   ResolveStudioCommentDto,
   SaveStudioRevisionDto,
+  StartEditableLessonVersionDto,
 } from "../application/studio.dto.js";
 import { StudioLibraryService } from "../application/studio-library.service.js";
 import { StudioService } from "../application/studio.service.js";
@@ -110,6 +111,17 @@ export class StudioController {
   ) {
     this.assert(request, permissions.studioManage, institutionId);
     return this.studio.saveRevision(institutionId, lessonId, input);
+  }
+
+  @Post("lessons/:lessonId/editable-version")
+  startEditableVersion(
+    @Req() request: AuthenticatedRequest,
+    @Param("institutionId", new ParseUUIDPipe()) institutionId: string,
+    @Param("lessonId", new ParseUUIDPipe()) lessonId: string,
+    @Body() input: StartEditableLessonVersionDto,
+  ) {
+    this.assert(request, permissions.studioManage, institutionId);
+    return this.studio.startEditableVersion(institutionId, lessonId, input);
   }
 
   @Post("reusable-blocks")

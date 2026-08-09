@@ -11,8 +11,7 @@
   display: block;
   width: 100%;
   min-height: var(--veza-control-height);
-  appearance: none;
-  padding-inline: 0.875rem 2.625rem;
+  padding-inline: 0.875rem;
   border: 1px solid var(--veza-line-strong);
   border-radius: var(--veza-radius-control);
   background: var(--veza-surface);
@@ -24,6 +23,11 @@
     border-color var(--veza-motion-fast) var(--veza-ease),
     box-shadow var(--veza-motion-fast) var(--veza-ease),
     background-color var(--veza-motion-fast) var(--veza-ease);
+}
+
+.vz-select-wrap .vz-select:not([multiple]) {
+  appearance: none;
+  padding-inline-end: 2.75rem;
 }
 
 .vz-select-wrap .vz-select:hover:not(:disabled) {
@@ -44,7 +48,7 @@
 
 .vz-select__indicator {
   position: absolute;
-  inset-inline-end: 0.8rem;
+  inset-inline-end: 1rem;
   inset-block-start: 50%;
   display: grid;
   width: 1.125rem;

@@ -22,6 +22,7 @@ import type {
   RequestStudioReviewDto,
   ResolveStudioCommentDto,
   SaveStudioRevisionDto,
+  StartEditableLessonVersionDto,
   StudioBlockDto,
 } from "./studio.dto.js";
 
@@ -252,6 +253,50 @@ export class StudioService {
     });
   }
 
+  async startEditableVersion(
+    institutionId: string,
+    lessonId: string,
+    input: StartEditableLessonVersionDto,
+  ) {
+    const context = this.context.require();
+    return this.database.withTenantTransaction(context.tenantId, async (client) => {
+      const result = await client.query<LessonRow>(
+        `SELECT id,institution_id,course_space_id,current_revision_id,status,version
+         FROM studio_lessons WHERE id=$1 AND institution_id=$2 FOR UPDATE`,
+        [lessonId, institutionId],
+      );
+      const lesson = result.rows[0];
+      if (!lesson) throw new NotFoundException("Studio lesson was not found");
+      if (lesson.version !== input.expectedLessonVersion) {
+        throw new ConflictException("Lesson changed since it was loaded");
+      }
+      if (lesson.status === "retired") {
+        throw new ConflictException("Retired lessons cannot be edited");
+      }
+      if (lesson.status !== "published") {
+        throw new ConflictException("Only published lessons require a new editable version");
+      }
+      const updated = await client.query<{ version: number } & QueryResultRow>(
+        `UPDATE studio_lessons
+         SET status='draft',version=version+1,updated_by=$3,updated_at=now()
+         WHERE id=$1 AND version=$2 RETURNING version`,
+        [lessonId, input.expectedLessonVersion, context.actorId],
+      );
+      await this.bumpSpace(client, lesson.course_space_id);
+      await this.record(client, "studio.lesson.editable-version-started", "studio-lesson", lessonId, {
+        basedOnRevisionId: lesson.current_revision_id,
+        previousStatus: lesson.status,
+        version: updated.rows[0].version,
+      });
+      return {
+        id: lessonId,
+        status: "draft",
+        version: updated.rows[0].version,
+        basedOnRevisionId: lesson.current_revision_id,
+      };
+    });
+  }
+
   async saveRevision(institutionId: string, lessonId: string, input: SaveStudioRevisionDto) {
     const context = this.context.require();
     const encoded = JSON.stringify(input.blocks);
@@ -277,6 +322,26 @@ export class StudioService {
       if (input.basedOnRevisionId && input.basedOnRevisionId !== lesson.current_revision_id) {
         throw new ConflictException("Autosave base revision is stale");
       }
+      if (lesson.current_revision_id) {
+        const current = await client.query<{
+          id: string;
+          revision_number: number;
+          checksum_sha256: string;
+        } & QueryResultRow>(
+          `SELECT id,revision_number,checksum_sha256
+           FROM studio_lesson_revisions WHERE id=$1 AND lesson_id=$2`,
+          [lesson.current_revision_id, lessonId],
+        );
+        if (current.rows[0]?.checksum_sha256 === checksum) {
+          return {
+            id: current.rows[0].id,
+            revisionNumber: current.rows[0].revision_number,
+            checksum,
+            lessonVersion: lesson.version,
+            unchanged: true,
+          };
+        }
+      }
       await client.query(
         "SELECT pg_advisory_xact_lock(hashtextextended($1,0))",
         [`studio-lesson:${lessonId}`],
@@ -300,7 +365,7 @@ export class StudioService {
           lessonId,
           Number(next.rows[0]?.revision_number ?? 1),
           input.basedOnRevisionId ?? null,
-          input.blocks,
+          encoded,
           checksum,
           input.changeSummary.trim(),
           validation.accessibility,

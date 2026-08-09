@@ -107,7 +107,7 @@ export class LearnerCourseService {
             courseRunId: enrolment.courseRunId,
             courseTitle: enrolment.courseTitle,
             title: nextLesson.title,
-            href: `/courses/${enrolment.enrolmentId}/lessons/${nextLesson.id}`,
+            href: `/courses/${enrolment.enrolmentId}`,
             priority: 50,
           });
         }
@@ -139,7 +139,7 @@ export class LearnerCourseService {
           courseTitle: event.courseTitle,
           title: event.title,
           startsAt: event.startsAt,
-          href: `/courses/${event.courseRunId}/calendar`,
+          href: "/calendar",
           priority: 80,
         });
       }

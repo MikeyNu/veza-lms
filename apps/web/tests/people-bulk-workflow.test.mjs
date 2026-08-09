@@ -13,15 +13,18 @@ test("people directory exposes only eligible lifecycle records to bulk selection
 });
 
 test("bulk people BFF is same-origin and never forwards tenant identity", async () => {
-  const [route, client] = await Promise.all([
+  const [route, client, transport] = await Promise.all([
     source("../app/api/people/bulk-status/route.ts"),
     source("../src/server/people-bulk-api.ts"),
+    source("../src/server/workspace-json-request.ts"),
   ]);
   assert.match(route, /isSameOriginRequest/);
   assert.match(route, /64 \* 1024/);
   assert.match(client, /\/v1\/people\/bulk-status/);
-  assert.match(client, /authorization: `Bearer \$\{session\.accessToken\}`/);
-  assert.doesNotMatch(client, /x-veza-tenant-id/);
+  assert.match(client, /requestWorkspaceJson/);
+  assert.match(transport, /headers\.set\("authorization", `Bearer \$\{auth\.accessToken\}`\)/);
+  assert.match(transport, /x-veza-membership-id/);
+  assert.doesNotMatch(transport, /x-veza-tenant-id/);
   assert.match(client, /isReceipt/);
 });
 

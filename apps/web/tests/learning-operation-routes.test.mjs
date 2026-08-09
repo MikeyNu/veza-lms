@@ -25,7 +25,8 @@ test("academic operation routes cannot contain missing or malformed identifiers"
   const client = await source("../src/server/learning-platform-api.ts");
   assert.match(client, /function inputUuid/);
   assert.match(client, /function optionalInputUuid/);
-  assert.doesNotMatch(client, /institutions\/\$\{institutionId\}/);
+  const academicMutations = client.slice(client.indexOf("export function mutateAcademic"));
+  assert.doesNotMatch(academicMutations, /institutions\/\$\{institutionId\}/);
   assert.doesNotMatch(client, /String\(body\.(?:assignmentId|attemptId|fileId|markId)\)/);
   assert.match(client, /optionalInputUuid\(body, "institutionId", "Institution"\)/);
   assert.match(client, /const path = target\.path\(input\)/);

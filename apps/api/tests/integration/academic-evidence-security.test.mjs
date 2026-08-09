@@ -9,9 +9,21 @@ const required = (name) => {
   if (!value) throw new Error(`${name} is required`);
   return value;
 };
-const app = new Pool({ connectionString: required("DATABASE_URL"), max: 2, statement_timeout: 15_000 });
-const control = new Pool({ connectionString: required("CONTROL_PLANE_DATABASE_URL"), max: 2, statement_timeout: 15_000 });
-const worker = new Pool({ connectionString: required("WORKER_DATABASE_URL"), max: 2, statement_timeout: 30_000 });
+const app = new Pool({
+  connectionString: required("DATABASE_URL"),
+  max: 2,
+  statement_timeout: 15_000,
+});
+const control = new Pool({
+  connectionString: required("CONTROL_PLANE_DATABASE_URL"),
+  max: 2,
+  statement_timeout: 15_000,
+});
+const worker = new Pool({
+  connectionString: required("WORKER_DATABASE_URL"),
+  max: 2,
+  statement_timeout: 30_000,
+});
 
 const runKey = randomUUID();
 const actorA = randomUUID();
@@ -33,7 +45,9 @@ async function withTenant(tenantId, callback) {
   const client = await app.connect();
   try {
     await client.query("BEGIN");
-    await client.query("SELECT set_config('app.tenant_id',$1,true)", [tenantId]);
+    await client.query("SELECT set_config('app.tenant_id',$1,true)", [
+      tenantId,
+    ]);
     const result = await callback(client);
     await client.query("ROLLBACK");
     return result;
@@ -42,6 +56,19 @@ async function withTenant(tenantId, callback) {
     throw error;
   } finally {
     client.release();
+  }
+}
+
+let expectedFailureSequence = 0;
+async function assertQueryRejects(client, query, pattern) {
+  expectedFailureSequence += 1;
+  const savepoint = `expected_failure_${expectedFailureSequence}`;
+  await client.query(`SAVEPOINT ${savepoint}`);
+  try {
+    await assert.rejects(query(), pattern);
+  } finally {
+    await client.query(`ROLLBACK TO SAVEPOINT ${savepoint}`);
+    await client.query(`RELEASE SAVEPOINT ${savepoint}`);
   }
 }
 
@@ -71,32 +98,34 @@ test.before(async () => {
        'shared','af-south-1','foundation','en-ZA','Africa/Johannesburg',$3)`,
     [tenant, `academic-${runKey}`, reviewer],
   );
-  await control.query(
-    `INSERT INTO institutions(
-       id,tenant_id,code,display_name,institution_type,locale,timezone,status,created_by
-     ) VALUES ($1,$2,'MAIN','Academic evidence institution','college',
-       'en-ZA','Africa/Johannesburg','active',$3)`,
-    [institution, tenant, reviewer],
-  );
-  await control.query(
-    `INSERT INTO academic_periods(
-       id,tenant_id,institution_id,code,display_name,period_type,status,
-       starts_on,ends_on,timezone,created_by,published_by,published_at
-     ) VALUES ($1,$2,$3,'2028','Academic year 2028','academic-year','published',
-       '2028-01-01','2028-12-31','Africa/Johannesburg',$4,$4,now())`,
-    [period, tenant, institution, reviewer],
-  );
-
   const client = await app.connect();
   try {
     await client.query("BEGIN");
     await client.query("SELECT set_config('app.tenant_id',$1,true)", [tenant]);
     await client.query(
+      "SELECT set_config('app.allow_person_identity_link','true',true)",
+    );
+    await client.query(
+      `INSERT INTO institutions(
+         id,tenant_id,code,display_name,institution_type,locale,timezone,status,created_by
+       ) VALUES ($1,$2,'MAIN','Academic evidence institution','college',
+         'en-ZA','Africa/Johannesburg','active',$3)`,
+      [institution, tenant, reviewer],
+    );
+    await client.query(
+      `INSERT INTO academic_periods(
+         id,tenant_id,institution_id,code,display_name,period_type,status,
+         starts_on,ends_on,timezone,created_by,published_by,published_at
+       ) VALUES ($1,$2,$3,'2028','Academic year 2028','academic-year','published',
+         '2028-01-01','2028-12-31','Africa/Johannesburg',$4,$4,now())`,
+      [period, tenant, institution, reviewer],
+    );
+    await client.query(
       `INSERT INTO people(
-         id,tenant_id,legal_given_names,legal_family_name,display_name,status,locale,
+         id,tenant_id,legal_given_names,legal_family_name,status,locale,
          linked_user_id,created_by,updated_by
-       ) VALUES ($1,$2,'Lerato','Maseko','Lerato Maseko','active','en-ZA',$3,$4,$4),
-                ($5,$2,'Thabo','Mokoena','Thabo Mokoena','active','en-ZA',$6,$4,$4)`,
+       ) VALUES ($1,$2,'Lerato','Maseko','active','en-ZA',$3,$4,$4),
+                ($5,$2,'Thabo','Mokoena','active','en-ZA',$6,$4,$4)`,
       [learnerA, tenant, actorA, reviewer, learnerB, actorB],
     );
     await client.query(
@@ -112,9 +141,9 @@ test.before(async () => {
     await client.query(
       `INSERT INTO course_blueprint_versions(
          id,tenant_id,institution_id,course_definition_id,version_number,lifecycle,
-         title,description,effective_from,approved_by,approved_at,created_by,updated_by
+         title,description,delivery_modes,effective_from,approved_by,approved_at,created_by,updated_by
        ) VALUES ($1,$2,$3,$4,1,'approved','Evidence security',
-         'Approved evidence security blueprint.','2028-01-01',$5,now(),$5,$5)`,
+         'Approved evidence security blueprint.',ARRAY['online'],'2028-01-01',$5,now(),$5,$5)`,
       [blueprint, tenant, institution, definition, reviewer],
     );
     await client.query(
@@ -131,7 +160,16 @@ test.before(async () => {
          enrolled_on,created_by,updated_by
        ) VALUES ($1,$2,$3,$4,$5,'active','2028-01-20',$6,$6),
                 ($7,$2,$3,$8,$5,'active','2028-01-20',$6,$6)`,
-      [enrolmentA, tenant, institution, learnerA, courseRun, reviewer, enrolmentB, learnerB],
+      [
+        enrolmentA,
+        tenant,
+        institution,
+        learnerA,
+        courseRun,
+        reviewer,
+        enrolmentB,
+        learnerB,
+      ],
     );
     await client.query(
       `INSERT INTO assignments(
@@ -161,8 +199,13 @@ test("submission ownership functions reject another learner identity", async () 
       [enrolmentA, actorA],
     );
     assert.equal(owned.rows[0].learner_person_id, learnerA);
-    await assert.rejects(
-      client.query("SELECT app.require_owned_enrolment($1,$2)", [enrolmentA, actorB]),
+    await assertQueryRejects(
+      client,
+      () =>
+        client.query("SELECT app.require_owned_enrolment($1,$2)", [
+          enrolmentA,
+          actorB,
+        ]),
       /does not belong/i,
     );
 
@@ -187,12 +230,22 @@ test("submission ownership functions reject another learner identity", async () 
       [attempt, actorA],
     );
     assert.equal(attemptOwner.rows[0].learner_person_id, learnerA);
-    await assert.rejects(
-      client.query("SELECT app.require_owned_submission_attempt($1,$2)", [attempt, actorB]),
+    await assertQueryRejects(
+      client,
+      () =>
+        client.query("SELECT app.require_owned_submission_attempt($1,$2)", [
+          attempt,
+          actorB,
+        ]),
       /does not belong/i,
     );
-    await assert.rejects(
-      client.query("SELECT app.require_owned_submission_file($1,$2)", [file, actorB]),
+    await assertQueryRejects(
+      client,
+      () =>
+        client.query("SELECT app.require_owned_submission_file($1,$2)", [
+          file,
+          actorB,
+        ]),
       /does not belong/i,
     );
   });
@@ -219,21 +272,25 @@ test("rubric and certificate approvals require independent evidence and become i
          version=2,updated_by=$2 WHERE id=$1`,
       [rubric, actorA],
     );
-    await assert.rejects(
-      client.query(
-        `INSERT INTO rubric_criteria(
+    await assertQueryRejects(
+      client,
+      () =>
+        client.query(
+          `INSERT INTO rubric_criteria(
            tenant_id,rubric_id,criterion_id,sequence_number,title,maximum_score,levels
          ) VALUES ($1,$2,$3,2,'Late addition',10,'[{"label":"Added"}]'::jsonb)`,
-        [tenant, rubric, randomUUID()],
-      ),
+          [tenant, rubric, randomUUID()],
+        ),
       /immutable/i,
     );
-    await assert.rejects(
-      client.query(
-        `UPDATE rubrics SET status='approved',approved_by=$2,approved_at=now(),
+    await assertQueryRejects(
+      client,
+      () =>
+        client.query(
+          `UPDATE rubrics SET status='approved',approved_by=$2,approved_at=now(),
            approval_notes='Self approval is prohibited',version=3 WHERE id=$1`,
-        [rubric, actorA],
-      ),
+          [rubric, actorA],
+        ),
       /approval|constraint/i,
     );
     await client.query(
@@ -241,8 +298,13 @@ test("rubric and certificate approvals require independent evidence and become i
          approval_notes='Independent approval completed',version=3,updated_by=$2 WHERE id=$1`,
       [rubric, reviewer],
     );
-    await assert.rejects(
-      client.query("UPDATE rubrics SET title='Changed approved rubric' WHERE id=$1", [rubric]),
+    await assertQueryRejects(
+      client,
+      () =>
+        client.query(
+          "UPDATE rubrics SET title='Changed approved rubric' WHERE id=$1",
+          [rubric],
+        ),
       /immutable/i,
     );
 
@@ -265,11 +327,13 @@ test("rubric and certificate approvals require independent evidence and become i
          version=3,updated_by=$2 WHERE id=$1`,
       [template, reviewer],
     );
-    await assert.rejects(
-      client.query(
-        "UPDATE certificate_templates SET document_schema='{}'::jsonb WHERE id=$1",
-        [template],
-      ),
+    await assertQueryRejects(
+      client,
+      () =>
+        client.query(
+          "UPDATE certificate_templates SET document_schema='{}'::jsonb WHERE id=$1",
+          [template],
+        ),
       /immutable/i,
     );
   });
@@ -305,9 +369,18 @@ test("publishing a corrected grade supersedes every prior current result", async
        WHERE enrolment_id=$1 AND gradebook_item_id=$2 ORDER BY created_at,id`,
       [enrolmentA, item],
     );
-    assert.equal(results.rows.find((row) => row.id === draft).state, "corrected");
-    assert.equal(results.rows.find((row) => row.id === published).state, "published");
-    assert.equal(results.rows.find((row) => row.id === published).supersedes_result_id, draft);
+    assert.equal(
+      results.rows.find((row) => row.id === draft).state,
+      "corrected",
+    );
+    assert.equal(
+      results.rows.find((row) => row.id === published).state,
+      "published",
+    );
+    assert.equal(
+      results.rows.find((row) => row.id === published).supersedes_result_id,
+      draft,
+    );
   });
 });
 

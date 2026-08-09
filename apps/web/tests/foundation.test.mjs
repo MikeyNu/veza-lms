@@ -8,17 +8,17 @@ async function source(path) {
 
 test("dashboard exposes one primary heading and semantic navigation", async () => {
   const overview = await source("../src/features/dashboard/dashboard-overview.tsx");
-  const shell = await source("../src/components/app-shell.tsx");
+  const shell = await source("../src/components/app-shell-client.tsx");
   assert.equal((overview.match(/<h1/g) ?? []).length, 1);
-  assert.match(shell, /aria-label="Primary navigation"/);
+  assert.match(shell, /aria-label="Primary workspace navigation"/);
   assert.match(shell, /aria-current/);
   assert.match(shell, /Mobile navigation/);
 });
 
 test("semantic status colours are declared as tokens", async () => {
-  const globalCss = await source("../app/globals.css");
-  assert.match(globalCss, /--critical: var\(--veza-critical\)/);
-  assert.match(globalCss, /--success: var\(--veza-success\)/);
+  const resetCss = await source("../styles/reset.css");
+  assert.match(resetCss, /--critical: var\(--veza-critical\)/);
+  assert.match(resetCss, /--success: var\(--veza-success\)/);
 });
 
 test("web authentication uses PKCE and an encrypted HttpOnly BFF session", async () => {
@@ -58,22 +58,32 @@ test("authenticated workspaces use verified foundation state instead of demo lea
     source("../src/features/workspace/workspace-home.tsx"),
   ]);
   assert.match(page, /demo=\{resolution\.demo\}/);
-  assert.match(home, /demo \? <DashboardOverview/);
+  assert.match(home, /demo && role === "learner"/);
   assert.match(home, /TenantFoundationOverview/);
   assert.match(home, /session\.tenant\.displayName/);
 });
 
 test("every exposed workspace action resolves through a guarded route", async () => {
-  const [catchAll, invitationPage, navigation] = await Promise.all([
-    source("../app/[...workspace]/page.tsx"),
+  const [policy, invitationPage, navigation, peoplePage, learningPage, studioPage, assessmentsPage] = await Promise.all([
+    source("../src/features/workspace/access-policy.ts"),
     source("../app/people/invitations/new/page.tsx"),
     source("../src/features/workspace/navigation.ts"),
+    source("../app/people/page.tsx"),
+    source("../app/learning/page.tsx"),
+    source("../app/studio/page.tsx"),
+    source("../app/assessments/page.tsx"),
   ]);
   for (const key of ["people", "learning", "studio", "assess", "calendar", "communicate", "insights", "evidence", "support", "admin", "help"]) {
-    assert.match(catchAll, new RegExp(`"${key}"`));
+    assert.match(navigation, new RegExp(`key: "${key}"`));
   }
-  assert.match(catchAll, /resolveNavigation\(resolution\.session\)/);
-  assert.match(catchAll, /if \(!allowed\) notFound\(\)/);
+  for (const policyId of ["people", "learning", "studio", "assessments", "calendar", "communications", "insights", "evidence", "support", "administration", "help"]) {
+    assert.match(policy, new RegExp(`id: "${policyId}"`));
+  }
+  assert.match(policy, /canAccessWorkspacePath/);
+  for (const page of [peoplePage, learningPage, studioPage, assessmentsPage]) {
+    assert.match(page, /requireWorkspaceAccess/);
+    assert.match(page, /notFound\(\)/);
+  }
   assert.match(invitationPage, /roles\.includes\("tenant-owner"\)/);
   assert.match(invitationPage, /TenantOwnerInvitationForm/);
   assert.match(navigation, /href: "\/people\/invitations\/new"/);
@@ -99,8 +109,8 @@ test("role-adaptive calls to action never grant administrative work to learners"
     source("../src/features/workspace/navigation.ts"),
   ]);
   assert.match(home, /role === "tenant-owner" \|\| role === "institution-admin"/);
-  assert.match(home, /role === "instructor" \|\| role === "assessor" \|\| role === "moderator" \|\| role === "learner"/);
-  assert.match(navigation, /if \(roles\.has\("tenant-owner"\)\)/);
+  assert.match(home, /if \(role === "learner"\)/);
+  assert.match(navigation, /roles\.has\("tenant-owner"\)/);
   assert.doesNotMatch(navigation, /roles\.has\("learner"\)[\s\S]*Invite owner/);
 });
 
@@ -132,7 +142,7 @@ test("foundation workspace has an explicit responsive bento hierarchy", async ()
     source("../app/globals.css"),
   ]);
   assert.match(globals, /foundation\.css/);
-  assert.match(foundation, /grid-template-areas: "boundary access" "modules next"/);
+  assert.match(foundation, /grid-template-areas:\s*"next boundary"\s*"modules access"/);
   assert.match(foundation, /foundation-boundary/);
   assert.match(foundation, /tenant-status\.provisioning/);
   assert.match(foundation, /@media \(max-width: 620px\)/);
@@ -171,8 +181,8 @@ test("institution setup has an explicit responsive task-driven bento hierarchy",
     source("../app/globals.css"),
   ]);
   assert.match(globals, /institution-setup\.css/);
-  assert.match(css, /grid-template-columns: minmax\(240px,.72fr\) minmax\(580px,1.75fr\) minmax\(250px,.76fr\)/);
+  assert.match(css.replaceAll(/\s+/g, ""), /grid-template-columns:minmax\(240px,.72fr\)minmax\(580px,1.75fr\)minmax\(250px,.76fr\)/);
   assert.match(css, /setup-bento/);
   assert.match(css, /activation-rail/);
-  assert.match(css, /@media \(max-width: 620px\)/);
+  assert.match(css, /@media \(max-width:\s*620px\)/);
 });

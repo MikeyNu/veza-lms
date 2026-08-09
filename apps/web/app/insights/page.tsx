@@ -5,12 +5,12 @@ import { LearnerProgressWorkspace } from "../../src/features/learner/learner-pro
 import { primaryRole } from "../../src/features/workspace/navigation";
 import { loadInstitutionAnalytics } from "../../src/server/academic-evidence-api";
 import { loadLearnerToday } from "../../src/server/learning-platform-api";
-import { requireWorkspaceSession } from "../../src/server/require-workspace-session";
+import { requireWorkspaceAccess } from "../../src/server/require-workspace-access";
 
 export const dynamic = "force-dynamic";
 
 export default async function InsightsPage() {
-  const resolution = await requireWorkspaceSession();
+  const resolution = await requireWorkspaceAccess("/insights");
   const role = primaryRole(resolution.session);
 
   if (role === "learner") {

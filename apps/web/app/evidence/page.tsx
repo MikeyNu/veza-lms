@@ -8,7 +8,7 @@ import { loadAcademicEvidenceWorkspace } from "../../src/server/academic-evidenc
 import { loadAuditEvents, type AuditFilters } from "../../src/server/audit-api";
 import { loadCatalogue, loadCatalogueReferences } from "../../src/server/catalogue-api";
 import { demoAuditEvents } from "../../src/server/demo-direct-data";
-import { requireWorkspaceSession } from "../../src/server/require-workspace-session";
+import { requireWorkspaceAccess } from "../../src/server/require-workspace-access";
 
 export const dynamic = "force-dynamic";
 const evidenceRoles: readonly BaselineRoleKey[] = [
@@ -50,7 +50,7 @@ export default async function EvidencePage({
   searchParams: Promise<Query>;
 }) {
   const [resolution, query] = await Promise.all([
-    requireWorkspaceSession(),
+    requireWorkspaceAccess("/evidence"),
     searchParams,
   ]);
   const roles = new Set(resolution.session.membership.roles);

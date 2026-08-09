@@ -76,7 +76,7 @@ function Panel({ title, children }: { title: string; children: ReactNode }) {
     <details className="vz-action-panel">
       <summary>
         {title}
-        <span>+</span>
+        <span aria-hidden="true">+</span>
       </summary>
       {children}
     </details>

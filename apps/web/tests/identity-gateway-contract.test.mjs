@@ -33,8 +33,8 @@ test("identity reference layer wins over the legacy gateway composition", () => 
   const globals = read("apps/web/app/globals.css");
   const legacyStyles = read("apps/web/styles/identity-gateway.css");
   const referenceStyles = read("apps/web/styles/identity-reference.css");
-  const legacyImport = globals.indexOf('@import "../styles/identity-gateway.css";');
-  const referenceImport = globals.indexOf('@import "../styles/identity-reference.css";');
+  const legacyImport = globals.indexOf('@import "../styles/identity-gateway.css"');
+  const referenceImport = globals.indexOf('@import "../styles/identity-reference.css"');
 
   assert.ok(legacyImport >= 0, "legacy identity controls must remain imported");
   assert.ok(referenceImport > legacyImport, "approved identity reference must load after legacy identity styles");

@@ -8,7 +8,7 @@ function fixture(rowCount = 2): ExportDocument {
     exportId: "11111111-1111-4111-8111-111111111111",
     title: "Learner transcript export",
     generatedAt: "2026-08-06T01:00:00.000Z",
-    tenantName: "Akha Academy",
+    tenantName: "Sgela Academy",
     institutionName: "Johannesburg Campus",
     columns: ["learner", "course", "result"],
     rows: Array.from({ length: rowCount }, (_, index) => ({

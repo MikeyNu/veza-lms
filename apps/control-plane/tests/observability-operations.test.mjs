@@ -22,8 +22,8 @@ test("control plane mounts privileged observability operations", async () => {
 
 test("observability mutations use exact status and state envelopes", async () => {
   const dashboard = await read("src/features/observability/observability-operations-dashboard.tsx");
-  assert.match(dashboard, /post\(operation, \{ status, reason \}\)/);
-  assert.match(dashboard, /post\(operation, \{ state, reason \}\)/);
+  assert.match(dashboard, /apply\(operation, \{ status, reason \}, success\)/);
+  assert.match(dashboard, /apply\(operation, \{ state, reason \}, success\)/);
   assert.doesNotMatch(dashboard, /\{ state, status: state, reason \}/);
 });
 

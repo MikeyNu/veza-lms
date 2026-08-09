@@ -16,17 +16,19 @@ test("access administration is reachable only to institutional administrators", 
 });
 
 test("access BFF derives membership context, validates responses and preserves safe errors", async () => {
-  const [route, client] = await Promise.all([
+  const [route, client, transport] = await Promise.all([
     source("../app/api/access/[operation]/route.ts"),
     source("../src/server/access-directory-api.ts"),
+    source("../src/server/workspace-json-request.ts"),
   ]);
   assert.match(route, /isSameOriginRequest/);
   assert.match(route, /safeStatus/);
   for (const operation of ["invite", "membership-status", "role-assign", "role-end", "invitation-revoke", "invitation-resend", "invitations-bulk-revoke"]) {
     assert.match(route, new RegExp(operation));
   }
-  assert.match(client, /x-veza-membership-id/);
-  assert.doesNotMatch(client, /x-veza-tenant-id/);
+  assert.match(client, /requestWorkspaceJson/);
+  assert.match(transport, /x-veza-membership-id/);
+  assert.doesNotMatch(transport, /x-veza-tenant-id/);
   assert.match(client, /function directory/);
   assert.match(client, /function membership/);
   assert.match(client, /function invitation/);

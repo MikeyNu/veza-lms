@@ -168,7 +168,7 @@ export function AssessmentFinalControls({
         </section>
         <aside className="vz-governance-rail">
           <details className="vz-action-panel" open>
-            <summary>Change group membership<span>+</span></summary>
+            <summary>Change group membership<span aria-hidden="true">+</span></summary>
             <form className="vz-governance-form" onSubmit={updateMembers}>
               <label>Assignment group<select value={selectedGroupId} onChange={(event) => setSelectedGroupId(event.target.value)} required><option value="">Select group</option>{workspace.assignmentGroups.map((group) => <option key={value(group,"id")} value={value(group,"id")}>{value(group,"name")} · {value(group,"assignmentTitle")}</option>)}</select></label>
               <label>Add learners<select name="addLearnerPersonIds" multiple size={6}>{references.eligibleLearners.filter((learner) => !currentMembers.has(learner.id)).map((learner) => <option key={learner.id} value={learner.id}>{learner.displayName}</option>)}</select></label>

@@ -58,7 +58,8 @@ export class ReleaseGovernanceService {
          FROM release_rings ring
          LEFT JOIN tenant_release_assignments assignment ON assignment.ring_key = ring.key
          LEFT JOIN release_ring_feature_flags configuration ON configuration.ring_key = ring.key
-         GROUP BY ring.key
+         GROUP BY ring.key,ring.display_name,ring.description,ring.sequence,
+                  ring.lifecycle,ring.version
          ORDER BY ring.sequence`,
       ),
       this.database.controlPlaneQuery<FeatureFlagRow>(

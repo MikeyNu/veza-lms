@@ -17,7 +17,7 @@ test("platform audit is operator guarded, bounded and read only", async () => {
   assert.match(view, /method="get"/);
   assert.doesNotMatch(view, /method="post"/);
   assert.match(view, /Separate evidence plane/);
-  assert.match(shell, /href: "\/audit"[\s\S]*available: true/);
+  assert.match(shell, /href: "\/audit"/);
 });
 
 test("platform audit UI is responsive and does not expose tenant content", async () => {

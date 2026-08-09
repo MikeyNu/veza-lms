@@ -329,6 +329,7 @@
 
 .catalogue-tabs button.active {
   background: var(--brand-strong);
+  color: white;
 }
 
 .catalogue-view-grid {

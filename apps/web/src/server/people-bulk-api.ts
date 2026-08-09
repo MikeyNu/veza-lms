@@ -1,6 +1,6 @@
 import { demoPeopleBulkReceipt } from "./demo-direct-data";
 import { demoModeEnabled } from "./demo-mode";
-import { getWebOidcSession } from "./web-session";
+import { requestWorkspaceJson } from "./workspace-json-request";
 
 export interface PeopleBulkStatusInput {
   readonly records: readonly { readonly personId: string; readonly expectedVersion: number }[];
@@ -30,34 +30,15 @@ export async function changePeopleBulkStatus(input: PeopleBulkStatusInput): Prom
   if (demoModeEnabled()) {
     return demoPeopleBulkReceipt(input);
   }
-  const session = await getWebOidcSession();
-  if (!session) throw new Error("Workspace authentication is required");
-  const baseUrl = process.env.VEZA_API_BASE_URL ?? "http://localhost:4000";
-  const response = await fetch(`${baseUrl}/v1/people/bulk-status`, {
-    method: "POST",
-    headers: {
-      authorization: `Bearer ${session.accessToken}`,
-      accept: "application/json",
-      "content-type": "application/json",
+  const body = await requestWorkspaceJson("/v1/people/bulk-status", {
+    service: "People service",
+    maximumBytes: 256 * 1024,
+    timeoutMs: 20_000,
+    init: {
+      method: "POST",
+      body: JSON.stringify(input),
     },
-    body: JSON.stringify(input),
-    cache: "no-store",
-    signal: AbortSignal.timeout(20_000),
   });
-  const text = await response.text();
-  if (new TextEncoder().encode(text).byteLength > 256 * 1024) throw new Error("Bulk people response is unexpectedly large");
-  let body: unknown;
-  try {
-    body = text ? JSON.parse(text) : {};
-  } catch {
-    throw new Error("People service returned invalid JSON");
-  }
-  if (!response.ok) {
-    const message = typeof body === "object" && body !== null && "message" in body
-      ? String((body as { message?: unknown }).message ?? "Bulk people operation failed")
-      : "Bulk people operation failed";
-    throw new Error(message.slice(0, 300));
-  }
   if (!isReceipt(body)) throw new Error("Bulk people receipt did not match the API contract");
   return body;
 }

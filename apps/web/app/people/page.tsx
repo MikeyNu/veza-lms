@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { AppShell } from "../../src/components/app-shell";
 import { PeopleWorkspace } from "../../src/features/people/people-workspace";
 import { loadPeople, type PeopleFilters } from "../../src/server/people-api";
-import { requireWorkspaceSession } from "../../src/server/require-workspace-session";
+import { requireWorkspaceAccess } from "../../src/server/require-workspace-access";
 
 export const dynamic = "force-dynamic";
 type Query = Readonly<Record<string, string | string[] | undefined>>;
@@ -26,7 +26,7 @@ export default async function PeoplePage({
   searchParams: Promise<Query>;
 }) {
   const [resolution, query] = await Promise.all([
-    requireWorkspaceSession(),
+    requireWorkspaceAccess("/people"),
     searchParams,
   ]);
   const membershipRoles = new Set(resolution.session.membership.roles);

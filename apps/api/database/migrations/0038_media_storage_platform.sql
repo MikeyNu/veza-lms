@@ -304,6 +304,7 @@ DECLARE
   asset_record record;
   policy_record record;
   inserted integer := 0;
+  affected integer := 0;
 BEGIN
   SELECT asset.* INTO asset_record FROM media_assets asset WHERE asset.id = p_asset_id FOR UPDATE;
   IF NOT FOUND THEN RAISE EXCEPTION 'media asset was not found'; END IF;
@@ -316,13 +317,15 @@ BEGIN
     INSERT INTO media_processing_jobs (tenant_id, asset_id, job_type, profile)
     VALUES (asset_record.tenant_id, p_asset_id, 'malware-scan', policy_record.processing_profile)
     ON CONFLICT DO NOTHING;
-    GET DIAGNOSTICS inserted = inserted + ROW_COUNT;
+    GET DIAGNOSTICS affected = ROW_COUNT;
+    inserted := inserted + affected;
   END IF;
   IF asset_record.media_type LIKE 'image/%' THEN
     INSERT INTO media_processing_jobs (tenant_id, asset_id, job_type, profile)
     VALUES (asset_record.tenant_id, p_asset_id, 'image-renditions', policy_record.processing_profile)
     ON CONFLICT DO NOTHING;
-    GET DIAGNOSTICS inserted = inserted + ROW_COUNT;
+    GET DIAGNOSTICS affected = ROW_COUNT;
+    inserted := inserted + affected;
   ELSIF asset_record.media_type LIKE 'video/%' THEN
     INSERT INTO media_processing_jobs (tenant_id, asset_id, job_type, profile)
     VALUES
@@ -330,14 +333,16 @@ BEGIN
       (asset_record.tenant_id, p_asset_id, 'caption', policy_record.processing_profile),
       (asset_record.tenant_id, p_asset_id, 'transcript', policy_record.processing_profile)
     ON CONFLICT DO NOTHING;
-    GET DIAGNOSTICS inserted = inserted + ROW_COUNT;
+    GET DIAGNOSTICS affected = ROW_COUNT;
+    inserted := inserted + affected;
   ELSIF asset_record.media_type LIKE 'audio/%' THEN
     INSERT INTO media_processing_jobs (tenant_id, asset_id, job_type, profile)
     VALUES
       (asset_record.tenant_id, p_asset_id, 'audio-transcode', policy_record.processing_profile),
       (asset_record.tenant_id, p_asset_id, 'transcript', policy_record.processing_profile)
     ON CONFLICT DO NOTHING;
-    GET DIAGNOSTICS inserted = inserted + ROW_COUNT;
+    GET DIAGNOSTICS affected = ROW_COUNT;
+    inserted := inserted + affected;
   END IF;
   UPDATE media_assets SET status = 'processing', version = version + 1, updated_at = now()
   WHERE id = p_asset_id;

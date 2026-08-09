@@ -10,9 +10,21 @@ const required = (name) => {
   return value;
 };
 
-const app = new Pool({ connectionString: required("DATABASE_URL"), max: 2, statement_timeout: 20_000 });
-const control = new Pool({ connectionString: required("CONTROL_PLANE_DATABASE_URL"), max: 2, statement_timeout: 20_000 });
-const worker = new Pool({ connectionString: required("WORKER_DATABASE_URL"), max: 2, statement_timeout: 30_000 });
+const app = new Pool({
+  connectionString: required("DATABASE_URL"),
+  max: 2,
+  statement_timeout: 20_000,
+});
+const control = new Pool({
+  connectionString: required("CONTROL_PLANE_DATABASE_URL"),
+  max: 2,
+  statement_timeout: 20_000,
+});
+const worker = new Pool({
+  connectionString: required("WORKER_DATABASE_URL"),
+  max: 2,
+  statement_timeout: 30_000,
+});
 
 const runKey = randomUUID();
 const actor = randomUUID();
@@ -29,7 +41,9 @@ async function withTenant(pool, tenantId, callback, commit = false) {
   const client = await pool.connect();
   try {
     await client.query("BEGIN");
-    await client.query("SELECT set_config('app.tenant_id',$1,true)", [tenantId]);
+    await client.query("SELECT set_config('app.tenant_id',$1,true)", [
+      tenantId,
+    ]);
     const result = await callback(client);
     await client.query(commit ? "COMMIT" : "ROLLBACK");
     return result;
@@ -66,33 +80,54 @@ test.before(async () => {
        ($4,$5,'Export Tenant B','Export Tenant B','active','shared','af-south-1','foundation','en-ZA','Africa/Johannesburg',$3)`,
     [tenantA, `export-a-${runKey}`, actor, tenantB, `export-b-${runKey}`],
   );
-  await control.query(
-    `INSERT INTO institutions(
+  await withTenant(
+    app,
+    tenantA,
+    (client) =>
+      client.query(
+        `INSERT INTO institutions(
        id,tenant_id,code,display_name,institution_type,locale,timezone,status,created_by
-     ) VALUES
-       ($1,$2,'MAIN','Export Institution A','college','en-ZA','Africa/Johannesburg','active',$3),
-       ($4,$5,'MAIN','Export Institution B','college','en-ZA','Africa/Johannesburg','active',$3)`,
-    [institutionA, tenantA, actor, institutionB, tenantB],
+     ) VALUES ($1,$2,'MAIN','Export Institution A','college','en-ZA','Africa/Johannesburg','active',$3)`,
+        [institutionA, tenantA, actor],
+      ),
+    true,
   );
-  await withTenant(app, tenantA, async (client) => {
-    await client.query(
-      `INSERT INTO people(
+  await withTenant(
+    app,
+    tenantB,
+    (client) =>
+      client.query(
+        `INSERT INTO institutions(
+       id,tenant_id,code,display_name,institution_type,locale,timezone,status,created_by
+     ) VALUES ($1,$2,'MAIN','Export Institution B','college','en-ZA','Africa/Johannesburg','active',$3)`,
+        [institutionB, tenantB, actor],
+      ),
+    true,
+  );
+  await withTenant(
+    app,
+    tenantA,
+    async (client) => {
+      await client.query(
+        `INSERT INTO people(
          id,tenant_id,preferred_name,legal_given_names,legal_family_name,status,locale,created_by,updated_by
        ) VALUES ($1,$2,'Naledi','Naledi','Mokoena','active','en-ZA',$3,$3)`,
-      [personA, tenantA, actor],
-    );
-    await client.query(
-      `INSERT INTO learner_profiles(person_id,tenant_id,institution_id,status)
+        [personA, tenantA, actor],
+      );
+      await client.query(
+        `INSERT INTO learner_profiles(person_id,tenant_id,institution_id,status)
        VALUES ($1,$2,$3,'active')`,
-      [personA, tenantA, institutionA],
-    );
-    await client.query(
-      `INSERT INTO export_jobs(
+        [personA, tenantA, institutionA],
+      );
+      await client.query(
+        `INSERT INTO export_jobs(
          id,tenant_id,institution_id,export_type,format,filters,status,requested_by
        ) VALUES ($1,$2,$3,'people','pdf','{}'::jsonb,'requested',$4)`,
-      [exportReady, tenantA, institutionA, actor],
-    );
-  }, true);
+        [exportReady, tenantA, institutionA, actor],
+      );
+    },
+    true,
+  );
 });
 
 test.after(async () => {
@@ -101,7 +136,10 @@ test.after(async () => {
 
 test("application RLS hides a requested export from another tenant", async () => {
   await withTenant(app, tenantB, async (client) => {
-    const result = await client.query("SELECT id FROM export_jobs WHERE id=$1", [exportReady]);
+    const result = await client.query(
+      "SELECT id FROM export_jobs WHERE id=$1",
+      [exportReady],
+    );
     assert.equal(result.rowCount, 0);
   });
 });
@@ -120,7 +158,14 @@ test("worker claim and payload generation remain tenant scoped", async () => {
   assert.equal(payload.exportId, exportReady);
   assert.equal(payload.tenantName, "Export Tenant A");
   assert.equal(payload.institutionName, "Export Institution A");
-  assert.deepEqual(payload.columns, ["personId", "preferredName", "legalGivenNames", "legalFamilyName", "status", "locale"]);
+  assert.deepEqual(payload.columns, [
+    "personId",
+    "preferredName",
+    "legalGivenNames",
+    "legalFamilyName",
+    "status",
+    "locale",
+  ]);
   assert.equal(payload.rows.length, 1);
   assert.equal(payload.rows[0].personId, personA);
   assert.equal(payload.rows[0].legalFamilyName, "Mokoena");
@@ -130,7 +175,12 @@ test("worker completion creates ready state, audit evidence and outbox evidence"
   const checksum = "a".repeat(64);
   const result = await worker.query(
     `SELECT app.complete_export_job($1,$2,1,$3,$4,1,now()+interval '1 hour') completed`,
-    [exportReady, `export-worker-${runKey}`, `exports/${tenantA}/people/${exportReady}.pdf`, checksum],
+    [
+      exportReady,
+      `export-worker-${runKey}`,
+      `exports/${tenantA}/people/${exportReady}.pdf`,
+      checksum,
+    ],
   );
   assert.equal(result.rows[0].completed, true);
 
@@ -169,14 +219,19 @@ test("worker completion creates ready state, audit evidence and outbox evidence"
 });
 
 test("terminal worker failure records durable failure evidence", async () => {
-  await withTenant(app, tenantA, async (client) => {
-    await client.query(
-      `INSERT INTO export_jobs(
+  await withTenant(
+    app,
+    tenantA,
+    async (client) => {
+      await client.query(
+        `INSERT INTO export_jobs(
          id,tenant_id,institution_id,export_type,format,filters,status,requested_by,maximum_attempts
        ) VALUES ($1,$2,$3,'people','json','{}'::jsonb,'requested',$4,1)`,
-      [exportFailed, tenantA, institutionA, actor],
-    );
-  }, true);
+        [exportFailed, tenantA, institutionA, actor],
+      );
+    },
+    true,
+  );
   await claim(exportFailed, `failure-worker-${runKey}`);
   const result = await worker.query(
     `SELECT app.fail_export_job($1,$2,1,'object storage unavailable',now()+interval '5 minutes') failed`,
@@ -185,7 +240,10 @@ test("terminal worker failure records durable failure evidence", async () => {
   assert.equal(result.rows[0].failed, true);
 
   await withTenant(app, tenantA, async (client) => {
-    const job = await client.query("SELECT status,failure_reason FROM export_jobs WHERE id=$1", [exportFailed]);
+    const job = await client.query(
+      "SELECT status,failure_reason FROM export_jobs WHERE id=$1",
+      [exportFailed],
+    );
     assert.equal(job.rows[0].status, "failed");
     assert.equal(job.rows[0].failure_reason, "object storage unavailable");
     const audit = await client.query(
@@ -203,7 +261,13 @@ test("malformed filter values are rejected before queueing", async () => {
         `INSERT INTO export_jobs(
            id,tenant_id,institution_id,export_type,format,filters,status,requested_by
          ) VALUES ($1,$2,$3,'gradebook','pdf',$4::jsonb,'requested',$5)`,
-        [exportMalformed, tenantA, institutionA, JSON.stringify({ includeCorrected: "yes" }), actor],
+        [
+          exportMalformed,
+          tenantA,
+          institutionA,
+          JSON.stringify({ includeCorrected: "yes" }),
+          actor,
+        ],
       ),
       /export_jobs_filter_contract_check/i,
     );
@@ -211,7 +275,9 @@ test("malformed filter values are rejected before queueing", async () => {
 });
 
 test("platform schedules reconcile with explicit ownership and expiry ready exports", async () => {
-  const reconciled = await worker.query("SELECT app.ensure_platform_schedules() result");
+  const reconciled = await worker.query(
+    "SELECT app.ensure_platform_schedules() result",
+  );
   assert.ok(Number(reconciled.rows[0].result.globalSchedules) >= 9);
   assert.ok(Number(reconciled.rows[0].result.tenantSchedules) >= 2);
 
@@ -251,13 +317,24 @@ test("platform schedules reconcile with explicit ownership and expiry ready expo
     assert.equal(schedule.created_by, actor);
   }
 
-  await withTenant(app, tenantA, async (client) => {
-    await client.query("UPDATE export_jobs SET expires_at=now()-interval '1 second' WHERE id=$1", [exportReady]);
-  }, true);
+  await withTenant(
+    app,
+    tenantA,
+    async (client) => {
+      await client.query(
+        "UPDATE export_jobs SET expires_at=now()-interval '1 second' WHERE id=$1",
+        [exportReady],
+      );
+    },
+    true,
+  );
   const expired = await worker.query("SELECT app.expire_export_jobs() expired");
   assert.ok(Number(expired.rows[0].expired) >= 1);
   await withTenant(app, tenantA, async (client) => {
-    const result = await client.query("SELECT status FROM export_jobs WHERE id=$1", [exportReady]);
+    const result = await client.query(
+      "SELECT status FROM export_jobs WHERE id=$1",
+      [exportReady],
+    );
     assert.equal(result.rows[0].status, "expired");
   });
 });

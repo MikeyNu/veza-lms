@@ -20,7 +20,7 @@ const payload = {
   exportId: job.id,
   title: "Learner transcript export",
   generatedAt: "2026-08-06T01:00:00.000Z",
-  tenantName: "Akha Academy",
+  tenantName: "Sgela Academy",
   institutionName: "Johannesburg Campus",
   columns: ["learnerName", "courseTitle", "completionResult"],
   rows: [{ learnerName: "Naledi Mokoena", courseTitle: "Project Management", completionResult: 84 }],

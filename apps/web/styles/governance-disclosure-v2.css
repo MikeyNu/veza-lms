@@ -14,7 +14,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 0.75rem;
-  padding: 0 0.75rem !important;
+  padding: 0 1rem 0 0.75rem !important;
   border: 0 !important;
   background: transparent !important;
   color: var(--veza-ink-soft) !important;
@@ -52,9 +52,15 @@
   border-radius: 0.4rem !important;
   background: var(--veza-indigo-50) !important;
   color: var(--veza-indigo-700) !important;
-  font-size: 1rem !important;
-  font-weight: 500 !important;
+  font-size: 0 !important;
   line-height: 1 !important;
+}
+
+.vz-governance-rail .vz-action-panel > summary > span::before {
+  content: "+";
+  font-size: 1rem;
+  font-weight: 500;
+  line-height: 1;
 }
 
 .vz-governance-rail .vz-action-panel[open] > summary {
@@ -62,7 +68,7 @@
   background: var(--veza-surface-subtle) !important;
 }
 
-.vz-governance-rail .vz-action-panel[open] > summary > span {
+.vz-governance-rail .vz-action-panel[open] > summary > span::before {
   rotate: 45deg;
 }
 
@@ -73,6 +79,10 @@
 
 @media (prefers-reduced-motion: no-preference) {
   .vz-governance-rail .vz-action-panel > summary > span {
-    transition: rotate var(--veza-motion-fast) var(--veza-ease), background-color var(--veza-motion-fast) var(--veza-ease);
+    transition: background-color var(--veza-motion-fast) var(--veza-ease);
+  }
+
+  .vz-governance-rail .vz-action-panel > summary > span::before {
+    transition: rotate var(--veza-motion-fast) var(--veza-ease);
   }
 }

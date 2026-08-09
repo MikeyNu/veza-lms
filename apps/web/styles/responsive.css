@@ -8,10 +8,8 @@
     padding-inline: 0;
   }
 
-  .brand-copy,
   .nav-link > span:not(.badge),
   .support-link > div,
-  .support-link > svg,
   .profile > div:not(.avatar) {
     display: none;
   }

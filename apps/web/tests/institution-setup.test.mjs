@@ -39,10 +39,23 @@ test("institution setup uses a responsive three-column task hierarchy", async ()
     source("../app/globals.css"),
     source("../src/features/workspace/navigation.ts"),
   ]);
-  assert.match(css, /grid-template-columns: minmax\(240px,.72fr\) minmax\(580px,1.75fr\) minmax\(250px,.76fr\)/);
+  assert.match(css.replaceAll(/\s+/g, ""), /grid-template-columns:minmax\(240px,.72fr\)minmax\(580px,1.75fr\)minmax\(250px,.76fr\)/);
   assert.match(css, /activation-rail/);
   assert.match(css, /setup-bento/);
-  assert.match(css, /@media \(max-width: 620px\)/);
+  assert.match(css, /@media \(max-width:\s*620px\)/);
   assert.match(globals, /institution-setup\.css/);
   assert.match(navigation, /href: "\/admin\/institution-setup"/);
+});
+
+test("activation panel JSX class names match CSS selectors", async () => {
+  const [panels, css] = await Promise.all([
+    source("../src/features/institution-setup/tenant-setup-panels.tsx"),
+    source("../styles/institution-setup.css"),
+  ]);
+  assert.match(panels, /className="activation-checks"/, "activation-checks must be present in TSX");
+  assert.match(panels, /className="activation-action"/, "activation-action must be present in TSX");
+  assert.match(css, /\.activation-checks/, "activation-checks must have a CSS definition");
+  assert.match(css, /\.activation-action/, "activation-action must have a CSS definition");
+  assert.match(css, /\.activation-score/, "activation-score must have a CSS definition");
+  assert.match(css, /\.scoped-admin-note/, "scoped-admin-note must have a CSS definition");
 });

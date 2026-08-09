@@ -13,25 +13,31 @@ import { TenantEntitlementsModule } from "./modules/tenant-entitlements/tenant-e
 import { TenancyModule } from "./modules/tenancy/tenancy.module.js";
 import { TerminologyModule } from "./modules/terminology/terminology.module.js";
 import { AuthenticationModule } from "./platform/authentication/authentication.module.js";
+import { ApiStandardsModule } from "./platform/api-standards/api-standards.module.js";
 import { AuthorizationModule } from "./platform/authorization/authorization.module.js";
 import { CommunicationsModule } from "./platform/communications/communications.module.js";
 import { DatabaseModule } from "./platform/database/database.module.js";
 import { EventsModule } from "./platform/events/events.module.js";
 import { FeatureFlagsModule } from "./platform/feature-flags/feature-flags.module.js";
+import { ObservabilityModule } from "./platform/observability/observability.module.js";
 import { RequestContextModule } from "./platform/request-context/request-context.module.js";
+import { SearchModule } from "./platform/search/search.module.js";
 import { StorageModule } from "./platform/storage/storage.module.js";
 
 @Module({
   imports: [
     DatabaseModule,
     AuthenticationModule,
+    ApiStandardsModule,
     AuthorizationModule,
     RequestContextModule,
     AuditModule,
     EventsModule,
     CommunicationsModule,
+    SearchModule,
     StorageModule,
     FeatureFlagsModule,
+    ObservabilityModule,
     PlatformOperationsModule,
     IdentityAccessModule,
     InstitutionStructureModule,

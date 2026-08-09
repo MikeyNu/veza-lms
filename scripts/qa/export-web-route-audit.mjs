@@ -4,15 +4,16 @@ import { dirname, join, relative, resolve, sep } from "node:path";
 const root = resolve(process.cwd(), "../..");
 const appRoot = join(root, "apps/web/app");
 const sourceRoots = [appRoot, join(root, "apps/web/src")];
+const publicRoot = join(root, "apps/web/public");
 const output = join(root, "apps/web/public/__veza_route_audit.json");
 
-async function walk(directory) {
+async function walk(directory, include = (name) => /\.(?:tsx?|mjs|jsx?)$/.test(name)) {
   const entries = await readdir(directory, { withFileTypes: true });
   const files = [];
   for (const entry of entries) {
     const path = join(directory, entry.name);
-    if (entry.isDirectory()) files.push(...await walk(path));
-    else if (/\.(?:tsx?|mjs|jsx?)$/.test(entry.name)) files.push(path);
+    if (entry.isDirectory()) files.push(...await walk(path, include));
+    else if (include(entry.name)) files.push(path);
   }
   return files;
 }
@@ -73,6 +74,9 @@ const files = [];
 for (const sourceRoot of sourceRoots) {
   files.push(...await walk(sourceRoot));
 }
+const publicAssets = new Set(
+  (await walk(publicRoot, () => true)).map((path) => `/${normalise(relative(publicRoot, path))}`),
+);
 
 const links = [];
 for (const path of files) {
@@ -104,6 +108,7 @@ function routeRegex(route) {
 
 const unresolved = links.filter(({ href }) => {
   if (href.startsWith("/api/") || href.startsWith("/_next/")) return false;
+  if (publicAssets.has(href)) return false;
   return !routes.some(({ route }) => routeRegex(route).test(href));
 });
 

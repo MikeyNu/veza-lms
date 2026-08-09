@@ -474,7 +474,7 @@ export class CatalogueAnalysisService {
         client.query(
           `SELECT id,event_type,actor_id,resource_id,before_state,after_state,occurred_at
            FROM audit_events
-           WHERE resource_id=ANY($1::uuid[])
+           WHERE resource_id=ANY($1::text[])
            ORDER BY occurred_at DESC
            LIMIT 500`,
           [ids],

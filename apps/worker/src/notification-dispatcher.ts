@@ -46,7 +46,9 @@ interface DigestRow extends QueryResultRow {
 }
 
 function checksum(value: unknown): string {
-  return createHash("sha256").update(JSON.stringify(value), "utf8").digest("hex");
+  return createHash("sha256")
+    .update(JSON.stringify(value), "utf8")
+    .digest("hex");
 }
 
 function recipientKey(intent: IntentRow): string {
@@ -63,11 +65,20 @@ function resolveVariable(
 ): string {
   let current: unknown = variables;
   for (const segment of path.split(".")) {
-    if (typeof current !== "object" || current === null || Array.isArray(current)) return "";
+    if (
+      typeof current !== "object" ||
+      current === null ||
+      Array.isArray(current)
+    )
+      return "";
     current = (current as Record<string, unknown>)[segment];
   }
   if (current === null || current === undefined) return "";
-  if (typeof current === "string" || typeof current === "number" || typeof current === "boolean") {
+  if (
+    typeof current === "string" ||
+    typeof current === "number" ||
+    typeof current === "boolean"
+  ) {
     return String(current);
   }
   return JSON.stringify(current);
@@ -88,10 +99,13 @@ function render(
   html: boolean,
 ): string | null {
   if (template === null) return null;
-  return template.replace(/{{\s*([A-Za-z0-9_.-]+)\s*}}/g, (_match, path: string) => {
-    const value = resolveVariable(variables, path);
-    return html ? escapeHtml(value) : value;
-  });
+  return template.replace(
+    /{{\s*([A-Za-z0-9_.-]+)\s*}}/g,
+    (_match, path: string) => {
+      const value = resolveVariable(variables, path);
+      return html ? escapeHtml(value) : value;
+    },
+  );
 }
 
 async function transaction<TResult>(
@@ -152,7 +166,10 @@ export class NotificationDispatcher {
     client: PoolClient,
     intent: IntentRow,
     channel: NotificationChannel,
-  ): Promise<{ state: "enabled" | "disabled" | "digest"; frequency?: "daily" | "weekly" }> {
+  ): Promise<{
+    state: "enabled" | "disabled" | "digest";
+    frequency?: "daily" | "weekly";
+  }> {
     if (intent.policy === "required") return { state: "enabled" };
     const result = await client.query(
       `SELECT state, digest_frequency
@@ -212,7 +229,10 @@ export class NotificationDispatcher {
       for (const channel of intent.requested_channels) {
         const preference = await this.preference(client, intent, channel);
         if (preference.state === "disabled") {
-          const content = { suppression: "recipient-preference", topicKey: intent.topic_key };
+          const content = {
+            suppression: "recipient-preference",
+            topicKey: intent.topic_key,
+          };
           await client.query(
             `INSERT INTO notification_deliveries (
                tenant_id, notification_intent_id, channel, provider_key,
@@ -238,7 +258,8 @@ export class NotificationDispatcher {
           (channel === "email" || channel === "push")
         ) {
           const dueAt = new Date(
-            Date.now() + (preference.frequency === "daily" ? 86_400_000 : 604_800_000),
+            Date.now() +
+              (preference.frequency === "daily" ? 86_400_000 : 604_800_000),
           );
           await client.query(
             `INSERT INTO notification_digest_items (
@@ -307,13 +328,14 @@ export class NotificationDispatcher {
         );
         immediate += 1;
       }
-      const status = immediate > 0
-        ? "processing"
-        : digested > 0
-          ? "digested"
-          : suppressed > 0
-            ? "suppressed"
-            : "dead-letter";
+      const status =
+        immediate > 0
+          ? "processing"
+          : digested > 0
+            ? "digested"
+            : suppressed > 0
+              ? "suppressed"
+              : "dead-letter";
       await client.query(
         `UPDATE notification_intents
          SET status = $2,
@@ -401,7 +423,8 @@ export class NotificationDispatcher {
           result.providerStatus ?? "accepted",
         ],
       );
-      if (updated.rowCount === 1) await this.finalizeIntent(delivery.notification_intent_id);
+      if (updated.rowCount === 1)
+        await this.finalizeIntent(delivery.notification_intent_id);
       return updated.rowCount === 1;
     }
 
@@ -426,7 +449,8 @@ export class NotificationDispatcher {
         (result.errorCode ?? "notification-provider-rejected").slice(0, 2_000),
       ],
     );
-    if (deadLetter && updated.rowCount === 1) await this.finalizeIntent(delivery.notification_intent_id);
+    if (deadLetter && updated.rowCount === 1)
+      await this.finalizeIntent(delivery.notification_intent_id);
     return false;
   }
 
@@ -438,7 +462,7 @@ export class NotificationDispatcher {
            WHERE state IN ('pending','retry') AND next_attempt_at <= now()
            ORDER BY next_attempt_at, created_at, id
            FOR UPDATE SKIP LOCKED
-           LIMIT $2
+           LIMIT $1
          )
          UPDATE notification_digest_batches batch
          SET state = 'processing', attempts = attempts + 1
@@ -447,7 +471,7 @@ export class NotificationDispatcher {
          RETURNING batch.id, batch.tenant_id, batch.recipient_key,
                    batch.channel, batch.frequency, batch.recipient_snapshot,
                    batch.item_snapshot, batch.attempts`,
-        [this.workerId, this.batchSize],
+        [this.batchSize],
       );
       return result.rows;
     });
@@ -485,7 +509,8 @@ export class NotificationDispatcher {
         },
         correlationId: `digest-${batch.id}`,
       });
-      if (!result.accepted) throw new Error(result.errorCode ?? "digest-provider-rejected");
+      if (!result.accepted)
+        throw new Error(result.errorCode ?? "digest-provider-rejected");
       await transaction(this.pool, async (client) => {
         await client.query(
           `UPDATE notification_digest_batches
@@ -503,7 +528,12 @@ export class NotificationDispatcher {
              AND item.channel = $3
              AND item.frequency = $4
              AND item.status = 'batched'`,
-          [batch.tenant_id, batch.recipient_key, batch.channel, batch.frequency],
+          [
+            batch.tenant_id,
+            batch.recipient_key,
+            batch.channel,
+            batch.frequency,
+          ],
         );
       });
       return true;

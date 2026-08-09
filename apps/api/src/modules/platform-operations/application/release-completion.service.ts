@@ -71,7 +71,9 @@ export class ReleaseCompletionService {
            ON assignment.ring_key = ring.key
           AND assignment.effective_from <= now()
           AND (assignment.effective_until IS NULL OR assignment.effective_until > now())
-         GROUP BY ring.key ORDER BY ring.sequence`,
+         GROUP BY ring.key,ring.display_name,ring.description,ring.sequence,
+                  ring.lifecycle,ring.target_version,ring.version
+         ORDER BY ring.sequence`,
       ),
       this.database.controlPlaneQuery(
         `SELECT target.id, target.ring_key, ring.display_name ring_name,
@@ -88,7 +90,7 @@ export class ReleaseCompletionService {
          LEFT JOIN release_compatibility_reports compatibility
            ON compatibility.tenant_id = assignment.tenant_id
           AND compatibility.target_release_version = target.release_version
-         GROUP BY target.id, ring.display_name
+         GROUP BY target.id,ring.display_name,ring.sequence
          ORDER BY target.lifecycle IN ('planned','active','paused') DESC,
                   ring.sequence, target.effective_from DESC`,
       ),

@@ -56,15 +56,45 @@ test("grade corrections, marker identity and metric refresh remain evidence driv
   assert.match(workerMain, /metricRefreshIntervalMs/);
 });
 
+test("academic evidence queries use the canonical people name schema", async () => {
+  const [query, commands] = await Promise.all([
+    source("../src/modules/academic-evidence/application/academic-evidence-query.service.ts"),
+    source("../src/modules/academic-evidence/application/academic-evidence.service.ts"),
+  ]);
+  assert.doesNotMatch(query, /p\.display_name/);
+  assert.match(query, /p\.preferred_name/);
+  assert.match(query, /p\.legal_given_names/);
+  assert.match(query, /p\.legal_family_name/);
+  assert.doesNotMatch(commands, /SELECT display_name FROM people/);
+});
+
+test("learner assignment lookup uses canonical database profile statuses", async () => {
+  const query = await source(
+    "../src/modules/academic-evidence/application/academic-evidence-query.service.ts",
+  );
+  assert.match(query, /lp\.status IN \('active','prospective'\)/);
+  assert.doesNotMatch(query, /lp\.status IN \('active','applicant'\)/);
+});
+
 test("Studio library and publication controls preserve structured evidence", async () => {
-  const [service, library, migration] = await Promise.all([
+  const [service, controller, dto, library, migration] = await Promise.all([
     source("../src/modules/studio/application/studio.service.ts"),
+    source("../src/modules/studio/http/studio.controller.ts"),
+    source("../src/modules/studio/application/studio.dto.ts"),
     source("../src/modules/studio/application/studio-library.service.ts"),
     source("../database/migrations/0028_result_release_and_studio_integrity.sql"),
   ]);
   assert.match(service, /rollbackOfSnapshotId/);
   assert.match(service, /studio_publication_snapshots/);
   assert.match(service, /accessibility_report/);
+  assert.match(service, /studio\.lesson\.editable-version-started/);
+  assert.match(service, /previousStatus: lesson\.status/);
+  assert.match(service, /const encoded = JSON\.stringify\(input\.blocks\)/);
+  assert.match(service, /revisionId,[\s\S]*?encoded,[\s\S]*?checksum/);
+  assert.match(service, /current\.rows\[0\]\?\.checksum_sha256 === checksum/);
+  assert.match(service, /unchanged: true/);
+  assert.match(controller, /lessons\/:lessonId\/editable-version/);
+  assert.match(dto, /class StartEditableLessonVersionDto/);
   assert.match(library, /studio_assets/);
   assert.match(library, /Meaningful images require alternative text/);
   assert.match(migration, /ready Studio asset evidence is immutable/);

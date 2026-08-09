@@ -106,15 +106,7 @@ export class CommunicationsController {
   }
 
   @Post("preferences")
-  updatePreference(
-    @Req() request: AuthenticatedRequest,
-    @Body() input: UpdateNotificationPreferenceDto,
-  ) {
-    this.authorization.assertPermission(
-      request,
-      permissions.tenantRead,
-      this.authorization.buildTenantResource(),
-    );
+  updatePreference(@Body() input: UpdateNotificationPreferenceDto) {
     return this.communications.updatePreference(input);
   }
 

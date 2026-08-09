@@ -22,13 +22,17 @@ test("release governance is control-plane owned and application evaluation is tr
 });
 
 test("release-governance inspection is operator guarded and contains no academic content joins", async () => {
-  const [controller, service] = await Promise.all([
+  const [controller, service, completion] = await Promise.all([
     source("../src/modules/platform-operations/http/control-plane-release-governance.controller.ts"),
     source("../src/modules/platform-operations/application/release-governance.service.ts"),
+    source("../src/modules/platform-operations/application/release-completion.service.ts"),
   ]);
   assert.match(controller, /PlatformOperatorGuard/);
   assert.match(controller, /ParseUUIDPipe/);
   assert.match(service, /release_rings/);
   assert.match(service, /tenant_release_assignments/);
+  assert.match(service, /GROUP BY ring\.key,ring\.display_name,ring\.description,ring\.sequence/);
+  assert.match(completion, /GROUP BY ring\.key,ring\.display_name,ring\.description,ring\.sequence/);
+  assert.match(completion, /GROUP BY target\.id,ring\.display_name,ring\.sequence/);
   assert.doesNotMatch(service, /learners|submissions|assessments|course_content|grades/i);
 });
