@@ -1,5 +1,15 @@
 import type { AnalyticsMetric, CertificateVerification } from "@veza/contracts";
 import { demoFixtureIds } from "./demo-workspace-data";
+import {
+  optionalString,
+  requireArray,
+  requireBoolean,
+  requireNumber,
+  requireOneOf,
+  requireRecord,
+  requireRecordArray,
+  requireString,
+} from "./json-contract";
 import { requestWorkspaceJson } from "./workspace-json-request";
 
 const baseUrl = process.env.VEZA_API_BASE_URL ?? "http://localhost:4000";
@@ -7,17 +17,18 @@ const maximumBytes = 2 * 1024 * 1024;
 const maximumPublicBytes = 128 * 1024;
 const uuid =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const certificateStatuses = ["issued", "revoked", "superseded"] as const;
 
 function demoMode(): boolean {
   return process.env.VEZA_DEMO_MODE === "true";
 }
 
-async function authenticated<T>(path: string): Promise<T> {
-  return (await requestWorkspaceJson(path, {
+function authenticated(path: string): Promise<unknown> {
+  return requestWorkspaceJson(path, {
     service: "Academic evidence service",
     maximumBytes,
     timeoutMs: 20_000,
-  })) as T;
+  });
 }
 
 export interface AcademicEvidenceWorkspace {
@@ -39,20 +50,91 @@ export interface LearnerAssignmentWorkspace {
   readonly generatedAt: string;
 }
 
-export function loadAcademicEvidenceWorkspace(
+function parseAcademicEvidenceWorkspace(value: unknown, institutionId: string): AcademicEvidenceWorkspace {
+  const record = requireRecord(value, "Academic evidence workspace");
+  const returnedInstitutionId = requireString(record.institutionId, "Academic evidence workspace institutionId");
+  if (returnedInstitutionId !== institutionId) {
+    throw new Error("Academic evidence workspace crossed the requested institution boundary");
+  }
+  return {
+    institutionId: returnedInstitutionId,
+    assignments: requireRecordArray(record.assignments, "Academic evidence assignments"),
+    submissions: requireRecordArray(record.submissions, "Academic evidence submissions"),
+    gradebooks: requireRecordArray(record.gradebooks, "Academic evidence gradebooks"),
+    certificates: requireRecordArray(record.certificates, "Academic evidence certificates"),
+    exports: requireRecordArray(record.exports, "Academic evidence exports"),
+    rubrics: requireRecordArray(record.rubrics, "Academic evidence rubrics"),
+    assignmentGroups: requireRecordArray(record.assignmentGroups, "Academic evidence assignment groups"),
+    certificateTemplates: requireRecordArray(record.certificateTemplates, "Academic evidence certificate templates"),
+    awardRules: requireRecordArray(record.awardRules, "Academic evidence award rules"),
+  };
+}
+
+function parseLearnerAssignmentWorkspace(value: unknown): LearnerAssignmentWorkspace {
+  const record = requireRecord(value, "Learner assignment workspace");
+  return {
+    learnerPersonId: requireString(record.learnerPersonId, "Learner assignment workspace learnerPersonId"),
+    assignments: requireRecordArray(record.assignments, "Learner assignment workspace assignments"),
+    generatedAt: requireString(record.generatedAt, "Learner assignment workspace generatedAt"),
+  };
+}
+
+function parseAnalyticsMetric(value: unknown, index: number): AnalyticsMetric {
+  const record = requireRecord(value, `Analytics metric[${index}]`);
+  return {
+    key: requireString(record.key, `Analytics metric[${index}].key`),
+    title: requireString(record.title, `Analytics metric[${index}].title`),
+    description: requireString(record.description, `Analytics metric[${index}].description`),
+    unit: requireString(record.unit, `Analytics metric[${index}].unit`),
+    value: requireNumber(record.value, `Analytics metric[${index}].value`),
+    measuredAt: requireString(record.measuredAt, `Analytics metric[${index}].measuredAt`),
+    sourceMaxOccurredAt: requireString(record.sourceMaxOccurredAt, `Analytics metric[${index}].sourceMaxOccurredAt`),
+    freshnessSeconds: requireNumber(record.freshnessSeconds, `Analytics metric[${index}].freshnessSeconds`),
+    drillthroughFilter: requireRecord(record.drillthroughFilter, `Analytics metric[${index}].drillthroughFilter`),
+  };
+}
+
+function parseCertificateVerification(value: unknown): CertificateVerification {
+  const record = requireRecord(value, "Certificate verification");
+  const valid = requireBoolean(record.valid, "Certificate verification valid");
+  const status = record.status === undefined || record.status === null
+    ? undefined
+    : requireOneOf(record.status, certificateStatuses, "Certificate verification status");
+  const issuedAt = optionalString(record.issuedAt, "Certificate verification issuedAt");
+  const learnerName = optionalString(record.learnerName, "Certificate verification learnerName");
+  const credentialTitle = optionalString(record.credentialTitle, "Certificate verification credentialTitle");
+  const revocationReason = optionalString(record.revocationReason, "Certificate verification revocationReason");
+  const payload = record.payload === undefined || record.payload === null
+    ? undefined
+    : requireRecord(record.payload, "Certificate verification payload");
+  return {
+    valid,
+    ...(status ? { status } : {}),
+    ...(issuedAt ? { issuedAt } : {}),
+    ...(learnerName ? { learnerName } : {}),
+    ...(credentialTitle ? { credentialTitle } : {}),
+    ...(revocationReason ? { revocationReason } : {}),
+    ...(payload ? { payload } : {}),
+  };
+}
+
+export async function loadAcademicEvidenceWorkspace(
   institutionId: string,
 ): Promise<AcademicEvidenceWorkspace> {
   if (!uuid.test(institutionId)) throw new Error("Institution identifier is invalid");
-  return authenticated<AcademicEvidenceWorkspace>(`/v1/institutions/${institutionId}/academic-evidence`);
+  return parseAcademicEvidenceWorkspace(
+    await authenticated(`/v1/institutions/${institutionId}/academic-evidence`),
+    institutionId,
+  );
 }
 
 export async function loadLearnerAssignments(): Promise<LearnerAssignmentWorkspace> {
   if (!demoMode()) {
-    return authenticated<LearnerAssignmentWorkspace>("/v1/learner/assignments");
+    return parseLearnerAssignmentWorkspace(await authenticated("/v1/learner/assignments"));
   }
 
   try {
-    const workspace = await authenticated<LearnerAssignmentWorkspace>("/v1/learner/assignments");
+    const workspace = parseLearnerAssignmentWorkspace(await authenticated("/v1/learner/assignments"));
     const assignments = workspace.assignments
       .filter((assignment) => assignment.status === "published")
       .map((assignment, index) => ({
@@ -86,12 +168,12 @@ export async function loadLearnerAssignments(): Promise<LearnerAssignmentWorkspa
   }
 }
 
-export function loadLearnerGradebook(
+export async function loadLearnerGradebook(
   courseRunId: string,
 ): Promise<Readonly<Record<string, unknown>>> {
   if (!uuid.test(courseRunId)) throw new Error("Course-run identifier is invalid");
   if (demoMode()) {
-    return Promise.resolve({
+    return {
       courseRunId,
       results: [
         {
@@ -117,23 +199,29 @@ export function loadLearnerGradebook(
           isMissing: false,
         },
       ],
-    });
+    };
   }
-  return authenticated<Readonly<Record<string, unknown>>>(`/v1/learner/gradebook/${courseRunId}`);
+  return requireRecord(await authenticated(`/v1/learner/gradebook/${courseRunId}`), "Learner gradebook");
 }
 
-export function loadStaffGradebook(
+export async function loadStaffGradebook(
   courseRunId: string,
 ): Promise<Readonly<Record<string, unknown>>> {
   if (!uuid.test(courseRunId)) throw new Error("Course-run identifier is invalid");
-  return authenticated<Readonly<Record<string, unknown>>>(`/v1/academic-evidence/gradebook/${courseRunId}/staff`);
+  return requireRecord(
+    await authenticated(`/v1/academic-evidence/gradebook/${courseRunId}/staff`),
+    "Staff gradebook",
+  );
 }
 
-export function loadInstitutionAnalytics(
+export async function loadInstitutionAnalytics(
   institutionId: string,
 ): Promise<readonly AnalyticsMetric[]> {
   if (!uuid.test(institutionId)) throw new Error("Institution identifier is invalid");
-  return authenticated<readonly AnalyticsMetric[]>(`/v1/academic-evidence/analytics?institutionId=${institutionId}`);
+  return requireArray(
+    await authenticated(`/v1/academic-evidence/analytics?institutionId=${institutionId}`),
+    "Institution analytics",
+  ).map(parseAnalyticsMetric);
 }
 
 export async function verifyCertificatePublic(
@@ -152,9 +240,9 @@ export async function verifyCertificatePublic(
   if (new TextEncoder().encode(text).byteLength > maximumPublicBytes) {
     return { valid: false };
   }
+  if (!response.ok) return { valid: false };
   try {
-    const body = JSON.parse(text) as CertificateVerification;
-    return response.ok ? body : { valid: false };
+    return parseCertificateVerification(JSON.parse(text));
   } catch {
     return { valid: false };
   }
