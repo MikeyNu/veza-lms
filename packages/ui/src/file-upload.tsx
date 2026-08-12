@@ -9,6 +9,7 @@ import {
   type InputHTMLAttributes,
   type ReactNode,
 } from "react";
+import { Icon } from "./icons.js";
 import { Button, IconButton } from "./primitives.js";
 import { cx } from "./utilities.js";
 
@@ -123,7 +124,7 @@ export function FileUpload({
             event.currentTarget.value = "";
           }}
         />
-        <div aria-hidden="true" className="vz-file-upload__icon">⇧</div>
+        <div aria-hidden="true" className="vz-file-upload__icon"><Icon name="upload" /></div>
         <p>{emptyText}</p>
         <Button variant="secondary" onClick={() => inputRef.current?.click()} disabled={disabled || remaining === 0}>Choose files</Button>
         <small>{accept ? `Accepted: ${accept}` : "All permitted file types"}{maximumSizeBytes ? ` · Maximum ${formatBytes(maximumSizeBytes)} each` : ""}</small>
@@ -135,14 +136,14 @@ export function FileUpload({
         <ul className="vz-file-upload__list" aria-label="Selected files">
           {items.map((item) => (
             <li key={item.id}>
-              <div className="vz-file-upload__file-icon" aria-hidden="true">▧</div>
+              <div className="vz-file-upload__file-icon" aria-hidden="true"><Icon name="file" /></div>
               <div className="vz-file-upload__file-copy">
                 <strong>{item.file.name}</strong>
                 <span>{formatBytes(item.file.size)} · {item.state ?? "selected"}</span>
                 {item.progress !== undefined ? <progress value={item.progress} max={100}>{item.progress}%</progress> : null}
                 {item.error ? <small role="alert">{item.error}</small> : null}
               </div>
-              {onRemove ? <IconButton label={`Remove ${item.file.name}`} icon={<span aria-hidden="true">×</span>} onClick={() => onRemove(item.id)} /> : null}
+              {onRemove ? <IconButton label={`Remove ${item.file.name}`} icon={<Icon name="close" size="small" />} onClick={() => onRemove(item.id)} /> : null}
             </li>
           ))}
         </ul>
