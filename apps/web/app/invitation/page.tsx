@@ -1,3 +1,4 @@
+import { Button, ButtonLink, Icon, Link as VezaLink } from "@veza/ui";
 import {
   IdentityGateway,
   IdentityStatus,
@@ -55,18 +56,17 @@ export default async function InvitationPage({
 
   return (
     <IdentityGateway
-      eyebrow="INSTITUTION INVITATION"
-      title="Join the institution through a verified identity and scoped membership."
+      context="Institution invitation"
+      title="Verify the invited identity before activating membership."
       description="Acceptance links one verified identity to one tenant membership and role scope. The token is consumed only after the identity email and invitation evidence match."
-      stage="Invitation acceptance"
-      aside={<><strong>Check the account before accepting.</strong><span>The signed-in email must be the same verified address that received the invitation. Acceptance cannot be transferred to another identity.</span></>}
+      aside={<><strong>Check the account before accepting.</strong><span>The signed-in email must be the verified address that received the invitation. Acceptance cannot be transferred to another identity.</span></>}
       footer={<>Invitation acceptance is atomic. Membership activation, role assignment, audit evidence and the activation event either commit together or do not commit.</>}
     >
       {error ? <IdentityStatus tone="danger" title={error.title}>{error.detail}</IdentityStatus> : null}
       {!valid ? (
         <div className="identity-action-stack">
           {!error ? <IdentityStatus tone="danger" title="Invitation details are invalid">Request a complete invitation link from your institution administrator.</IdentityStatus> : null}
-          <a className="identity-secondary" href="/sign-in">Return to sign-in</a>
+          <ButtonLink className="identity-full-action" variant="secondary" href="/sign-in">Return to sign-in</ButtonLink>
         </div>
       ) : (
         <>
@@ -80,17 +80,17 @@ export default async function InvitationPage({
               <form action="/api/invitations/accept" method="post" className="identity-action-stack">
                 <input type="hidden" name="invitationId" value={invitationId} />
                 <input type="hidden" name="token" value={token} />
-                <button className="identity-primary" type="submit">
-                  Accept invitation and open workspace <span aria-hidden="true">→</span>
-                </button>
+                <Button className="identity-full-action" type="submit" trailingIcon={<Icon name="arrow" />}>
+                  Accept invitation and open workspace
+                </Button>
               </form>
             ) : (
-              <a className="identity-primary" href={`/sign-in?returnTo=${encodeURIComponent(returnTo)}`}>
-                Sign in to verify this invitation <span aria-hidden="true">→</span>
-              </a>
+              <ButtonLink className="identity-full-action" href={`/sign-in?returnTo=${encodeURIComponent(returnTo)}`} trailingIcon={<Icon name="arrow" />}>
+                Sign in to verify this invitation
+              </ButtonLink>
             )}
-            {session ? <form action="/api/auth/sign-out" method="post"><button className="identity-secondary" type="submit">Use another identity</button></form> : null}
-            <a className="identity-text-link" href="/account-help">Invitation or account help</a>
+            {session ? <form action="/api/auth/sign-out" method="post"><Button className="identity-full-action" variant="secondary" type="submit">Use another identity</Button></form> : null}
+            <VezaLink variant="quiet" href="/account-help">Invitation or account help</VezaLink>
           </div>
         </>
       )}

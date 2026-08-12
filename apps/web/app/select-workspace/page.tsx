@@ -1,3 +1,4 @@
+import { Button, Icon } from "@veza/ui";
 import { redirect } from "next/navigation";
 import {
   IdentityGateway,
@@ -47,12 +48,11 @@ export default async function SelectWorkspacePage({
   const error = query.error ? errors[query.error] : undefined;
   return (
     <IdentityGateway
-      eyebrow="SELECT VERIFIED CONTEXT"
+      context="Workspace selection"
       title="Choose the membership that should govern this session."
-      description="Each option represents a membership resolved from your verified identity. Veza installs tenant context only after the selected membership is checked again server-side."
-      stage="Workspace selection"
+      description="Each option is resolved from your verified identity. Veza installs tenant context only after the selected membership is checked again server-side."
       aside={<><strong>Check the institution and role before continuing.</strong><span>The active workspace controls which records, actions and institutional terminology are available.</span></>}
-      footer={<form action="/api/auth/sign-out" method="post"><button className="identity-text-link" type="submit">Sign in with another account</button></form>}
+      footer={<form action="/api/auth/sign-out" method="post"><Button variant="quiet" type="submit">Sign in with another account</Button></form>}
     >
       {error ? <IdentityStatus tone="danger" title={error.title}>{error.detail}</IdentityStatus> : null}
       <div className="identity-workspace-list">
@@ -65,7 +65,7 @@ export default async function SelectWorkspacePage({
                 <strong>{workspace.tenant.displayName}</strong>
                 <small>{workspace.label} · {roleSummary(workspace.roles)}</small>
               </span>
-              <b aria-hidden="true">→</b>
+              <Icon name="arrow" size="small" />
             </button>
           </form>
         ))}

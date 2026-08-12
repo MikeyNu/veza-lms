@@ -1,12 +1,12 @@
+import { CheckIcon } from "@veza/ui";
 import type { ReactNode } from "react";
 import { BreadcrumbFallback } from "../route-breadcrumbs";
 
 export interface IdentityGatewayProps {
-  readonly eyebrow: string;
+  readonly context?: string;
   readonly title: string;
   readonly description: string;
   readonly children: ReactNode;
-  readonly stage?: string;
   readonly aside?: ReactNode;
   readonly footer?: ReactNode;
 }
@@ -20,26 +20,24 @@ export function IdentityBrandLockup() {
 }
 
 export function IdentityGateway({
-  eyebrow,
+  context,
   title,
   description,
   children,
-  stage,
   aside,
   footer,
 }: IdentityGatewayProps) {
   return (
     <main className="identity-gateway">
-      <section className="identity-story" aria-label="Veza LMS" data-stage={stage}>
+      <section className="identity-story" aria-label="Veza LMS">
         <div className="identity-story-inner">
           <header className="identity-story-header">
             <IdentityBrandLockup />
           </header>
           <div className="identity-story-copy">
-            <span className="identity-brand-rule" aria-hidden="true" />
-            <h1>Teach. Learn. Grow. Together.</h1>
+            <p className="identity-story-title">Verified access before institutional data.</p>
             <p>
-              Veza LMS is the all-in-one learning platform that empowers institutions to create engaging learning experiences, streamline operations, and enable every learner to achieve more.
+              Veza opens a workspace only after your institution's identity provider and membership checks establish the tenant, role and scope for the session.
             </p>
           </div>
         </div>
@@ -49,9 +47,9 @@ export function IdentityGateway({
         <div className="identity-action-shell">
           <BreadcrumbFallback variant="identity" />
           <header className="identity-action-heading">
-            <p>{eyebrow}</p>
-            <h2>{title}</h2>
-            <span>{description}</span>
+            {context ? <p className="identity-action-context">{context}</p> : null}
+            <h1>{title}</h1>
+            <p className="identity-action-description">{description}</p>
           </header>
           <div className="identity-action-content">{children}</div>
           {aside ? <aside className="identity-context-note">{aside}</aside> : null}
@@ -84,7 +82,7 @@ export function IdentitySteps({ items }: { readonly items: readonly { readonly l
     <ol className="identity-steps">
       {items.map((item, index) => (
         <li key={`${item.label}-${index}`} data-state={item.state ?? "upcoming"}>
-          <span>{item.state === "complete" ? "✓" : index + 1}</span>
+          <span aria-hidden="true">{item.state === "complete" ? <CheckIcon size={15} strokeWidth={2} /> : index + 1}</span>
           <div><strong>{item.label}</strong><small>{item.detail}</small></div>
         </li>
       ))}

@@ -1,3 +1,4 @@
+import { Button, ButtonLink, Link as VezaLink } from "@veza/ui";
 import { redirect } from "next/navigation";
 import {
   IdentityGateway,
@@ -14,10 +15,9 @@ export default async function AccessPendingPage() {
 
   return (
     <IdentityGateway
-      eyebrow="IDENTITY VERIFIED"
-      title="No active institutional membership is available yet."
-      description="Sign-in completed successfully, but Veza did not find a current membership that can establish tenant context. No institutional records have been opened."
-      stage="Access pending"
+      context="Access pending"
+      title="Your identity is verified, but no active membership is available."
+      description="Sign-in completed successfully. Veza did not find a current membership that can establish tenant context, so no institutional records have been opened."
       aside={<><strong>Membership is controlled by your institution.</strong><span>Only an authorised institution administrator can issue, reactivate or change your membership and role scope.</span></>}
       footer={<>Signing out clears the current identity session but does not cancel or change an invitation.</>}
     >
@@ -30,10 +30,10 @@ export default async function AccessPendingPage() {
         { label: "Workspace selection", detail: "After activation, sign in again and choose the verified workspace." },
       ]} />
       <div className="identity-action-stack">
-        <a className="identity-secondary" href="/select-workspace">Check memberships again</a>
-        <a className="identity-text-link" href="/account-help">Review access guidance</a>
+        <ButtonLink className="identity-full-action" variant="secondary" href="/select-workspace">Check memberships again</ButtonLink>
+        <VezaLink variant="quiet" href="/account-help">Review access guidance</VezaLink>
         <form action="/api/auth/sign-out" method="post">
-          <button className="identity-secondary" type="submit">Sign out</button>
+          <Button className="identity-full-action" variant="secondary" type="submit">Sign out</Button>
         </form>
       </div>
     </IdentityGateway>

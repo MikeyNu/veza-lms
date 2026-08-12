@@ -1,3 +1,4 @@
+import { Button, ButtonLink, Field, Icon, Link as VezaLink, TextInput } from "@veza/ui";
 import { secureReturnTo } from "@veza/oidc-bff";
 import { redirect } from "next/navigation";
 import {
@@ -43,25 +44,23 @@ export default async function SignInPage({
 
   return (
     <IdentityGateway
-      eyebrow="SECURE INSTITUTION SIGN-IN"
-      title="Enter the workspace your institution governs."
-      description="Veza uses the identity provider selected by your institution. Your password, MFA method and recovery credentials never pass through this application."
-      stage="Identity gateway"
-      aside={<><strong>Need access instead of account recovery?</strong><span>Your institution administrator controls memberships and role scope. Veza support cannot grant access to institutional records.</span></>}
-      footer={<>By continuing, you enter the identity and access policy configured by your institution. Veza records only the verified identity claims required to resolve your memberships.</>}
+      context="Institution sign-in"
+      title="Sign in to your institution workspace."
+      description="Your institution's identity provider verifies your account. Veza receives only the verified claims needed to resolve your memberships and access scope."
+      aside={<><strong>Need access rather than account recovery?</strong><span>Your institution administrator controls memberships and role scope. Veza support cannot grant access to institutional records.</span></>}
+      footer={<>By continuing, you enter the identity and access policy configured by your institution.</>}
     >
       {error ? <IdentityStatus tone="danger" title={error.title}>{error.detail}</IdentityStatus> : null}
       <div className="identity-action-stack">
-        <a className="identity-primary" href={signInPath}>
-          Continue with institution sign-in <span aria-hidden="true">→</span>
-        </a>
+        <ButtonLink className="identity-full-action" href={signInPath} trailingIcon={<Icon name="arrow" />}>
+          Continue with institution sign-in
+        </ButtonLink>
       </div>
-      <div className="identity-divider"><span>or identify your account</span></div>
+      <div className="identity-divider"><span>or use an email hint</span></div>
       <form action="/api/auth/sign-in" method="get" className="identity-action-stack">
         {returnTo !== "/" ? <input type="hidden" name="returnTo" value={returnTo} /> : null}
-        <label className="identity-field">
-          <span>Institution email address</span>
-          <input
+        <Field label="Institution email address">
+          <TextInput
             name="email"
             type="email"
             autoComplete="email"
@@ -69,12 +68,12 @@ export default async function SignInPage({
             placeholder="you@institution.edu"
             maxLength={320}
           />
-        </label>
-        <button className="identity-secondary" type="submit">Continue with email hint</button>
+        </Field>
+        <Button className="identity-full-action" variant="secondary" type="submit">Continue with email hint</Button>
       </form>
       <div className="identity-compact-actions">
-        <a className="identity-text-link" href="/account-help">Trouble signing in?</a>
-        <a className="identity-text-link" href="/reset-password">Reset password</a>
+        <VezaLink variant="quiet" href="/account-help">Trouble signing in?</VezaLink>
+        <VezaLink variant="quiet" href="/reset-password">Reset password</VezaLink>
       </div>
     </IdentityGateway>
   );
