@@ -57,9 +57,9 @@ export async function PATCH(request: NextRequest) {
     signal: AbortSignal.timeout(30_000),
   });
   const returnedOffset = Number(response.headers.get("x-upload-offset") ?? offset + chunk.byteLength);
-  if (!response.ok || !Number.isSafeInteger(returnedOffset) || returnedOffset < offset || returnedOffset > total) {
+  if (!response.ok || !Number.isSafeInteger(returnedOffset) || returnedOffset <= offset || returnedOffset > total) {
     return NextResponse.json(
-      { message: "Object-storage ingest did not acknowledge the upload chunk." },
+      { message: "Object-storage ingest did not acknowledge forward upload progress." },
       { status: 502, headers: noStore },
     );
   }
