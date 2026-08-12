@@ -46,7 +46,6 @@
 @import "../styles/brand-ci-governance.css" layer(veza-reference);
 @import "../styles/demo-mode.css" layer(veza-reference);
 @import "../styles/system-reference-hardening.css" layer(veza-reference);
-@import "../styles/learner-reference.css" layer(veza-reference);
 @import "../styles/calendar-reference.css" layer(veza-reference);
 @import "../styles/analytics-reference.css" layer(veza-reference);
 @import "../styles/studio-reference.css" layer(veza-reference);

@@ -2,7 +2,6 @@ import type { BaselineRoleKey, WorkspaceSession } from "@veza/contracts";
 import { ButtonLink } from "@veza/ui";
 import type { Route } from "next";
 import { Icon } from "../../components/icon";
-import { DashboardOverview } from "../dashboard/dashboard-overview";
 import { primaryRole, workspaceLabel } from "./navigation";
 
 function humanize(value: string): string {
@@ -35,14 +34,13 @@ function nextStepFor(role: BaselineRoleKey, session: WorkspaceSession): NextStep
   if (role === "registrar") return { title: "Review people and enrolment controls", description: "Manage authoritative person records, enrolment evidence and academic operations within the institution boundary.", href: "/people", action: "Open people" };
   if (role === "curriculum-manager" || role === "course-manager") return { title: "Review the academic catalogue", description: "Programme, course and delivery structures are governed from the learning workspace.", href: "/learning", action: "Open learning" };
   if (role === "instructor") return { title: "Open your teaching workspace", description: "Review assigned learning delivery, learner activity and published course structure.", href: "/learning", action: "Open classes" };
-  if (role === "learner") return { title: "Continue your learning", description: "Resume published course work and review the next activity that needs attention.", href: "/learning", action: "Open my learning" };
   if (role === "assessor" || role === "moderator") return { title: "Review assessment work", description: "Assessment access is limited to the marking, moderation and release responsibilities assigned to this membership.", href: "/assessments", action: "Open assessments" };
   if (role === "guardian-sponsor") return { title: "Review learner information", description: "A learner summary appears only when an active relationship and disclosure policy permit access.", href: "/insights", action: "View learner summary" };
   if (role === "auditor") return { title: "Review the tenant evidence boundary", description: "Audit evidence is available only within this verified tenant context and remains read-only.", href: "/evidence", action: "Open evidence room" };
   return { title: "Review scoped support access", description: "Tenant content remains unavailable unless an approved support case grants a time-bounded diagnostic scope.", href: "/support", action: "Open support cases" };
 }
 
-function TenantFoundationOverview({ session }: { session: WorkspaceSession }) {
+export function WorkspaceHome({ session }: { session: WorkspaceSession }) {
   const role = primaryRole(session);
   const enabledModules = session.entitlements.filter((item) => item.state !== "disabled");
   const nextStep = nextStepFor(role, session);
@@ -109,11 +107,4 @@ function TenantFoundationOverview({ session }: { session: WorkspaceSession }) {
       </section>
     </section>
   );
-}
-
-export function WorkspaceHome({ session, demo }: { session: WorkspaceSession; demo: boolean }) {
-  const role = primaryRole(session);
-  return demo && role === "learner"
-    ? <DashboardOverview session={session}/>
-    : <TenantFoundationOverview session={session}/>;
 }
