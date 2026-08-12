@@ -79,6 +79,10 @@ function responseId(record: Readonly<Record<string, unknown>>, label: string): s
   return id;
 }
 
+function fileKey(file: File): string {
+  return `${file.name}:${file.size}:${file.lastModified}`;
+}
+
 async function checksum(file: File): Promise<string> {
   const digest = await crypto.subtle.digest("SHA-256", await file.arrayBuffer());
   return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
@@ -164,6 +168,7 @@ export function LearnerAssignmentPanel({
   const [failure, setFailure] = useState<string | null>(null);
   const [working, setWorking] = useState(false);
   const selected = assignments.find((assignment) => value(assignment, "id") === selectedId);
+  const fileItems = files.map((file) => ({ id: fileKey(file), file, state: "selected" as const }));
 
   const selectAssignment = (id: string) => {
     setSelectedId(id);
@@ -271,7 +276,17 @@ export function LearnerAssignmentPanel({
 
               <form onSubmit={submit} className={styles.submissionForm}>
                 <Field label="Submission text" description="Use text when the response can be submitted without an attachment."><Textarea name="text" rows={7} maxLength={100000} placeholder="Write or paste your response" disabled={working}/></Field>
-                <FileUpload files={files} onFilesChange={setFiles} multiple={false} maxFiles={1} accept={stringArray(selected, "allowedFormats").join(",") || undefined} label="Submission file" hint="Choose one file instead of submission text. Uploads are scanned before final submission." disabled={working}/>
+                <FileUpload
+                  label="Submission file"
+                  description="Choose one file instead of submission text. Uploads are scanned before final submission."
+                  items={fileItems}
+                  onFilesSelected={(selectedFiles) => setFiles(selectedFiles.slice(0, 1))}
+                  onRemove={(id) => setFiles((current) => current.filter((file) => fileKey(file) !== id))}
+                  maximumFiles={1}
+                  multiple={false}
+                  disabled={working}
+                  {...(stringArray(selected, "allowedFormats").length ? { accept: stringArray(selected, "allowedFormats").join(",") } : {})}
+                />
                 {failure ? <p className={styles.failure} role="alert">{failure}</p> : null}
                 {message ? <p className={styles.status} role="status" aria-live="polite">{message}</p> : null}
                 <Button type="submit" loading={working}>Create submission attempt</Button>
