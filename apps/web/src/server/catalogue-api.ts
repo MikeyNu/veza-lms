@@ -4,19 +4,26 @@ import type {
   CurriculumAnalysis,
   CurriculumHistory,
 } from "@veza/contracts";
+import {
+  parseCatalogueReferences,
+  parseCatalogueWorkspace,
+  parseCurriculumAnalysis,
+  parseCurriculumHistory,
+  parseCurriculumSubmission,
+} from "./catalogue-api-contracts";
 import { requestWorkspaceJson } from "./workspace-json-request";
 
 const maximumBytes = 2 * 1024 * 1024;
 const uuid =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
-async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  return (await requestWorkspaceJson(path, {
+async function request(path: string, init?: RequestInit): Promise<unknown> {
+  return requestWorkspaceJson(path, {
     service: "Catalogue service",
     maximumBytes,
     timeoutMs: 15_000,
     ...(init ? { init } : {}),
-  })) as T;
+  });
 }
 
 function institutionPath(institutionId: string): string {
@@ -28,14 +35,14 @@ function requireVersionId(versionId: string): void {
   if (!uuid.test(versionId)) throw new Error("Curriculum version identifier is invalid");
 }
 
-export function loadCatalogue(institutionId: string): Promise<CatalogueWorkspace> {
-  return request<CatalogueWorkspace>(institutionPath(institutionId));
+export async function loadCatalogue(institutionId: string): Promise<CatalogueWorkspace> {
+  return parseCatalogueWorkspace(await request(institutionPath(institutionId)), institutionId);
 }
 
-export function loadCatalogueReferences(
+export async function loadCatalogueReferences(
   institutionId: string,
 ): Promise<CatalogueReferences> {
-  return request<CatalogueReferences>(`${institutionPath(institutionId)}/references`);
+  return parseCatalogueReferences(await request(`${institutionPath(institutionId)}/references`));
 }
 
 export function mutateCatalogue(
@@ -72,19 +79,21 @@ export function approveCurriculum(
   });
 }
 
-export function analyseCurriculum(
+export async function analyseCurriculum(
   institutionId: string,
   kind: "programmes" | "blueprints",
   versionId: string,
 ): Promise<CurriculumAnalysis> {
   requireVersionId(versionId);
-  return request<CurriculumAnalysis>(
-    `${institutionPath(institutionId)}/${kind}/versions/${versionId}/analysis`,
-    { method: "POST", body: "{}" },
+  return parseCurriculumAnalysis(
+    await request(`${institutionPath(institutionId)}/${kind}/versions/${versionId}/analysis`, {
+      method: "POST",
+      body: "{}",
+    }),
   );
 }
 
-export function submitCurriculum(
+export async function submitCurriculum(
   institutionId: string,
   kind: "programmes" | "blueprints",
   versionId: string,
@@ -97,23 +106,22 @@ export function submitCurriculum(
   validation: CurriculumAnalysis["validation"];
 }> {
   requireVersionId(versionId);
-  return request(
-    `${institutionPath(institutionId)}/${kind}/versions/${versionId}/submit`,
-    {
+  return parseCurriculumSubmission(
+    await request(`${institutionPath(institutionId)}/${kind}/versions/${versionId}/submit`, {
       method: "POST",
       body: JSON.stringify({ expectedVersion }),
-    },
+    }),
   );
 }
 
-export function loadCurriculumHistory(
+export async function loadCurriculumHistory(
   institutionId: string,
   kind: "programmes" | "blueprints",
   versionId: string,
 ): Promise<CurriculumHistory> {
   requireVersionId(versionId);
-  return request<CurriculumHistory>(
-    `${institutionPath(institutionId)}/${kind}/versions/${versionId}/history`,
+  return parseCurriculumHistory(
+    await request(`${institutionPath(institutionId)}/${kind}/versions/${versionId}/history`),
   );
 }
 
@@ -145,10 +153,10 @@ export function approveCurriculumValidationPolicy(
   input: unknown,
 ): Promise<unknown> {
   if (!uuid.test(policyId)) throw new Error("Validation policy identifier is invalid");
-  return request(
-    `${institutionPath(institutionId)}/validation-policies/${policyId}/approve`,
-    { method: "POST", body: JSON.stringify(input) },
-  );
+  return request(`${institutionPath(institutionId)}/validation-policies/${policyId}/approve`, {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
 }
 
 export function transferEnrolment(
@@ -192,13 +200,11 @@ export function linkProgrammeCourse(
   programmeVersionId: string,
   input: unknown,
 ): Promise<unknown> {
-  if (!uuid.test(programmeVersionId)) {
-    throw new Error("Programme version identifier is invalid");
-  }
-  return request(
-    `${institutionPath(institutionId)}/programmes/versions/${programmeVersionId}/courses`,
-    { method: "POST", body: JSON.stringify(input) },
-  );
+  if (!uuid.test(programmeVersionId)) throw new Error("Programme version identifier is invalid");
+  return request(`${institutionPath(institutionId)}/programmes/versions/${programmeVersionId}/courses`, {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
 }
 
 export function addCourseRequisite(
@@ -206,13 +212,11 @@ export function addCourseRequisite(
   blueprintVersionId: string,
   input: unknown,
 ): Promise<unknown> {
-  if (!uuid.test(blueprintVersionId)) {
-    throw new Error("Blueprint version identifier is invalid");
-  }
-  return request(
-    `${institutionPath(institutionId)}/blueprints/versions/${blueprintVersionId}/requisites`,
-    { method: "POST", body: JSON.stringify(input) },
-  );
+  if (!uuid.test(blueprintVersionId)) throw new Error("Blueprint version identifier is invalid");
+  return request(`${institutionPath(institutionId)}/blueprints/versions/${blueprintVersionId}/requisites`, {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
 }
 
 export function allocateClassStaff(
@@ -236,20 +240,10 @@ export function governCatalogue(
 ): Promise<unknown> {
   if (!uuid.test(resourceId)) throw new Error("Academic resource identifier is invalid");
   const route = `${resource}:${action}`;
-  if (route === "programme-versions:courses") {
-    return linkProgrammeCourse(institutionId, resourceId, input);
-  }
-  if (route === "blueprint-versions:requisites") {
-    return addCourseRequisite(institutionId, resourceId, input);
-  }
-  if (route === "runs:lifecycle") {
-    return transitionCourseRun(institutionId, resourceId, input);
-  }
-  if (route === "enrolments:status") {
-    return transitionEnrolment(institutionId, resourceId, input);
-  }
-  if (route === "classes:staff") {
-    return allocateClassStaff(institutionId, resourceId, input);
-  }
+  if (route === "programme-versions:courses") return linkProgrammeCourse(institutionId, resourceId, input);
+  if (route === "blueprint-versions:requisites") return addCourseRequisite(institutionId, resourceId, input);
+  if (route === "runs:lifecycle") return transitionCourseRun(institutionId, resourceId, input);
+  if (route === "enrolments:status") return transitionEnrolment(institutionId, resourceId, input);
+  if (route === "classes:staff") return allocateClassStaff(institutionId, resourceId, input);
   throw new Error("Academic governance operation is not allowed");
 }
