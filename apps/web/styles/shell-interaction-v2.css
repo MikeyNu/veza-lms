@@ -78,7 +78,7 @@
   align-items: center;
   gap: 0.7rem;
   padding-inline: 0.75rem;
-  border-radius: 0.5rem;
+  border-radius: var(--veza-radius-control);
 }
 
 .shell .nav-link__icon {
@@ -156,26 +156,25 @@
   translate: 0 -50%;
   place-items: center;
   padding: 0;
-  border: 1px solid rgb(148 163 184 / 0.22);
-  border-radius: 999px;
-  background: rgb(15 23 42 / 0.68);
-  color: rgb(226 232 240 / 0.72);
-  box-shadow: 0 2px 7px rgb(2 6 23 / 0.08);
+  border: 1px solid var(--veza-sidebar-line);
+  border-radius: var(--veza-radius-control);
+  background: var(--veza-sidebar);
+  color: var(--veza-sidebar-muted);
+  box-shadow: var(--veza-shadow-panel);
   cursor: pointer;
-  backdrop-filter: blur(6px);
   transition: background-color var(--veza-motion-fast) var(--veza-ease), color var(--veza-motion-fast) var(--veza-ease), border-color var(--veza-motion-fast) var(--veza-ease);
 }
 
 .shell .sidebar-collapse:hover,
 .shell .sidebar-collapse:focus-visible {
-  border-color: rgb(199 210 254 / 0.42);
-  background: rgb(30 41 59 / 0.9);
-  color: white;
+  border-color: var(--veza-line-emphasis);
+  background: var(--veza-slate-800);
+  color: var(--veza-white);
 }
 
 .shell .sidebar-collapse:focus-visible {
   outline: 0;
-  box-shadow: 0 0 0 3px rgb(99 102 241 / 0.3);
+  box-shadow: var(--veza-focus);
 }
 
 .shell .institution {
