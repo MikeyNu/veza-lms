@@ -170,6 +170,10 @@ export const Link = forwardRef<HTMLAnchorElement, LinkProps>(function Link(
         <span className="vz-link__external" aria-hidden="true">
           <Icon name="external-link" size="small" />
         </span>
+      ) : variant === "standalone" ? (
+        <span className="vz-link__standalone-icon" aria-hidden="true">
+          <Icon name="arrow-right" size="small" />
+        </span>
       ) : null}
     </a>
   );
