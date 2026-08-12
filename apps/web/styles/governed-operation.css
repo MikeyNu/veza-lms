@@ -1,0 +1,57 @@
+.governed-action-panel {
+  border-bottom: 1px solid var(--veza-line);
+}
+
+.governed-action-panel:last-child {
+  border-bottom: 0;
+}
+
+.governed-action-panel summary {
+  display: flex;
+  min-height: 3.75rem;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--veza-space-4);
+  padding: var(--veza-space-4) var(--veza-space-5);
+  cursor: pointer;
+  list-style: none;
+}
+
+.governed-action-panel summary::-webkit-details-marker {
+  display: none;
+}
+
+.governed-action-panel summary small,
+.governed-action-panel summary strong {
+  display: block;
+}
+
+.governed-action-panel summary small {
+  color: var(--veza-muted);
+  font-size: var(--veza-text-xs);
+  font-weight: var(--veza-weight-semibold);
+}
+
+.governed-action-panel summary strong {
+  margin-top: var(--veza-space-1);
+  color: var(--veza-ink);
+}
+
+.governed-action-panel summary > svg {
+  flex: none;
+  color: var(--veza-muted);
+  transition: rotate var(--veza-motion-fast) var(--veza-ease);
+}
+
+.governed-action-panel[open] summary > svg {
+  rotate: 45deg;
+}
+
+.governed-action-panel__body {
+  border-top: 1px solid var(--veza-line);
+}
+
+.governed-action-panel .people-error,
+.governed-action-panel .catalogue-error {
+  margin: 0;
+}
