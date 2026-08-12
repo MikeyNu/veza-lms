@@ -1,3 +1,9 @@
+import {
+  requireRecord,
+  requireRecordArray,
+  requireString,
+  type JsonRecord,
+} from "./json-contract";
 import { requestWorkspaceJson } from "./workspace-json-request";
 
 const maximumBytes = 512 * 1024;
@@ -127,33 +133,59 @@ function demoRecipientCommunicationsWorkspace(): RecipientCommunicationsWorkspac
   };
 }
 
-async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  return (await requestWorkspaceJson(path, {
+async function request(path: string, init?: RequestInit): Promise<unknown> {
+  return requestWorkspaceJson(path, {
     service: "Communications service",
     maximumBytes,
     timeoutMs: 20_000,
     ...(init ? { init } : {}),
-  })) as T;
+  });
+}
+
+function parseWorkspace(value: unknown): CommunicationsWorkspace {
+  const record = requireRecord(value, "Communications workspace");
+  return {
+    tenantId: requireString(record.tenantId, "Communications workspace.tenantId"),
+    generatedAt: requireString(record.generatedAt, "Communications workspace.generatedAt"),
+    templates: requireRecordArray(record.templates, "Communications workspace.templates"),
+    senders: requireRecordArray(record.senders, "Communications workspace.senders"),
+    preferences: requireRecordArray(record.preferences, "Communications workspace.preferences"),
+    recentDeliveries: requireRecordArray(record.recentDeliveries, "Communications workspace.recentDeliveries"),
+    activeSuppressions: requireRecordArray(record.activeSuppressions, "Communications workspace.activeSuppressions"),
+  };
+}
+
+function parseRecipientWorkspace(value: unknown): RecipientCommunicationsWorkspace {
+  const record = requireRecord(value, "Recipient communications workspace");
+  return {
+    generatedAt: requireString(record.generatedAt, "Recipient communications workspace.generatedAt"),
+    preferences: requireRecordArray(record.preferences, "Recipient communications workspace.preferences"),
+    notifications: requireRecordArray(record.notifications, "Recipient communications workspace.notifications"),
+  };
 }
 
 export function loadCommunicationsWorkspace(): Promise<CommunicationsWorkspace> {
-  return request<CommunicationsWorkspace>("/v1/communications/workspace").catch((error: unknown) => {
-    if (demoMode()) return demoCommunicationsWorkspace();
-    throw error;
-  });
+  return request("/v1/communications/workspace")
+    .then(parseWorkspace)
+    .catch((error: unknown) => {
+      if (demoMode()) return demoCommunicationsWorkspace();
+      throw error;
+    });
 }
 
 export function loadRecipientCommunicationsWorkspace(): Promise<RecipientCommunicationsWorkspace> {
-  return request<RecipientCommunicationsWorkspace>("/v1/communications/recipient-workspace").catch((error: unknown) => {
-    if (demoMode()) return demoRecipientCommunicationsWorkspace();
-    throw error;
-  });
+  return request("/v1/communications/recipient-workspace")
+    .then(parseRecipientWorkspace)
+    .catch((error: unknown) => {
+      if (demoMode()) return demoRecipientCommunicationsWorkspace();
+      throw error;
+    });
 }
 
-export function mutateCommunications(
+export async function mutateCommunications(
   operation: string,
   input: Readonly<Record<string, unknown>>,
-): Promise<Readonly<Record<string, unknown>>> {
+): Promise<JsonRecord> {
   const direct: Readonly<Record<string, string>> = {
     "template-create": "/v1/communications/templates",
     "sender-create": "/v1/communications/senders",
@@ -166,18 +198,13 @@ export function mutateCommunications(
   const senderVerify = operation.match(/^sender-verify:([0-9a-f-]{36})$/i);
   const path =
     direct[operation] ??
-    (versionCreate
-      ? `/v1/communications/templates/${versionCreate[1]}/versions`
-      : undefined) ??
-    (versionSubmit
-      ? `/v1/communications/template-versions/${versionSubmit[1]}/submit`
-      : undefined) ??
-    (versionApprove
-      ? `/v1/communications/template-versions/${versionApprove[1]}/approve`
-      : undefined) ??
-    (senderVerify
-      ? `/v1/communications/senders/${senderVerify[1]}/verify`
-      : undefined);
+    (versionCreate ? `/v1/communications/templates/${versionCreate[1]}/versions` : undefined) ??
+    (versionSubmit ? `/v1/communications/template-versions/${versionSubmit[1]}/submit` : undefined) ??
+    (versionApprove ? `/v1/communications/template-versions/${versionApprove[1]}/approve` : undefined) ??
+    (senderVerify ? `/v1/communications/senders/${senderVerify[1]}/verify` : undefined);
   if (!path) throw new Error("Communications operation is invalid");
-  return request<Readonly<Record<string, unknown>>>(path, { method: "POST", body: JSON.stringify(input) });
+  return requireRecord(
+    await request(path, { method: "POST", body: JSON.stringify(input) }),
+    "Communications mutation response",
+  );
 }
