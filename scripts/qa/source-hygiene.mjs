@@ -10,6 +10,7 @@ const roots = [
   "packages/ui/src",
 ];
 const sourceExtensions = new Set([".css", ".js", ".mjs", ".ts", ".tsx"]);
+const serverAdapterPath = /^apps\/web\/src\/server\//;
 
 const checks = [
   {
@@ -36,6 +37,18 @@ const checks = [
     id: "unsafe-double-cast",
     message: "Validate external data instead of casting through unknown.",
     pattern: /\bas\s+unknown\s+as\b/g,
+  },
+  {
+    id: "server-any",
+    message: "Server adapters must preserve unknown at transport boundaries instead of opting out with any.",
+    pattern: /\bany\b/g,
+    includePath: serverAdapterPath,
+  },
+  {
+    id: "server-generic-response-assertion",
+    message: "Server adapters must parse unknown responses instead of asserting an arbitrary generic T.",
+    pattern: /\bas\s+T\b/g,
+    includePath: serverAdapterPath,
   },
   {
     id: "unicode-product-icon-css",
@@ -80,14 +93,16 @@ const findings = [];
 
 for (const file of files) {
   const source = await readFile(file, "utf8");
+  const path = relative(repositoryRoot, file).replaceAll("\\", "/");
   for (const check of checks) {
+    if (check.includePath && !check.includePath.test(path)) continue;
     check.pattern.lastIndex = 0;
     for (const match of source.matchAll(check.pattern)) {
       const location = lineAndColumn(source, match.index ?? 0);
       findings.push({
         check: check.id,
         message: check.message,
-        path: relative(repositoryRoot, file).replaceAll("\\", "/"),
+        path,
         line: location.line,
         column: location.column,
         excerpt: match[0].replaceAll("\n", " ").slice(0, 120),
