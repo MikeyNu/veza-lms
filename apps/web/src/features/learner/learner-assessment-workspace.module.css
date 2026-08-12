@@ -1,0 +1,384 @@
+.workspace,
+.finalization {
+  width: min(100%, var(--veza-content-max));
+  margin-inline: auto;
+  padding: 1.5rem clamp(1rem, 2vw, 1.75rem) 0;
+}
+
+.workspaceHeader,
+.gradebook > header,
+.finalization > header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1.5rem;
+  padding-bottom: 0.9rem;
+  border-bottom: 1px solid var(--veza-line);
+}
+
+.context {
+  margin: 0 0 0.25rem;
+  color: var(--veza-indigo-600);
+  font-size: var(--veza-text-sm);
+  font-weight: var(--veza-weight-medium);
+}
+
+.workspaceHeader h2,
+.gradebook h2,
+.finalization h2 {
+  margin: 0;
+  color: var(--veza-ink);
+  font-size: 1.3rem;
+  line-height: 1.25;
+  letter-spacing: -0.025em;
+}
+
+.workspaceHeader p:last-child,
+.gradebook > header p:last-child,
+.finalization > header p:last-child {
+  max-width: 45rem;
+  margin: 0.35rem 0 0;
+  color: var(--veza-muted);
+  font-size: var(--veza-text-sm);
+  line-height: 1.5;
+}
+
+.workspaceHeader > span,
+.gradebook > header > span,
+.finalization > header > span {
+  color: var(--veza-muted);
+  font-size: var(--veza-text-sm);
+  white-space: nowrap;
+}
+
+.assignmentGrid {
+  display: grid;
+  grid-template-columns: 17rem minmax(0, 1fr);
+  min-height: 32rem;
+  border-bottom: 1px solid var(--veza-line);
+}
+
+.assignmentNav {
+  min-width: 0;
+  padding: 0.75rem 0.85rem 0.75rem 0;
+  border-right: 1px solid var(--veza-line);
+}
+
+.assignmentNav button {
+  width: 100%;
+  display: grid;
+  gap: 0.18rem;
+  padding: 0.72rem 0.7rem;
+  border: 0;
+  border-radius: var(--veza-radius-control);
+  background: transparent;
+  color: var(--veza-ink);
+  cursor: pointer;
+  text-align: left;
+}
+
+.assignmentNav button:hover {
+  background: var(--veza-surface-muted);
+}
+
+.assignmentNav button:focus-visible {
+  outline: 0;
+  box-shadow: var(--veza-focus);
+}
+
+.assignmentNav button.activeAssignment {
+  background: var(--veza-surface-selected);
+  color: var(--veza-indigo-700);
+}
+
+.assignmentNav span,
+.assignmentNav time {
+  color: var(--veza-muted);
+  font-size: var(--veza-text-xs);
+}
+
+.assignmentNav strong {
+  font-size: var(--veza-text-sm);
+  line-height: 1.35;
+}
+
+.assignmentDetail {
+  min-width: 0;
+  padding: 1.25rem 0 1.5rem 1.5rem;
+}
+
+.assignmentDetail > header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.assignmentDetail h3 {
+  margin: 0;
+  color: var(--veza-ink);
+  font-size: 1.4rem;
+  line-height: 1.2;
+  letter-spacing: -0.025em;
+}
+
+.assignmentDetail > header > span {
+  color: var(--veza-muted);
+  font-size: var(--veza-text-xs);
+  white-space: nowrap;
+}
+
+.instructions,
+.feedback,
+.submissionForm {
+  margin-top: 1.25rem;
+  padding-top: 1.1rem;
+  border-top: 1px solid var(--veza-line);
+}
+
+.instructions h4 {
+  margin: 0 0 0.65rem;
+  color: var(--veza-ink);
+  font-size: var(--veza-text-sm);
+}
+
+.structuredRecord {
+  display: grid;
+  gap: 0.7rem;
+  margin: 0;
+}
+
+.structuredRecord > div {
+  display: grid;
+  grid-template-columns: minmax(8rem, 0.35fr) minmax(0, 1fr);
+  gap: 1rem;
+}
+
+.structuredRecord dt {
+  color: var(--veza-muted);
+  font-size: var(--veza-text-xs);
+  font-weight: var(--veza-weight-medium);
+}
+
+.structuredRecord dd {
+  margin: 0;
+  color: var(--veza-ink);
+  font-size: var(--veza-text-sm);
+  line-height: 1.5;
+}
+
+.structuredList {
+  margin: 0;
+  padding-left: 1.15rem;
+}
+
+.structuredList li + li {
+  margin-top: 0.25rem;
+}
+
+.muted,
+.groupLine {
+  color: var(--veza-muted);
+  font-size: var(--veza-text-sm);
+}
+
+.groupLine {
+  margin: 1rem 0 0;
+}
+
+.receipt {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin: 1.2rem 0 0;
+  border-top: 1px solid var(--veza-line);
+  border-left: 1px solid var(--veza-line);
+}
+
+.receipt > div {
+  min-width: 0;
+  padding: 0.75rem;
+  border-right: 1px solid var(--veza-line);
+  border-bottom: 1px solid var(--veza-line);
+}
+
+.receipt dt {
+  color: var(--veza-muted);
+  font-size: var(--veza-text-xs);
+}
+
+.receipt dd {
+  margin: 0.25rem 0 0;
+  overflow-wrap: anywhere;
+  color: var(--veza-ink);
+  font-size: var(--veza-text-xs);
+}
+
+.receipt code {
+  font-family: var(--veza-font-mono);
+}
+
+.feedback {
+  display: grid;
+  grid-template-columns: 8rem minmax(0, 1fr);
+  gap: 1rem;
+}
+
+.feedback > div > strong {
+  display: block;
+  font-size: 1.5rem;
+}
+
+.submissionForm {
+  display: grid;
+  gap: 1rem;
+}
+
+.failure,
+.status {
+  margin: 0;
+  padding: 0.65rem 0.75rem;
+  border-left: 3px solid;
+  font-size: var(--veza-text-sm);
+  line-height: 1.45;
+}
+
+.failure {
+  border-color: var(--veza-critical);
+  background: var(--veza-critical-surface);
+  color: var(--veza-red-700);
+}
+
+.status {
+  border-color: var(--veza-success);
+  background: var(--veza-success-surface);
+  color: var(--veza-ink);
+}
+
+.gradebook {
+  padding-top: 1.75rem;
+}
+
+.tableWrap {
+  overflow-x: auto;
+}
+
+.tableWrap table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--veza-text-sm);
+}
+
+.tableWrap th,
+.tableWrap td {
+  padding: 0.75rem;
+  border-bottom: 1px solid var(--veza-line);
+  text-align: left;
+  vertical-align: top;
+}
+
+.tableWrap thead th {
+  color: var(--veza-muted);
+  font-size: var(--veza-text-xs);
+  font-weight: var(--veza-weight-medium);
+}
+
+.tableWrap tbody th {
+  color: var(--veza-ink);
+  font-weight: var(--veza-weight-medium);
+}
+
+.finalization {
+  padding-bottom: 2rem;
+}
+
+.finalization ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.finalization li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.75rem 1rem;
+  align-items: center;
+  padding: 0.9rem 0;
+  border-bottom: 1px solid var(--veza-line);
+}
+
+.finalization li > div span,
+.finalization li > div strong,
+.finalization li > div small {
+  display: block;
+}
+
+.finalization li > div span,
+.finalization li > div small {
+  color: var(--veza-muted);
+  font-size: var(--veza-text-xs);
+}
+
+.finalization li > div strong {
+  margin: 0.15rem 0;
+  font-size: var(--veza-text-sm);
+}
+
+.finalization li > p {
+  grid-column: 1 / -1;
+}
+
+@media (max-width: 850px) {
+  .assignmentGrid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .assignmentNav {
+    display: flex;
+    overflow-x: auto;
+    padding-right: 0;
+    border-right: 0;
+    border-bottom: 1px solid var(--veza-line);
+  }
+
+  .assignmentNav button {
+    min-width: 14rem;
+  }
+
+  .assignmentDetail {
+    padding-left: 0;
+  }
+
+  .receipt {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 620px) {
+  .workspace,
+  .finalization {
+    padding-inline: 1rem;
+  }
+
+  .workspaceHeader,
+  .gradebook > header,
+  .finalization > header,
+  .assignmentDetail > header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .structuredRecord > div,
+  .feedback {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.25rem;
+  }
+
+  .finalization li {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .finalization li > :global(.vz-button) {
+    width: 100%;
+    justify-content: center;
+  }
+}
