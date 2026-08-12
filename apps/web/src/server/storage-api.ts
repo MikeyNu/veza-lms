@@ -1,3 +1,10 @@
+import {
+  requireNumber,
+  requireRecord,
+  requireRecordArray,
+  requireString,
+  type JsonRecord,
+} from "./json-contract";
 import { requestWorkspaceJson } from "./workspace-json-request";
 
 const maximumBytes = 1024 * 1024;
@@ -19,41 +26,69 @@ export interface StorageAdministrationWorkspace extends StorageWorkspace {
   readonly deletionRequests: readonly Readonly<Record<string, unknown>>[];
 }
 
-async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  return (await requestWorkspaceJson(path, {
+async function request(path: string, init?: RequestInit): Promise<unknown> {
+  return requestWorkspaceJson(path, {
     service: "Storage service",
     maximumBytes,
     timeoutMs: 20_000,
     ...(init ? { init } : {}),
-  })) as T;
+  });
 }
 
-export function loadStorageWorkspace(): Promise<StorageWorkspace> {
-  return request("/v1/storage/workspace");
+function parseStorageWorkspace(value: unknown): StorageWorkspace {
+  const record = requireRecord(value, "Storage workspace");
+  return {
+    tenantId: requireString(record.tenantId, "Storage workspace.tenantId"),
+    generatedAt: requireString(record.generatedAt, "Storage workspace.generatedAt"),
+    storedBytes: requireNumber(record.storedBytes, "Storage workspace.storedBytes"),
+    quota: record.quota === null || record.quota === undefined
+      ? null
+      : requireRecord(record.quota, "Storage workspace.quota"),
+    namespaces: requireRecordArray(record.namespaces, "Storage workspace.namespaces"),
+    policies: requireRecordArray(record.policies, "Storage workspace.policies"),
+    assets: requireRecordArray(record.assets, "Storage workspace.assets"),
+    processingJobs: requireRecordArray(record.processingJobs, "Storage workspace.processingJobs"),
+    monthlyUsage: requireRecordArray(record.monthlyUsage, "Storage workspace.monthlyUsage"),
+    recordingConsents: requireRecordArray(record.recordingConsents, "Storage workspace.recordingConsents"),
+  };
+}
+
+export async function loadStorageWorkspace(): Promise<StorageWorkspace> {
+  return parseStorageWorkspace(await request("/v1/storage/workspace"));
 }
 
 export async function loadStorageAdministration(): Promise<StorageAdministrationWorkspace> {
-  const [workspace, deletions] = await Promise.all([
-    request<StorageWorkspace>("/v1/storage/workspace"),
-    request<{ readonly items: readonly Readonly<Record<string, unknown>>[] }>(
-      "/v1/storage/deletion-requests",
-    ),
+  const [workspaceValue, deletionsValue] = await Promise.all([
+    request("/v1/storage/workspace"),
+    request("/v1/storage/deletion-requests"),
   ]);
-  return { ...workspace, deletionRequests: deletions.items };
+  const workspace = parseStorageWorkspace(workspaceValue);
+  const deletions = requireRecord(deletionsValue, "Storage deletion requests");
+  return {
+    ...workspace,
+    deletionRequests: requireRecordArray(deletions.items, "Storage deletion requests.items"),
+  };
 }
 
-export function loadStorageDeliveryUrl(
+export async function loadStorageDeliveryUrl(
   assetId: string,
   rendition?: string,
 ): Promise<Readonly<{ url: string; expiresAt: string }>> {
   const query = rendition ? `?rendition=${encodeURIComponent(rendition)}` : "";
-  return request(`/v1/storage/assets/${assetId}/delivery${query}`);
+  const payload = requireRecord(
+    await request(`/v1/storage/assets/${assetId}/delivery${query}`),
+    "Storage delivery response",
+  );
+  return {
+    url: requireString(payload.url, "Storage delivery response.url"),
+    expiresAt: requireString(payload.expiresAt, "Storage delivery response.expiresAt"),
+  };
 }
 
-export function mutateStorage(
+export async function mutateStorage(
   operation: string,
   input: Readonly<Record<string, unknown>>,
-): Promise<Readonly<Record<string, unknown>>> {
+): Promise<JsonRecord> {
   const direct: Readonly<
     Record<string, Readonly<{ path: string; method: "POST" | "PUT" }>>
   > = {
@@ -102,8 +137,11 @@ export function mutateStorage(
         }
       : undefined);
   if (!target) throw new Error("Storage operation is invalid");
-  return request(target.path, {
-    method: target.method,
-    body: JSON.stringify(input),
-  });
+  return requireRecord(
+    await request(target.path, {
+      method: target.method,
+      body: JSON.stringify(input),
+    }),
+    "Storage mutation response",
+  );
 }
