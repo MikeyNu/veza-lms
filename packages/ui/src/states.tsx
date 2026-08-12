@@ -168,9 +168,14 @@ export function ProgressState({ label, value, detail, className, ...props }: Pro
   const bounded = Math.min(100, Math.max(0, value));
   return (
     <div {...props} className={cx("vz-progress-state", className)}>
-      <div><strong>{label}</strong><span>{bounded}%</span></div>
-      <progress value={bounded} max={100}>{bounded}%</progress>
-      {detail ? <small>{detail}</small> : null}
+      <div className="vz-progress-state__header">
+        <strong>{label}</strong>
+        <span>{bounded}%</span>
+      </div>
+      <progress className="vz-progress-state__bar" aria-label={label} value={bounded} max={100}>
+        {bounded}%
+      </progress>
+      {detail ? <small className="vz-progress-state__detail">{detail}</small> : null}
     </div>
   );
 }

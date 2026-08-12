@@ -1164,6 +1164,74 @@
   color: var(--veza-ink);
 }
 
+.vz-progress-state {
+  display: grid;
+  min-width: 0;
+  gap: var(--veza-space-2);
+}
+
+.vz-progress-state__header {
+  display: flex;
+  min-width: 0;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--veza-space-3);
+}
+
+.vz-progress-state__header strong {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--veza-ink);
+  font-size: var(--veza-text-sm);
+  font-weight: var(--veza-weight-semibold);
+  line-height: var(--veza-leading-sm);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.vz-progress-state__header span {
+  flex: 0 0 auto;
+  color: var(--veza-ink-soft);
+  font-size: var(--veza-text-sm);
+  font-variant-numeric: tabular-nums;
+  font-weight: var(--veza-weight-semibold);
+  line-height: var(--veza-leading-sm);
+}
+
+.vz-progress-state__bar {
+  display: block;
+  width: 100%;
+  height: 0.5rem;
+  overflow: hidden;
+  border: 0;
+  border-radius: var(--veza-radius-pill);
+  appearance: none;
+  background: var(--veza-surface-muted);
+  accent-color: var(--veza-learning-strong);
+}
+
+.vz-progress-state__bar::-webkit-progress-bar {
+  border-radius: inherit;
+  background: var(--veza-surface-muted);
+}
+
+.vz-progress-state__bar::-webkit-progress-value {
+  border-radius: inherit;
+  background: var(--veza-learning-strong);
+}
+
+.vz-progress-state__bar::-moz-progress-bar {
+  border-radius: inherit;
+  background: var(--veza-learning-strong);
+}
+
+.vz-progress-state__detail {
+  display: block;
+  color: var(--veza-muted);
+  font-size: var(--veza-text-xs);
+  line-height: var(--veza-leading-sm);
+}
+
 .vz-skeleton {
   display: inline-block;
   border-radius: 0.25rem;
