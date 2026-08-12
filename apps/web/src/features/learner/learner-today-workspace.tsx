@@ -84,7 +84,7 @@ function CourseRow({ course }: { readonly course: LearnerCourse }) {
         <span>Ends</span>
         <time {...(endDate.dateTime ? { dateTime: endDate.dateTime } : {})}>{endDate.label}</time>
       </div>
-      <ButtonLink variant="secondary" size="small" href={`/courses/${course.enrolmentId}`} trailingIcon={<Icon name="arrow-right" size="small" />}>
+      <ButtonLink variant="secondary" size="small" href={`/courses/${course.enrolmentId}`} trailingIcon={<Icon name="arrow" size="small" />}>
         Open course
       </ButtonLink>
     </li>

@@ -1,0 +1,649 @@
+.page {
+  width: 100%;
+  min-width: 0;
+  padding: 1.25rem clamp(1rem, 2vw, 1.75rem) 2rem;
+}
+
+.courseHeader {
+  width: min(100%, var(--veza-content-max));
+  margin-inline: auto;
+  padding-bottom: 1rem;
+}
+
+.courseHeadingRow {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 2rem;
+  margin-top: 0.8rem;
+}
+
+.courseHeadingRow > div:first-child {
+  min-width: 0;
+}
+
+.context {
+  margin: 0;
+  color: var(--veza-indigo-600);
+  font-size: var(--veza-text-sm);
+  font-weight: var(--veza-weight-medium);
+}
+
+.courseHeader h1 {
+  margin: 0.3rem 0 0;
+  color: var(--veza-ink);
+  font-size: clamp(1.85rem, 3vw, 2.75rem);
+  line-height: 1.05;
+  letter-spacing: -0.04em;
+}
+
+.courseHeadingRow > div:first-child > p:last-child {
+  max-width: 43rem;
+  margin: 0.55rem 0 0;
+  color: var(--veza-muted);
+  font-size: var(--veza-text-sm);
+  line-height: 1.55;
+}
+
+.headerProgress {
+  width: min(18rem, 30vw);
+  flex: 0 0 auto;
+}
+
+.courseShell {
+  display: grid;
+  grid-template-columns: 17rem minmax(0, 1fr) 19rem;
+  min-height: calc(100vh - 13rem);
+  overflow: hidden;
+  border: 1px solid var(--veza-line);
+  border-radius: var(--veza-radius-panel);
+  background: var(--veza-surface);
+}
+
+.outline {
+  min-width: 0;
+  overflow-y: auto;
+  border-right: 1px solid var(--veza-line);
+  background: var(--veza-surface-subtle);
+}
+
+.outline > header {
+  display: flex;
+  min-height: 3.5rem;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0 1rem;
+  border-bottom: 1px solid var(--veza-line);
+}
+
+.outline > header strong,
+.outline > header span {
+  font-size: var(--veza-text-sm);
+}
+
+.outline > header span,
+.moduleHeading span {
+  color: var(--veza-muted);
+}
+
+.outline section {
+  padding: 0.95rem 0 0;
+  border-bottom: 1px solid var(--veza-line);
+}
+
+.moduleHeading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0 0.9rem 0.6rem;
+}
+
+.moduleHeading h2 {
+  margin: 0;
+  color: var(--veza-ink);
+  font-size: var(--veza-text-sm);
+  line-height: 1.35;
+}
+
+.moduleHeading span {
+  font-size: var(--veza-text-xs);
+}
+
+.lessonLinks {
+  display: grid;
+}
+
+.lessonLinks button {
+  display: grid;
+  grid-template-columns: 1.5rem minmax(0, 1fr);
+  gap: 0.65rem;
+  width: 100%;
+  align-items: start;
+  padding: 0.72rem 0.9rem;
+  border: 0;
+  border-top: 1px solid transparent;
+  background: transparent;
+  color: var(--veza-ink);
+  cursor: pointer;
+  text-align: left;
+}
+
+.lessonLinks button:hover {
+  background: var(--veza-surface-muted);
+}
+
+.lessonLinks button:focus-visible,
+.nextList button:focus-visible {
+  outline: 0;
+  box-shadow: var(--veza-focus);
+}
+
+.lessonLinks button.activeLesson {
+  background: var(--veza-surface-selected);
+  color: var(--veza-indigo-700);
+}
+
+.lessonState {
+  display: grid;
+  width: 1.4rem;
+  height: 1.4rem;
+  place-items: center;
+  border: 1px solid var(--veza-line-strong);
+  border-radius: 50%;
+  color: var(--veza-muted);
+  font-size: var(--veza-text-xs);
+}
+
+.activeLesson .lessonState {
+  border-color: var(--veza-indigo-500);
+  color: var(--veza-indigo-600);
+}
+
+.lessonLinks strong,
+.lessonLinks small {
+  display: block;
+}
+
+.lessonLinks strong {
+  font-size: var(--veza-text-xs);
+  line-height: 1.4;
+}
+
+.lessonLinks small {
+  margin-top: 0.18rem;
+  color: var(--veza-muted);
+  font-size: 0.68rem;
+}
+
+.lessonPane {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--veza-surface);
+}
+
+.lessonHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1.5rem;
+  padding: 1.35rem 1.5rem 1.1rem;
+  border-bottom: 1px solid var(--veza-line);
+}
+
+.lessonHeader > div:first-child {
+  min-width: 0;
+}
+
+.lessonHeader h2 {
+  margin: 0.3rem 0 0;
+  color: var(--veza-ink);
+  font-size: clamp(1.45rem, 2.3vw, 2rem);
+  line-height: 1.12;
+  letter-spacing: -0.03em;
+}
+
+.lessonHeader > div:first-child > p:last-child {
+  max-width: 46rem;
+  margin: 0.45rem 0 0;
+  color: var(--veza-muted);
+  font-size: var(--veza-text-sm);
+  line-height: 1.55;
+}
+
+.lessonActions {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 0.25rem;
+}
+
+.actionError,
+.actionStatus {
+  margin: 0;
+  padding: 0.7rem 1.5rem;
+  border-bottom: 1px solid var(--veza-line);
+  font-size: var(--veza-text-sm);
+}
+
+.actionError {
+  background: var(--veza-critical-surface);
+  color: var(--veza-red-700);
+}
+
+.actionStatus {
+  background: var(--veza-success-surface);
+  color: var(--veza-success);
+}
+
+.lessonTabs {
+  min-width: 0;
+  flex: 1;
+}
+
+.lessonTabs :global(.vz-tabs__list) {
+  padding-inline: 1.5rem;
+}
+
+.lessonTabs :global(.vz-tabs__panel) {
+  padding: 0;
+}
+
+.lessonContent {
+  width: min(100%, 54rem);
+  margin-inline: auto;
+  padding: 1.75rem 2rem 2.5rem;
+  color: var(--veza-ink);
+  font-size: var(--veza-text-md);
+  line-height: 1.7;
+}
+
+.lessonContent h2,
+.lessonContent h3,
+.lessonContent h4 {
+  margin: 1.75rem 0 0.55rem;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+}
+
+.lessonContent h2 { font-size: 1.45rem; }
+.lessonContent h3 { font-size: 1.2rem; }
+.lessonContent h4 { font-size: 1rem; }
+
+.lessonContent p {
+  margin: 0.65rem 0;
+}
+
+.lessonContent blockquote {
+  margin: 1rem 0;
+  padding: 0.2rem 0 0.2rem 1rem;
+  border-left: 3px solid var(--veza-indigo-500);
+  color: var(--veza-muted);
+}
+
+.lessonContent hr {
+  margin: 1.75rem 0;
+  border: 0;
+  border-top: 1px solid var(--veza-line);
+}
+
+.lessonContent pre {
+  overflow-x: auto;
+  padding: 1rem;
+  border: 1px solid var(--veza-line);
+  border-radius: var(--veza-radius-control);
+  background: var(--veza-slate-950);
+  color: var(--veza-slate-100);
+}
+
+.lessonContent code {
+  font-family: var(--veza-font-mono);
+}
+
+.lessonContent figure {
+  margin: 1.25rem 0;
+}
+
+.lessonContent img,
+.mediaBlock video {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  border: 1px solid var(--veza-line);
+  border-radius: var(--veza-radius-control);
+}
+
+.lessonContent figcaption,
+.mediaBlock details,
+.mediaNotice {
+  color: var(--veza-muted);
+  font-size: var(--veza-text-sm);
+}
+
+.mediaBlock audio {
+  width: 100%;
+}
+
+.mediaBlock details,
+.mediaNotice {
+  margin-top: 0.65rem;
+}
+
+.callout,
+.activity,
+.transcript,
+.embedBlock,
+.fileBlock {
+  margin: 1rem 0;
+  padding: 0.9rem 1rem;
+  border-left: 3px solid var(--veza-indigo-500);
+  background: var(--veza-surface-subtle);
+}
+
+.callout p,
+.activity p,
+.transcript p {
+  margin-bottom: 0;
+}
+
+.equation {
+  margin: 1rem 0;
+  padding: 0.9rem 0;
+  border-top: 1px solid var(--veza-line);
+  border-bottom: 1px solid var(--veza-line);
+  font-family: var(--veza-font-mono);
+  overflow-x: auto;
+}
+
+.blockGroup {
+  display: grid;
+  gap: 0.75rem;
+  margin: 1rem 0;
+}
+
+.fileBlock {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.embedBlock {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.embedBlock strong,
+.embedBlock small {
+  display: block;
+}
+
+.embedBlock small {
+  margin-top: 0.2rem;
+  color: var(--veza-muted);
+  font-size: var(--veza-text-xs);
+}
+
+.resourceList,
+.recordList,
+.nextList {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.resourceList {
+  padding: 1rem 1.5rem 2rem;
+}
+
+.resourceRow {
+  display: flex;
+  min-height: 4.5rem;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.7rem 0;
+  border-bottom: 1px solid var(--veza-line);
+}
+
+.resourceRow > div span,
+.resourceRow > div strong {
+  display: block;
+}
+
+.resourceRow > div span {
+  color: var(--veza-muted);
+  font-size: var(--veza-text-xs);
+  text-transform: capitalize;
+}
+
+.resourceRow > div strong {
+  margin-top: 0.15rem;
+  font-size: var(--veza-text-sm);
+}
+
+.resourceRow > small {
+  color: var(--veza-muted);
+  font-size: var(--veza-text-xs);
+}
+
+.recordList {
+  padding: 0.85rem 1.5rem 1.5rem;
+}
+
+.recordList li {
+  padding: 0.75rem 0;
+  border-bottom: 1px solid var(--veza-line);
+}
+
+.recordList strong,
+.recordList time {
+  display: block;
+}
+
+.recordList strong {
+  font-size: var(--veza-text-sm);
+}
+
+.recordList p {
+  margin: 0.3rem 0 0;
+  color: var(--veza-muted);
+  font-size: var(--veza-text-xs);
+  line-height: 1.5;
+}
+
+.recordList time {
+  margin-top: 0.3rem;
+  color: var(--veza-muted);
+  font-size: var(--veza-text-xs);
+}
+
+.lessonFooter {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: 0.75rem;
+  align-items: center;
+  padding: 0.85rem 1.5rem;
+  border-top: 1px solid var(--veza-line);
+}
+
+.lessonFooter > :last-child {
+  justify-self: end;
+}
+
+.contextRail {
+  min-width: 0;
+  overflow-y: auto;
+  border-left: 1px solid var(--veza-line);
+  background: var(--veza-surface-subtle);
+}
+
+.contextRail > section {
+  padding: 1rem;
+  border-bottom: 1px solid var(--veza-line);
+}
+
+.contextRail h2 {
+  margin: 0 0 0.75rem;
+  color: var(--veza-ink);
+  font-size: var(--veza-text-sm);
+  line-height: 1.35;
+}
+
+.nextList {
+  display: grid;
+}
+
+.nextList li + li {
+  border-top: 1px solid var(--veza-line);
+}
+
+.nextList button {
+  width: 100%;
+  padding: 0.65rem 0;
+  border: 0;
+  background: transparent;
+  color: var(--veza-ink);
+  cursor: pointer;
+  text-align: left;
+}
+
+.nextList strong,
+.nextList small {
+  display: block;
+}
+
+.nextList strong {
+  font-size: var(--veza-text-xs);
+}
+
+.nextList small,
+.muted,
+.freshness {
+  color: var(--veza-muted);
+  font-size: var(--veza-text-xs);
+  line-height: 1.45;
+}
+
+.nextList small {
+  margin-top: 0.2rem;
+}
+
+.contextRail .recordList {
+  padding: 0;
+}
+
+.offlineAction {
+  width: 100%;
+  justify-content: center;
+  margin-top: 0.85rem;
+}
+
+.freshness {
+  display: block;
+  margin-top: 0.7rem;
+}
+
+@media (max-width: 1280px) {
+  .courseShell {
+    grid-template-columns: 15rem minmax(0, 1fr);
+  }
+
+  .contextRail {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    border-top: 1px solid var(--veza-line);
+    border-left: 0;
+  }
+
+  .contextRail > section {
+    border-right: 1px solid var(--veza-line);
+  }
+}
+
+@media (max-width: 900px) {
+  .page {
+    padding: 1rem;
+  }
+
+  .courseHeadingRow,
+  .lessonHeader {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .headerProgress {
+    width: min(100%, 26rem);
+  }
+
+  .courseShell {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .outline {
+    max-height: 20rem;
+    border-right: 0;
+    border-bottom: 1px solid var(--veza-line);
+  }
+
+  .contextRail {
+    grid-column: auto;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .lessonActions {
+    width: 100%;
+  }
+}
+
+@media (max-width: 620px) {
+  .courseHeadingRow {
+    gap: 1rem;
+  }
+
+  .courseShell {
+    border-inline: 0;
+    border-radius: 0;
+  }
+
+  .lessonHeader,
+  .lessonContent,
+  .resourceList,
+  .recordList,
+  .lessonFooter {
+    padding-inline: 1rem;
+  }
+
+  .lessonActions {
+    flex-wrap: wrap;
+  }
+
+  .lessonTabs :global(.vz-tabs__list) {
+    padding-inline: 1rem;
+    overflow-x: auto;
+  }
+
+  .lessonFooter {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .lessonFooter > :nth-child(2) {
+    grid-column: 1 / -1;
+    grid-row: 1;
+    width: 100%;
+    justify-content: center;
+  }
+
+  .contextRail {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .embedBlock,
+  .resourceRow {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
