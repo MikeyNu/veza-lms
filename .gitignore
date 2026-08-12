@@ -7,6 +7,7 @@ coverage
 .env
 .env.*
 !.env.example
+/.dev/
 .DS_Store
 *.log
 playwright-report
