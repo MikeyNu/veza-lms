@@ -8,6 +8,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { Icon } from "./icons.js";
 import { Dialog } from "./overlays.js";
 import { Kbd } from "./primitives.js";
 import { cx } from "./utilities.js";
@@ -97,7 +98,7 @@ export function CommandPalette({
     <Dialog open={currentOpen} onClose={() => setOpen(false)} title={title} size="large">
       <div className="vz-command-palette">
         <div className="vz-command-palette__search">
-          <span aria-hidden="true">⌕</span>
+          <Icon name="search" size="small" aria-hidden="true" />
           <input
             ref={inputRef}
             role="combobox"
@@ -166,7 +167,7 @@ export function CommandPalette({
 export function CommandPaletteTrigger({ onClick, label = "Search Veza" }: { readonly onClick: () => void; readonly label?: string }) {
   return (
     <button type="button" className="vz-command-trigger" onClick={onClick} aria-haspopup="dialog">
-      <span aria-hidden="true">⌕</span><span>{label}</span><span><Kbd>Ctrl</Kbd><Kbd>K</Kbd></span>
+      <Icon name="search" size="small" aria-hidden="true" /><span>{label}</span><span><Kbd>Ctrl</Kbd><Kbd>K</Kbd></span>
     </button>
   );
 }
