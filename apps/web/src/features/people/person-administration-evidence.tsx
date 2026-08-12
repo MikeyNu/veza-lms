@@ -5,7 +5,8 @@ import type {
   PersonDetail,
   StaffEngagementRecord,
 } from "@veza/contracts";
-import { Button, DateInput, Field, Textarea } from "@veza/ui";
+import { DateInput, Field, Textarea } from "@veza/ui";
+import type { ReactNode } from "react";
 import { GovernedOperationForm } from "../../components/governed-operation";
 
 function date(value?: string): string {
@@ -20,13 +21,7 @@ function label(value: string): string {
   return value.replaceAll("_", " ").replaceAll("-", " ");
 }
 
-function EvidenceList({
-  empty,
-  children,
-}: {
-  empty: string;
-  children: React.ReactNode;
-}) {
+function EvidenceList({ empty, children }: { empty: string; children: ReactNode }) {
   return <div className="person-evidence-list">{children || <p>{empty}</p>}</div>;
 }
 
@@ -54,9 +49,7 @@ function EndEngagement({
         })}
       >
         <Field label="End date"><DateInput name="endedOn" required /></Field>
-        <Field label="Recorded reason">
-          <Textarea name="reason" minLength={10} maxLength={1000} required />
-        </Field>
+        <Field label="Recorded reason"><Textarea name="reason" minLength={10} maxLength={1000} required /></Field>
       </GovernedOperationForm>
     </details>
   );
@@ -126,9 +119,7 @@ export function PersonAdministrationEvidence({
               <strong>{engagement.title ?? label(engagement.engagementType)}</strong>
               <span>{engagement.employeeNumber ?? "No employee number"} · {label(engagement.status)}</span>
               <small>{date(engagement.startedOn)} to {date(engagement.endedOn)}</small>
-              {canManage && institutionId ? (
-                <EndEngagement engagement={engagement} institutionId={institutionId} />
-              ) : null}
+              {canManage && institutionId ? <EndEngagement engagement={engagement} institutionId={institutionId} /> : null}
             </div>
           ))}
         </EvidenceList>
@@ -154,9 +145,7 @@ export function PersonAdministrationEvidence({
             <div key={restriction.id}>
               <strong>{label(restriction.restrictionCode)}</strong>
               <span>{restriction.reason}</span>
-              <small>
-                Effective {date(restriction.effectiveFrom)} · applies to {restriction.appliesToRelationshipTypes.length || "all"} relationship types
-              </small>
+              <small>Effective {date(restriction.effectiveFrom)} · applies to {restriction.appliesToRelationshipTypes.length || "all"} relationship types</small>
             </div>
           ))}
         </EvidenceList>
@@ -182,10 +171,7 @@ export function PersonAdministrationEvidence({
             <div key={subjectRequest.id}>
               <strong>{label(subjectRequest.requestType)}</strong>
               <span>{label(subjectRequest.status)}</span>
-              <small>
-                Requested {date(subjectRequest.requestedAt)}
-                {subjectRequest.exportChecksum ? ` · checksum ${subjectRequest.exportChecksum.slice(0, 12)}...` : ""}
-              </small>
+              <small>Requested {date(subjectRequest.requestedAt)}{subjectRequest.exportChecksum ? ` · checksum ${subjectRequest.exportChecksum.slice(0, 12)}...` : ""}</small>
             </div>
           ))}
         </EvidenceList>
