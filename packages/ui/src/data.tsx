@@ -3,6 +3,7 @@ import type {
   ReactNode,
   TableHTMLAttributes,
 } from "react";
+import { Icon } from "./icons.js";
 import { Button, IconButton, Link } from "./primitives.js";
 import { cx } from "./utilities.js";
 
@@ -81,7 +82,12 @@ export function DataTable<Row>({
                 {column.sortable ? (
                   <button type="button" className="vz-table__sort" onClick={column.onSort}>
                     <span>{column.header}</span>
-                    <span aria-hidden="true">{column.sortDirection === "ascending" ? "↑" : column.sortDirection === "descending" ? "↓" : "↕"}</span>
+                    <span aria-hidden="true">
+                      <Icon
+                        name={column.sortDirection === "ascending" ? "arrow-up" : column.sortDirection === "descending" ? "arrow-down" : "sliders"}
+                        size="small"
+                      />
+                    </span>
                   </button>
                 ) : column.header}
               </th>
@@ -179,7 +185,7 @@ export function FilterBar({ children, activeFilters = [], onClearAll, resultsSum
           {activeFilters.map((filter) => (
             <span className="vz-filter-token" key={filter.id}>
               <span>{filter.label}{filter.value ? `: ${filter.value}` : ""}</span>
-              {filter.onRemove ? <IconButton size="small" label={`Remove ${filter.label} filter`} icon={<span aria-hidden="true">×</span>} onClick={filter.onRemove} /> : null}
+              {filter.onRemove ? <IconButton size="small" label={`Remove ${filter.label} filter`} icon={<Icon name="close" size="small" />} onClick={filter.onRemove} /> : null}
             </span>
           ))}
           {onClearAll ? <Button variant="quiet" size="small" onClick={onClearAll}>Clear all</Button> : null}
