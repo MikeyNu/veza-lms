@@ -7,7 +7,7 @@ import {
   loadLearnerCourseRoom,
   loadLearnerGradebook,
 } from "../../../src/server/learning-platform-api";
-import { requireWorkspaceAccess } from "../../../src/server/workspace-route-guard";
+import { requireWorkspaceAccess } from "../../../src/server/require-workspace-access";
 
 export const dynamic = "force-dynamic";
 

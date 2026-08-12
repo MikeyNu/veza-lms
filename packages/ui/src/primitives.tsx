@@ -172,7 +172,7 @@ export const Link = forwardRef<HTMLAnchorElement, LinkProps>(function Link(
         </span>
       ) : variant === "standalone" ? (
         <span className="vz-link__standalone-icon" aria-hidden="true">
-          <Icon name="arrow-right" size="small" />
+          <Icon name="arrow" size="small" />
         </span>
       ) : null}
     </a>
