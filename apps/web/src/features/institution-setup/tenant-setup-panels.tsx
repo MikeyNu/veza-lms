@@ -44,7 +44,7 @@ export function InstitutionIdentityCard({ session, count, operation, onSubmit }:
   return <details className="setup-card institution-card" open={count === 0}>
     <summary><span>02</span><div><strong>Institution identity</strong><small>Legal, academic and regional context</small></div><b>{count ? `${count} configured` : "Required"}</b></summary>
     <form className="setup-form" onSubmit={onSubmit}>
-      <label>Institution code<input name="code" required placeholder="AKHA"/></label><label>Display name<input name="displayName" required placeholder="Akha Academy"/></label>
+      <label>Institution code<input name="code" required placeholder="SGELA"/></label><label>Display name<input name="displayName" required placeholder="Sgela Academy"/></label>
       <label className="wide">Registered legal name<input name="legalName" placeholder="Optional legal entity"/></label>
       <label>Institution type<select name="institutionType" defaultValue="training-provider"><option value="school">School</option><option value="college">College</option><option value="university">University</option><option value="training-provider">Training provider</option><option value="corporate-academy">Corporate academy</option><option value="other">Other</option></select></label>
       <label>Locale<select name="locale" defaultValue={session.tenant.locale}><option value="en-ZA">English / South Africa</option><option value="en-GB">English / United Kingdom</option><option value="en-US">English / United States</option></select></label>

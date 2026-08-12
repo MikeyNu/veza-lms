@@ -72,8 +72,8 @@ export async function createDemoWorkspaceSession(): Promise<WorkspaceSession> {
     },
     tenant: {
       id: demoTenantId as WorkspaceSession["tenant"]["id"],
-      slug: "akha-academy",
-      displayName: "Akha Academy",
+      slug: "sgela-academy",
+      displayName: "Sgela Academy",
       status: "active",
       deploymentTier: "shared",
       residencyRegion: "af-south-1",

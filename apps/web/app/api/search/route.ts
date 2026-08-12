@@ -20,7 +20,7 @@ function demoSearch(request: NextRequest) {
       entityType: "person",
       title: "Naledi Mokoena",
       subtitle: "Learner · AKH-L-2026-0142",
-      excerpt: "Active learner at Akha Academy",
+      excerpt: "Active learner at Sgela Academy",
       metadata: { href: `/people/${demoFixtureIds.demoLearnerPersonId}` },
     },
     {

@@ -65,7 +65,7 @@ delete publicJwk.qi;
 const accounts = {
   owner: {
     sub: "dev-tenant-owner",
-    email: "owner@candy.example",
+    email: "owner@sgela.example",
     name: "Thandi Mokoena",
     platformRoles: [],
   },
@@ -77,8 +77,8 @@ const accounts = {
   },
   learner: {
     sub: "dev-learner",
-    email: "learner@candy.example",
-    name: "Candy Learner",
+    email: "learner@sgela.example",
+    name: "Sgela Learner",
     platformRoles: [],
   },
 };

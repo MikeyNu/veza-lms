@@ -46,7 +46,7 @@ function demoCommunicationsWorkspace(): CommunicationsWorkspace {
     senders: [
       {
         id: "00000000-0000-4000-8000-000000002101",
-        sender_identity: "notifications@akha.example",
+        sender_identity: "notifications@sgela.example",
         provider_key: "http-email",
         channel: "email",
         status: "active",

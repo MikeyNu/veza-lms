@@ -16,11 +16,26 @@ const connectionString =
 
 const issuer = process.env.OIDC_ISSUER_URL ?? "http://localhost:4500/";
 const subject = process.env.SEED_SUBJECT ?? "dev-tenant-owner";
-const email = process.env.SEED_EMAIL ?? "owner@candy.example";
+const email = process.env.SEED_EMAIL ?? "owner@sgela.example";
 const displayName = process.env.SEED_DISPLAY_NAME ?? "Thandi Mokoena";
-const tenantSlug = process.env.SEED_TENANT_SLUG ?? "candy-academy";
-const tenantDisplayName = process.env.SEED_TENANT_DISPLAY_NAME ?? "Candy";
-const tenantLegalName = process.env.SEED_TENANT_LEGAL_NAME ?? "Candy";
+const tenantSlug = process.env.SEED_TENANT_SLUG ?? "sgela-academy";
+const tenantDisplayName = process.env.SEED_TENANT_DISPLAY_NAME ?? "Sgela Academy";
+const tenantLegalName = process.env.SEED_TENANT_LEGAL_NAME ?? "Sgela Academy";
+
+const legacySchoolPattern = /akha/i;
+for (const [variableName, value] of Object.entries({
+  OIDC_ISSUER_URL: issuer,
+  SEED_SUBJECT: subject,
+  SEED_EMAIL: email,
+  SEED_DISPLAY_NAME: displayName,
+  SEED_TENANT_SLUG: tenantSlug,
+  SEED_TENANT_DISPLAY_NAME: tenantDisplayName,
+  SEED_TENANT_LEGAL_NAME: tenantLegalName,
+})) {
+  if (legacySchoolPattern.test(value)) {
+    throw new Error(`${variableName} must not reference the retired Akha demo institution`);
+  }
+}
 
 /** Every module, so no screen is hidden behind a missing entitlement. */
 const modules = [
@@ -122,7 +137,7 @@ try {
   const learnerUser = (
     await client.query(
       `INSERT INTO users (identity_issuer, identity_subject, email, display_name, status)
-       VALUES ($1, 'dev-learner', 'learner@candy.example', 'Candy Learner', 'active')
+       VALUES ($1, 'dev-learner', 'learner@sgela.example', 'Sgela Learner', 'active')
        ON CONFLICT (identity_issuer, identity_subject)
        DO UPDATE SET email = EXCLUDED.email, display_name = EXCLUDED.display_name,
                      status = 'active', updated_at = now()
@@ -200,7 +215,7 @@ try {
          id, tenant_id, linked_user_id, preferred_name, legal_given_names, legal_family_name,
          status, locale, source_system, source_reference, created_by, updated_by
        ) VALUES (
-         gen_random_uuid(), $1, $2, 'Candy', 'Candy', 'Learner', 'active', 'en-ZA',
+         gen_random_uuid(), $1, $2, 'Sgela', 'Sgela', 'Learner', 'active', 'en-ZA',
          'local-seed', 'learner-001', $3, $3
        )
        ON CONFLICT (tenant_id, source_system, source_reference)

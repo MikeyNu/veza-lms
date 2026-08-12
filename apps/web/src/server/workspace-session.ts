@@ -13,8 +13,8 @@ export const demoLearnerSession: WorkspaceSession = {
   },
   tenant: {
     id: "00000000-0000-4000-8000-000000000201" as WorkspaceSession["tenant"]["id"],
-    slug: "akha-academy",
-    displayName: "Akha Academy",
+    slug: "sgela-academy",
+    displayName: "Sgela Academy",
     status: "active",
     deploymentTier: "shared",
     residencyRegion: "af-south-1",

@@ -21,8 +21,8 @@ ROUTE_AUDIT = ROOT / "apps" / "web" / "public" / "__veza_route_audit.json"
 ARTIFACT_DIR = Path(os.environ.get("EXHAUSTIVE_BROWSER_ARTIFACT_DIR", "qa-artifacts/exhaustive-browser"))
 BASE_URL = os.environ.get("BASE_URL", "http://localhost:3000").rstrip("/")
 APP_MODE = os.environ.get("EXHAUSTIVE_APP", "web").strip().lower()
-LOGIN_EMAIL = os.environ.get("BROWSER_LOGIN_EMAIL", "owner@candy.example")
-WORKSPACE_NAME = os.environ.get("BROWSER_WORKSPACE_NAME", "Candy")
+LOGIN_EMAIL = os.environ.get("BROWSER_LOGIN_EMAIL", "owner@sgela.example")
+WORKSPACE_NAME = os.environ.get("BROWSER_WORKSPACE_NAME", "Sgela Academy")
 VIEWPORT_WIDTH = max(320, int(os.environ.get("EXHAUSTIVE_VIEWPORT_WIDTH", "1440")))
 VIEWPORT_HEIGHT = max(480, int(os.environ.get("EXHAUSTIVE_VIEWPORT_HEIGHT", "1000")))
 DISCOVER_ROUTES = os.environ.get("EXHAUSTIVE_DISCOVER", "true").strip().lower() != "false"
