@@ -8,6 +8,7 @@ import {
   type KeyboardEvent,
   type ReactNode,
 } from "react";
+import { Icon } from "./icons.js";
 import { Button, IconButton } from "./primitives.js";
 import { cx } from "./utilities.js";
 
@@ -89,9 +90,9 @@ export function ContentBlock({
 export function BlockHandle({ label, onMoveUp, onMoveDown }: { readonly label: string; readonly onMoveUp?: () => void; readonly onMoveDown?: () => void }) {
   return (
     <div className="vz-block-handle" role="toolbar" aria-label={label}>
-      <span aria-hidden="true">⋮⋮</span>
-      {onMoveUp ? <IconButton size="small" label="Move block up" icon={<span aria-hidden="true">↑</span>} onClick={onMoveUp} /> : null}
-      {onMoveDown ? <IconButton size="small" label="Move block down" icon={<span aria-hidden="true">↓</span>} onClick={onMoveDown} /> : null}
+      <Icon name="grip" size="small" aria-hidden="true" />
+      {onMoveUp ? <IconButton size="small" label="Move block up" icon={<Icon name="arrow-up" size="small" />} onClick={onMoveUp} /> : null}
+      {onMoveDown ? <IconButton size="small" label="Move block down" icon={<Icon name="arrow-down" size="small" />} onClick={onMoveDown} /> : null}
     </div>
   );
 }
