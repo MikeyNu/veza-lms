@@ -50,7 +50,10 @@ export async function requestJson(
   return payload;
 }
 
-export function requireJsonObject(value: unknown, message = "The server returned an invalid response"): JsonObject {
+export function requireJsonObject(
+  value: unknown,
+  message = "The server returned an invalid response",
+): JsonObject {
   if (value === null || typeof value !== "object" || Array.isArray(value)) {
     throw new Error(message);
   }
@@ -115,7 +118,7 @@ export function GovernedOperationForm({
       await requestJson(
         typeof path === "function" ? path(form) : path,
         "POST",
-        { institutionId, ...buildInput(form) },
+        { ...buildInput(form), institutionId },
       );
       element.reset();
       onSuccess?.();
