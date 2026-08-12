@@ -1,6 +1,7 @@
 import { isSameOriginRequest } from "@veza/oidc-bff";
 import { NextResponse, type NextRequest } from "next/server";
 import { createCredentialDefinition } from "../../../../src/server/credential-definition-api";
+import { requireRecord } from "../../../../src/server/json-contract";
 import { mutateAcademic } from "../../../../src/server/learning-platform-api";
 
 const noStore = { "cache-control": "no-store" };
@@ -63,7 +64,7 @@ export async function POST(
         { status: 413, headers: noStore },
       );
     }
-    const body = (await request.json()) as Record<string, unknown>;
+    const body = requireRecord(await request.json(), "Academic operation request");
     if (credentialDefinitions.has(operation)) {
       const institutionId = typeof body.institutionId === "string" ? body.institutionId : "";
       const { institutionId: _, ...input } = body;

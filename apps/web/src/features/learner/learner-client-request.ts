@@ -50,7 +50,7 @@ export async function postAcademicCommand(
   input: Readonly<Record<string, unknown>>,
 ): Promise<Record<string, unknown>> {
   return requestJsonRecord(
-    `/api/academic-evidence/${encodeURIComponent(operation)}`,
+    `/api/academic/${encodeURIComponent(operation)}`,
     {
       method: "POST",
       headers: { "content-type": "application/json" },

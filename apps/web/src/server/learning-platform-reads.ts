@@ -12,7 +12,6 @@ import {
   parseGradebookSummary,
   parseLearnerCourseRoom,
   parseLearnerHome,
-  parseRecord,
   parseStudioLessonDetail,
   parseStudioLibrary,
   parseStudioWorkspace,
@@ -151,32 +150,9 @@ export async function loadLearnerCourseRoom(enrolmentId: string, lowBandwidth = 
   }
 }
 
-export async function loadLearnerAssignments(): Promise<Readonly<Record<string, unknown>>> {
-  return parseRecord(await request("/v1/learner/assignments"), "Learner assignments");
-}
-
-export async function loadLearnerGradebook(courseRunId: string): Promise<Readonly<Record<string, unknown>>> {
-  requireUuid(courseRunId, "Course run");
-  return parseRecord(await request(`/v1/learner/gradebook/${courseRunId}`), "Learner gradebook");
-}
-
 export async function loadGradebook(courseRunId: string): Promise<GradebookSummary> {
   requireUuid(courseRunId, "Course run");
   return parseGradebookSummary(await request(`/v1/academic-evidence/gradebook/${courseRunId}`));
-}
-
-export async function loadStaffGradebook(courseRunId: string): Promise<Readonly<Record<string, unknown>>> {
-  requireUuid(courseRunId, "Course run");
-  return parseRecord(await request(`/v1/academic-evidence/gradebook/${courseRunId}/staff`), "Staff gradebook");
-}
-
-export async function loadAcademicEvidenceWorkspace(institutionId: string): Promise<Readonly<Record<string, unknown>>> {
-  requireUuid(institutionId, "Institution");
-  const record = parseRecord(await request(`/v1/institutions/${institutionId}/academic-evidence`), "Academic evidence workspace");
-  if (record.institutionId !== undefined && record.institutionId !== institutionId) {
-    throw new Error("Academic evidence workspace crossed the requested institution boundary");
-  }
-  return record;
 }
 
 export async function loadAnalytics(institutionId: string): Promise<readonly AnalyticsMetric[]> {

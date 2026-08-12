@@ -1,12 +1,14 @@
 export {
   loadAcademicEvidenceWorkspace,
+  loadLearnerAssignments,
+  loadLearnerGradebook,
+  loadStaffGradebook,
+} from "./academic-evidence-api";
+export {
   loadAnalytics,
   loadGradebook,
-  loadLearnerAssignments,
   loadLearnerCourseRoom,
-  loadLearnerGradebook,
   loadLearnerToday,
-  loadStaffGradebook,
   loadStudioLesson,
   loadStudioLibrary,
   loadStudioWorkspace,
