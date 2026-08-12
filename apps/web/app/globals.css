@@ -9,6 +9,7 @@
 @import "../styles/workspace-route-states.css" layer(veza-features);
 @import "../styles/command-search.css" layer(veza-features);
 @import "../styles/foundation.css" layer(veza-features);
+@import "../styles/governed-operation.css" layer(veza-features);
 @import "../styles/dashboard-primary.css" layer(veza-features);
 @import "../styles/dashboard-secondary.css" layer(veza-features);
 @import "../styles/admin-platform.css" layer(veza-features);
