@@ -134,7 +134,6 @@ export function PersonAdministrationRecordActions({
           errorClassName="people-error"
           buildInput={(form) => ({
             ...personVersion(person),
-            institutionId,
             organisationalUnitId: form.get("organisationalUnitId"),
             assignmentType: form.get("assignmentType"),
             title: form.get("title") || undefined,
@@ -173,7 +172,6 @@ export function PersonAdministrationRecordActions({
             errorClassName="people-error"
             buildInput={(form) => ({
               ...personVersion(person),
-              institutionId,
               organisationalUnitId: form.get("organisationalUnitId") || undefined,
               engagementType: form.get("engagementType"),
               employeeNumber: form.get("employeeNumber") || undefined,
