@@ -136,7 +136,7 @@ export class WebhookDispatcher {
     private readonly retryMaximumSeconds: number,
   ) {}
 
-  private async claim(): Promise<readonly WebhookDeliveryRow[]> {
+  private async claimOne(): Promise<WebhookDeliveryRow | undefined> {
     return transaction(this.pool, async (client) => {
       const result = await client.query<WebhookDeliveryRow>(
         `WITH candidates AS (
@@ -144,10 +144,9 @@ export class WebhookDispatcher {
            FROM webhook_deliveries delivery
            WHERE delivery.state IN ('pending','retry')
              AND delivery.next_attempt_at <= now()
-             AND (delivery.leased_at IS NULL OR delivery.leased_at < now()-interval '5 minutes')
            ORDER BY delivery.next_attempt_at,delivery.created_at,delivery.id
            FOR UPDATE SKIP LOCKED
-           LIMIT $2
+           LIMIT 1
          )
          UPDATE webhook_deliveries delivery
          SET state='processing',attempts=attempts+1,
@@ -158,13 +157,13 @@ export class WebhookDispatcher {
          RETURNING delivery.id,delivery.tenant_id,endpoint.endpoint_url,
                    endpoint.secret_reference,delivery.envelope,delivery.attempts,
                    endpoint.maximum_attempts,endpoint.timeout_ms`,
-        [this.workerId, this.batchSize],
+        [this.workerId],
       );
-      return result.rows;
+      return result.rows[0];
     });
   }
 
-  private async deliver(delivery: WebhookDeliveryRow): Promise<void> {
+  private async deliver(delivery: WebhookDeliveryRow): Promise<boolean> {
     const timestamp = Math.floor(Date.now() / 1000);
     const nonce = randomBytes(18).toString("base64url");
     const payload = JSON.stringify(delivery.envelope);
@@ -189,7 +188,7 @@ export class WebhookDispatcher {
     });
     const responseText = (await response.text()).slice(0, 2_000);
     if (!response.ok) throw new Error(`webhook-http-${response.status}:${responseText}`);
-    await this.pool.query(
+    const updated = await this.pool.query(
       `UPDATE webhook_deliveries
        SET state='delivered',response_status=$4,response_checksum=$5,
            response_excerpt=$6,request_timestamp=$7,request_nonce=$8,
@@ -207,9 +206,10 @@ export class WebhookDispatcher {
         nonce,
       ],
     );
+    return updated.rowCount === 1;
   }
 
-  private async fail(delivery: WebhookDeliveryRow, error: unknown): Promise<void> {
+  private async fail(delivery: WebhookDeliveryRow, error: unknown): Promise<boolean> {
     const deadLetter = delivery.attempts >= delivery.maximum_attempts;
     const delay = retryDelaySeconds(
       delivery.id,
@@ -217,7 +217,7 @@ export class WebhookDispatcher {
       this.retryBaseSeconds,
       this.retryMaximumSeconds,
     );
-    await this.pool.query(
+    const updated = await this.pool.query(
       `UPDATE webhook_deliveries
        SET state=$4,next_attempt_at=$5,last_error=$6,
            leased_at=NULL,lease_owner=NULL,updated_at=now()
@@ -231,22 +231,24 @@ export class WebhookDispatcher {
         sanitizeDeliveryError(error).slice(0, 2_000),
       ],
     );
+    return updated.rowCount === 1;
   }
 
   async processDue(): Promise<{ readonly claimed: number; readonly delivered: number; readonly failed: number }> {
-    const rows = await this.claim();
+    let claimed = 0;
     let delivered = 0;
     let failed = 0;
-    for (const row of rows) {
+    for (let index = 0; index < this.batchSize; index += 1) {
+      const row = await this.claimOne();
+      if (!row) break;
+      claimed += 1;
       try {
-        await this.deliver(row);
-        delivered += 1;
+        if (await this.deliver(row)) delivered += 1;
       } catch (error) {
-        await this.fail(row, error);
-        failed += 1;
+        if (await this.fail(row, error)) failed += 1;
       }
     }
-    return { claimed: rows.length, delivered, failed };
+    return { claimed, delivered, failed };
   }
 }
 
