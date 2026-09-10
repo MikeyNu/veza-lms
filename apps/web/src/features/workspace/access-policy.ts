@@ -161,7 +161,7 @@ const routePolicies: readonly WorkspaceRoutePolicy[] = [
   { id: "evidence-exports", pattern: /^\/evidence\/exports(?:\/.*)?$/, roles: reconciliationRoles, institutional: true },
   { id: "evidence", pattern: /^\/evidence(?:\/.*)?$/, roles: evidenceRoles, institutional: true },
   { id: "people-duplicates", pattern: /^\/people\/duplicates\/?$/, roles: reconciliationRoles, institutional: true },
-  { id: "people-invitations", pattern: /^\/people\/invitations(?:\/.*)?$/, roles: reconciliationRoles, institutional: true },
+  { id: "people-invitations", pattern: /^\/people\/invitations(?:\/.*)?$/, roles: ["tenant-owner"], institutional: true },
   { id: "people", pattern: /^\/people(?:\/.*)?$/, roles: peopleRoles, institutional: true },
   { id: "service-accounts", pattern: /^\/admin\/service-accounts(?:\/.*)?$/, roles: ["tenant-owner"] },
   { id: "administration", pattern: /^\/admin(?:\/.*)?$/, roles: administrationRoles },
