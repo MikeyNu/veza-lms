@@ -119,13 +119,11 @@ export function StorageAdministrationWorkspace({
 
   function openPanel(next: Exclude<StoragePanel, null>) {
     setError(undefined);
-    setMessage(undefined);
     setPanel(next);
   }
 
   function openConfirmation(next: Exclude<StorageConfirmation, null>) {
     setError(undefined);
-    setMessage(undefined);
     setConfirmation(next);
   }
 
@@ -139,7 +137,6 @@ export function StorageAdministrationWorkspace({
   async function run(operation: string, body: Readonly<Record<string, unknown>>) {
     setBusy(operation);
     setError(undefined);
-    setMessage(undefined);
     try {
       const result = await mutate(operation, body);
       router.refresh();
@@ -228,7 +225,6 @@ export function StorageAdministrationWorkspace({
     }
     setBusy("upload");
     setError(undefined);
-    setMessage(undefined);
     try {
       setUploadProgress("Calculating SHA-256 checksum");
       const digest = await checksum(file);
