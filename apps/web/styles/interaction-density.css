@@ -331,6 +331,131 @@
   min-width: 0;
 }
 
+.storage-panel-header-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.storage-panel-header-actions > span:not(.storage-status) {
+  color: var(--muted);
+  font-size: 9px;
+  white-space: nowrap;
+}
+
+.storage-config-grid--records .storage-record-list {
+  border-bottom: 0;
+}
+
+.storage-overlay-form,
+.storage-upload--drawer {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 14px;
+  align-items: stretch;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.storage-overlay-form > label,
+.storage-overlay-form > .storage-checks,
+.storage-overlay-form > button,
+.storage-upload--drawer > label,
+.storage-upload--drawer > button {
+  grid-column: auto;
+}
+
+.storage-overlay-form .storage-checks {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.storage-overlay-form .storage-checks label {
+  min-width: 0;
+}
+
+.storage-overlay-form .vz-button,
+.storage-upload--drawer .vz-button {
+  width: 100%;
+}
+
+.storage-accessibility-form.storage-overlay-form,
+.storage-consent-form.storage-overlay-form {
+  padding: 0;
+  border: 0;
+}
+
+.storage-inspector-actions {
+  display: grid;
+  gap: 10px;
+  padding: 15px 18px;
+  border-top: 1px solid var(--line);
+}
+
+.storage-inspector-actions strong {
+  color: var(--ink);
+  font-size: 10px;
+}
+
+.storage-inspector-actions p {
+  margin: 5px 0 0;
+  color: var(--muted);
+  font-size: 9px;
+  line-height: 1.5;
+}
+
+.storage-danger-zone .vz-button--danger {
+  border-color: var(--critical);
+  background: var(--critical);
+  color: white;
+}
+
+.storage-governance-list article .vz-button {
+  min-height: 2rem;
+  padding: 0 0.55rem;
+  border-radius: var(--veza-radius-control);
+  font-size: 8px;
+}
+
+.storage-governance-list article .vz-button--quiet {
+  border-color: transparent;
+  background: transparent;
+  color: var(--brand-strong);
+}
+
+.storage-governance-list article .vz-button--secondary {
+  border-color: var(--line-strong);
+  background: white;
+  color: var(--ink-soft);
+}
+
+.storage-confirmation-form {
+  display: grid;
+  gap: 10px;
+}
+
+.storage-confirmation-form label {
+  display: grid;
+  gap: 7px;
+  color: var(--ink-soft);
+  font-size: 10px;
+  font-weight: 720;
+}
+
+.storage-confirmation-form textarea {
+  width: 100%;
+  min-height: 110px;
+  padding: 10px;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  background: white;
+  color: var(--ink);
+  font: inherit;
+  resize: vertical;
+}
+
 @media (max-width: 720px) {
   .catalogue-actions {
     justify-content: stretch;
@@ -392,5 +517,19 @@
   .access-section-heading .vz-button,
   .access-lifecycle-summary .vz-button {
     width: 100%;
+  }
+
+  .storage-panel-header-actions {
+    align-items: stretch;
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .storage-panel-header-actions .vz-button {
+    width: 100%;
+  }
+
+  .storage-overlay-form .storage-checks {
+    grid-template-columns: minmax(0, 1fr);
   }
 }
