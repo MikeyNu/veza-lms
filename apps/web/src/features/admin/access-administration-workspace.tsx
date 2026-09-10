@@ -1,5 +1,6 @@
 "use client";
 
+import { Button, Drawer, Field, Select, TextInput, ValidationSummary } from "@veza/ui";
 import { useRouter } from "next/navigation";
 import { useMemo, useState, type FormEvent } from "react";
 import type { BaselineRoleKey } from "@veza/contracts";
@@ -97,8 +98,15 @@ function InviteForm({
 }) {
   const [state, setState] = useState<"idle" | "saving" | "error">("idle");
   const [message, setMessage] = useState("");
+  const defaultScope = canUseTenantScope
+    ? `tenant:${tenantId}`
+    : `institution:${institutions[0]?.id ?? ""}`;
+  const availableRoles = canUseTenantScope ? roles : roles.filter((role) => role !== "tenant-owner");
+  const hasScope = canUseTenantScope || institutions.length > 0;
+
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (state === "saving") return;
     const formElement = event.currentTarget;
     const form = new FormData(formElement);
     setState("saving");
@@ -106,27 +114,77 @@ function InviteForm({
     try {
       const scope = selectedScope(form);
       await mutate("invite", {
-        email: String(form.get("email")),
+        email: String(form.get("email") ?? "").trim().toLowerCase(),
         roleKey: String(form.get("roleKey")),
         ...scope,
         expiresInDays: Number(form.get("expiresInDays")),
       });
       formElement.reset();
       setState("idle");
-      onDone("Invitation queued with a one-time token and delivery evidence.");
+      onDone("Invitation queued. The recipient can activate access after verifying the invited email address.");
     } catch (error) {
       setState("error");
-      setMessage(error instanceof Error ? error.message : "Invitation failed");
+      setMessage(error instanceof Error ? error.message : "The invitation could not be queued.");
     }
   }
+
   return (
-    <form className="access-form" onSubmit={submit}>
-      <label>Verified email<input type="email" name="email" required maxLength={254} /></label>
-      <label>Role<select name="roleKey" defaultValue="instructor">{roles.map((role) => <option key={role} value={role}>{human(role)}</option>)}</select></label>
-      <ScopeField tenantId={tenantId} institutions={institutions} canUseTenantScope={canUseTenantScope} />
-      <label>Expires in<select name="expiresInDays" defaultValue="7"><option value="3">3 days</option><option value="7">7 days</option><option value="14">14 days</option><option value="30">30 days</option></select></label>
-      {message ? <p role="alert" className="access-error">{message}</p> : null}
-      <button type="submit" disabled={state === "saving"}>{state === "saving" ? "Queueing invitation..." : "Queue invitation"}</button>
+    <form className="access-invite-form" onSubmit={submit}>
+      <ValidationSummary
+        title="The invitation needs attention"
+        issues={message ? [{ id: "invitation-submit", message }] : []}
+        focusOnMount={state === "error"}
+      />
+      <Field
+        label="Institution email address"
+        description="This must match the verified email claim used during sign-in."
+      >
+        <TextInput
+          name="email"
+          type="email"
+          autoComplete="email"
+          inputMode="email"
+          required
+          maxLength={254}
+          placeholder="person@institution.edu"
+        />
+      </Field>
+      <Field
+        label="Role"
+        description="Choose only the access this person needs. The API rechecks whether you can delegate it."
+      >
+        <Select name="roleKey" defaultValue="instructor" required>
+          {availableRoles.map((role) => <option key={role} value={role}>{human(role)}</option>)}
+        </Select>
+      </Field>
+      <Field
+        label="Access scope"
+        description={canUseTenantScope ? "Tenant owners can grant tenant-wide or institution-specific access." : "Your invitation is limited to an institution you administer."}
+      >
+        <Select name="scope" defaultValue={defaultScope} required disabled={!hasScope}>
+          {canUseTenantScope ? <option value={`tenant:${tenantId}`}>All institutions in this tenant</option> : null}
+          {institutions.map((institution) => (
+            <option key={institution.id} value={`institution:${institution.id}`}>
+              {institution.displayName}
+            </option>
+          ))}
+        </Select>
+      </Field>
+      <Field
+        label="Invitation validity"
+        description="Seven days is the default. Resending later rotates the one-time token."
+      >
+        <Select name="expiresInDays" defaultValue="7" required>
+          <option value="3">3 days</option>
+          <option value="7">7 days</option>
+          <option value="14">14 days</option>
+          <option value="30">30 days</option>
+        </Select>
+      </Field>
+      {!hasScope ? <p className="access-error" role="alert">No institution scope is available for this membership.</p> : null}
+      <Button type="submit" loading={state === "saving"} disabled={!hasScope}>
+        Send invitation
+      </Button>
     </form>
   );
 }
@@ -257,6 +315,7 @@ export function AccessAdministrationWorkspace({
   const [selectedMembershipId, setSelectedMembershipId] = useState(directory.memberships[0]?.id ?? "");
   const [selectedInvitationIds, setSelectedInvitationIds] = useState<Set<string>>(() => new Set());
   const [bulkOpen, setBulkOpen] = useState(false);
+  const [inviteOpen, setInviteOpen] = useState(false);
   const [message, setMessage] = useState("");
   const selectedMembership = directory.memberships.find((membership) => membership.id === selectedMembershipId);
   const selectedInvitations = useMemo(
@@ -267,6 +326,7 @@ export function AccessAdministrationWorkspace({
     setMessage(value);
     setSelectedInvitationIds(new Set());
     setBulkOpen(false);
+    setInviteOpen(false);
     router.refresh();
   }
   async function bulkRevoke(event: FormEvent<HTMLFormElement>) {
@@ -308,14 +368,28 @@ export function AccessAdministrationWorkspace({
       ) : (
         <section className="access-invitation-grid">
           <div className="access-directory">
-            <header><div><p>ACTIVE INVITATIONS</p><h2>Delivery and acceptance queue</h2></div><span>{directory.invitations.length} active</span></header>
+            <header>
+              <div><p>ACTIVE INVITATIONS</p><h2>Delivery and acceptance queue</h2></div>
+              <div className="access-directory-header-actions">
+                <span>{directory.invitations.length} active</span>
+                <Button size="small" type="button" onClick={() => setInviteOpen(true)}>Invite access</Button>
+              </div>
+            </header>
             <BulkSelectionToolbar selectedCount={selectedInvitationIds.size} totalVisible={directory.invitations.length} label="Invitation bulk actions" onClear={() => setSelectedInvitationIds(new Set())}><button type="button" onClick={() => setBulkOpen(true)}>Revoke selected</button></BulkSelectionToolbar>
             {bulkOpen ? <form className="access-bulk-confirmation" onSubmit={bulkRevoke}><strong>Revoke {selectedInvitationIds.size} active invitations</strong><p>The transaction fails without changing any invitation if one selected record is no longer active or no longer delegable.</p><textarea name="reason" required minLength={20} maxLength={500} rows={3} placeholder="Reason for revoking this invitation set" /><div><button type="button" className="secondary" onClick={() => setBulkOpen(false)}>Cancel</button><button>Confirm revocation</button></div></form> : null}
             {directory.invitations.length ? <div className="access-table-wrap"><table><thead><tr><th className="people-select-column"><span className="sr-only">Select</span></th><th>Email</th><th>Role and scope</th><th>Status</th><th>Expires</th><th>Actions</th></tr></thead><tbody>{directory.invitations.map((invitation) => <tr key={invitation.id}><td className="people-select-column"><input type="checkbox" checked={selectedInvitationIds.has(invitation.id)} onChange={() => setSelectedInvitationIds((current) => { const next = new Set(current); if (next.has(invitation.id)) next.delete(invitation.id); else next.add(invitation.id); return next; })} aria-label={`Select invitation for ${invitation.email}`} /></td><td><strong>{invitation.email}</strong><small>Created {date(invitation.createdAt)}</small></td><td><strong>{human(invitation.roleKey)}</strong><small>{invitation.scopeLabel ?? invitation.scopeId}</small></td><td><span className={`access-status ${invitation.status}`}>{human(invitation.status)}</span></td><td>{date(invitation.expiresAt)}</td><td><InvitationActions invitation={invitation} onDone={done} /></td></tr>)}</tbody></table></div> : <p className="access-empty-copy">No active invitations.</p>}
           </div>
-          <aside className="access-invite-panel"><header><p>NEW INVITATION</p><h2>Delegate scoped access</h2><span>The invited identity must verify the exact email address before acceptance.</span></header><InviteForm tenantId={tenantId} institutions={institutions} canUseTenantScope={tenantOwner} onDone={done} /></aside>
         </section>
       )}
+      <Drawer
+        open={inviteOpen}
+        title="Invite access"
+        description="Choose the verified email, delegated role, access scope and invitation validity."
+        onClose={() => setInviteOpen(false)}
+        width="standard"
+      >
+        <InviteForm tenantId={tenantId} institutions={institutions} canUseTenantScope={tenantOwner} onDone={done} />
+      </Drawer>
     </div>
   );
 }
