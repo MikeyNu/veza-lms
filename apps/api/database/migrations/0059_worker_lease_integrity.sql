@@ -15,6 +15,19 @@ CREATE INDEX notification_intents_processing_lease_idx
   ON notification_intents(leased_at, created_at, id)
   WHERE status = 'processing';
 
+ALTER TABLE scheduled_job_runs
+  ADD COLUMN leased_at timestamptz;
+
+-- Existing processing runs already have a durable started_at timestamp. Use it
+-- as the initial lease age so genuinely abandoned work becomes recoverable.
+UPDATE scheduled_job_runs
+SET leased_at = started_at
+WHERE state = 'processing';
+
+CREATE INDEX scheduled_job_runs_processing_lease_idx
+  ON scheduled_job_runs(leased_at, started_at, id)
+  WHERE state = 'processing';
+
 CREATE OR REPLACE FUNCTION app.reconcile_notification_delivery_state()
 RETURNS integer
 LANGUAGE plpgsql
