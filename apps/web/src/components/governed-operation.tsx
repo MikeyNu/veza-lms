@@ -15,6 +15,10 @@ type OperationPath = string | ((form: FormData) => string);
 
 const GovernedActionCloseContext = createContext<(() => void) | null>(null);
 
+export function useGovernedActionClose(): (() => void) | null {
+  return useContext(GovernedActionCloseContext);
+}
+
 function messageFromPayload(payload: unknown, fallback: string): string {
   if (
     payload !== null &&
@@ -132,7 +136,7 @@ export function GovernedOperationForm({
   onSuccess?: () => void;
 }) {
   const router = useRouter();
-  const closeAction = useContext(GovernedActionCloseContext);
+  const closeAction = useGovernedActionClose();
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
 
