@@ -137,28 +137,34 @@ export class NotificationDispatcher {
     private readonly retryMaximumSeconds: number,
   ) {}
 
-  private async claimIntents(): Promise<readonly IntentRow[]> {
+  private async claimIntent(): Promise<IntentRow | undefined> {
     return transaction(this.pool, async (client) => {
       const result = await client.query<IntentRow>(
         `WITH candidates AS (
            SELECT id
            FROM notification_intents
-           WHERE status = 'pending' AND scheduled_at <= now()
+           WHERE (
+               status = 'pending'
+               AND scheduled_at <= now()
+             ) OR (
+               status = 'processing'
+               AND leased_at < now() - interval '5 minutes'
+             )
            ORDER BY scheduled_at, created_at, id
            FOR UPDATE SKIP LOCKED
-           LIMIT $1
+           LIMIT 1
          )
          UPDATE notification_intents intent
-         SET status = 'processing'
+         SET status = 'processing', leased_at = now(), lease_owner = $1
          FROM candidates
          WHERE intent.id = candidates.id
          RETURNING intent.id, intent.tenant_id, intent.template_key, intent.topic_key,
                    intent.policy, intent.requested_channels, intent.recipient_user_id,
                    intent.recipient_person_id, intent.recipient_snapshot,
                    intent.variables, intent.correlation_id`,
-        [this.batchSize],
+        [this.workerId],
       );
-      return result.rows;
+      return result.rows[0];
     });
   }
 
@@ -199,6 +205,15 @@ export class NotificationDispatcher {
 
   private async prepareIntent(intent: IntentRow): Promise<void> {
     await transaction(this.pool, async (client) => {
+      const ownership = await client.query(
+        `UPDATE notification_intents
+         SET leased_at = now()
+         WHERE id = $1 AND status = 'processing' AND lease_owner = $2
+         RETURNING id`,
+        [intent.id, this.workerId],
+      );
+      if (ownership.rowCount !== 1) throw new Error("notification-intent-lease-lost");
+
       const template = await client.query(
         `SELECT version.subject_template, version.body_template,
                 version.content_type, version.version_number
@@ -216,7 +231,8 @@ export class NotificationDispatcher {
       if (!version) {
         await client.query(
           `UPDATE notification_intents
-           SET status = 'dead-letter', completed_at = now()
+           SET status = 'dead-letter', completed_at = now(),
+               leased_at = NULL, lease_owner = NULL
            WHERE id = $1`,
           [intent.id],
         );
@@ -339,25 +355,30 @@ export class NotificationDispatcher {
       await client.query(
         `UPDATE notification_intents
          SET status = $2,
-             completed_at = CASE WHEN $2 IN ('suppressed','dead-letter') THEN now() ELSE NULL END
+             completed_at = CASE WHEN $2 IN ('suppressed','dead-letter') THEN now() ELSE NULL END,
+             leased_at = NULL, lease_owner = NULL
          WHERE id = $1`,
         [intent.id, status],
       );
     });
   }
 
-  private async claimDeliveries(): Promise<readonly DeliveryRow[]> {
+  private async claimDelivery(): Promise<DeliveryRow | undefined> {
     return transaction(this.pool, async (client) => {
       const result = await client.query<DeliveryRow>(
         `WITH candidates AS (
            SELECT delivery.id
            FROM notification_deliveries delivery
-           WHERE delivery.state IN ('pending','retry')
-             AND delivery.next_attempt_at <= now()
-             AND (delivery.leased_at IS NULL OR delivery.leased_at < now() - interval '60 seconds')
+           WHERE (
+               delivery.state IN ('pending','retry')
+               AND delivery.next_attempt_at <= now()
+             ) OR (
+               delivery.state = 'processing'
+               AND delivery.leased_at < now() - interval '60 seconds'
+             )
            ORDER BY delivery.next_attempt_at, delivery.created_at, delivery.id
            FOR UPDATE SKIP LOCKED
-           LIMIT $2
+           LIMIT 1
          )
          UPDATE notification_deliveries delivery
          SET state = 'processing', attempts = attempts + 1,
@@ -369,9 +390,9 @@ export class NotificationDispatcher {
                    delivery.channel, delivery.provider_key, delivery.sender_snapshot,
                    delivery.recipient_snapshot, delivery.content_snapshot,
                    delivery.attempts, intent.correlation_id`,
-        [this.workerId, this.batchSize],
+        [this.workerId],
       );
-      return result.rows;
+      return result.rows[0];
     });
   }
 
@@ -454,30 +475,46 @@ export class NotificationDispatcher {
     return false;
   }
 
-  private async claimDigests(): Promise<readonly DigestRow[]> {
+  private async claimDigest(): Promise<DigestRow | undefined> {
     return transaction(this.pool, async (client) => {
       const result = await client.query<DigestRow>(
         `WITH candidates AS (
            SELECT id FROM notification_digest_batches
-           WHERE state IN ('pending','retry') AND next_attempt_at <= now()
+           WHERE (
+               state IN ('pending','retry')
+               AND next_attempt_at <= now()
+             ) OR (
+               state = 'processing'
+               AND leased_at < now() - interval '5 minutes'
+             )
            ORDER BY next_attempt_at, created_at, id
            FOR UPDATE SKIP LOCKED
-           LIMIT $1
+           LIMIT 1
          )
          UPDATE notification_digest_batches batch
-         SET state = 'processing', attempts = attempts + 1
+         SET state = 'processing', attempts = attempts + 1,
+             leased_at = now(), lease_owner = $1, updated_at = now()
          FROM candidates
          WHERE batch.id = candidates.id
          RETURNING batch.id, batch.tenant_id, batch.recipient_key,
                    batch.channel, batch.frequency, batch.recipient_snapshot,
                    batch.item_snapshot, batch.attempts`,
-        [this.batchSize],
+        [this.workerId],
       );
-      return result.rows;
+      return result.rows[0];
     });
   }
 
   private async deliverDigest(batch: DigestRow): Promise<boolean> {
+    const ownership = await this.pool.query(
+      `UPDATE notification_digest_batches
+       SET leased_at = now(), updated_at = now()
+       WHERE id = $1 AND state = 'processing' AND lease_owner = $2 AND attempts = $3
+       RETURNING id`,
+      [batch.id, this.workerId, batch.attempts],
+    );
+    if (ownership.rowCount !== 1) return false;
+
     const sender = await this.pool.query(
       `SELECT provider_key, sender_identity, reply_to, configuration
        FROM tenant_sender_configurations
@@ -511,13 +548,16 @@ export class NotificationDispatcher {
       });
       if (!result.accepted)
         throw new Error(result.errorCode ?? "digest-provider-rejected");
-      await transaction(this.pool, async (client) => {
-        await client.query(
+      return transaction(this.pool, async (client) => {
+        const updated = await client.query(
           `UPDATE notification_digest_batches
-           SET state = 'sent', provider_message_id = $2, sent_at = now(), last_error = NULL
-           WHERE id = $1 AND state = 'processing'`,
-          [batch.id, result.providerMessageId ?? null],
+           SET state = 'sent', provider_message_id = $4, sent_at = now(),
+               last_error = NULL, leased_at = NULL, lease_owner = NULL, updated_at = now()
+           WHERE id = $1 AND state = 'processing' AND lease_owner = $2 AND attempts = $3
+           RETURNING id`,
+          [batch.id, this.workerId, batch.attempts, result.providerMessageId ?? null],
         );
+        if (updated.rowCount !== 1) return false;
         await client.query(
           `UPDATE notification_digest_items item
            SET status = 'sent'
@@ -535,8 +575,8 @@ export class NotificationDispatcher {
             batch.frequency,
           ],
         );
+        return true;
       });
-      return true;
     } catch (error) {
       const deadLetter = batch.attempts >= this.maximumAttempts;
       const delaySeconds = retryDelaySeconds(
@@ -545,18 +585,21 @@ export class NotificationDispatcher {
         this.retryBaseSeconds,
         this.retryMaximumSeconds,
       );
-      await this.pool.query(
+      const updated = await this.pool.query(
         `UPDATE notification_digest_batches
-         SET state = $2, next_attempt_at = $3, last_error = $4
-         WHERE id = $1 AND state = 'processing'`,
+         SET state = $4, next_attempt_at = $5, last_error = $6,
+             leased_at = NULL, lease_owner = NULL, updated_at = now()
+         WHERE id = $1 AND state = 'processing' AND lease_owner = $2 AND attempts = $3`,
         [
           batch.id,
+          this.workerId,
+          batch.attempts,
           deadLetter ? "dead-letter" : "retry",
           nextAttemptAt(new Date(), delaySeconds),
           sanitizeDeliveryError(error).slice(0, 2_000),
         ],
       );
-      return false;
+      return updated.rowCount === 1 ? false : false;
     }
   }
 
@@ -566,16 +609,20 @@ export class NotificationDispatcher {
     readonly deliveriesSent: number;
     readonly digestsProcessed: number;
   }> {
-    const intents = await this.claimIntents();
-    for (const intent of intents) {
+    let intentsPrepared = 0;
+    for (let index = 0; index < this.batchSize; index += 1) {
+      const intent = await this.claimIntent();
+      if (!intent) break;
       try {
         await this.prepareIntent(intent);
+        intentsPrepared += 1;
       } catch (error) {
         await this.pool.query(
           `UPDATE notification_intents
-           SET status = 'dead-letter', completed_at = now()
-           WHERE id = $1 AND status = 'processing'`,
-          [intent.id],
+           SET status = 'dead-letter', completed_at = now(),
+               leased_at = NULL, lease_owner = NULL
+           WHERE id = $1 AND status = 'processing' AND lease_owner = $2`,
+          [intent.id, this.workerId],
         );
         process.stderr.write(
           `${JSON.stringify({
@@ -590,18 +637,28 @@ export class NotificationDispatcher {
       }
     }
 
-    const deliveries = await this.claimDeliveries();
-    let sent = 0;
-    for (const delivery of deliveries) {
-      if (await this.deliver(delivery)) sent += 1;
+    let deliveriesProcessed = 0;
+    let deliveriesSent = 0;
+    for (let index = 0; index < this.batchSize; index += 1) {
+      const delivery = await this.claimDelivery();
+      if (!delivery) break;
+      deliveriesProcessed += 1;
+      if (await this.deliver(delivery)) deliveriesSent += 1;
     }
-    const digests = await this.claimDigests();
-    for (const digest of digests) await this.deliverDigest(digest);
+
+    let digestsProcessed = 0;
+    for (let index = 0; index < this.batchSize; index += 1) {
+      const digest = await this.claimDigest();
+      if (!digest) break;
+      digestsProcessed += 1;
+      await this.deliverDigest(digest);
+    }
+
     return {
-      intentsPrepared: intents.length,
-      deliveriesProcessed: deliveries.length,
-      deliveriesSent: sent,
-      digestsProcessed: digests.length,
+      intentsPrepared,
+      deliveriesProcessed,
+      deliveriesSent,
+      digestsProcessed,
     };
   }
 }
