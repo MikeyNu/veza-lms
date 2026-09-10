@@ -39,6 +39,7 @@
 @import "../styles/calendar.css" layer(veza-features);
 @import "../styles/responsive.css" layer(veza-features);
 @import "../styles/design-system-catalogue.css" layer(veza-features);
+@import "../styles/interaction-density.css" layer(veza-features);
 @import "../styles/ux-hardening.css" layer(veza-reference);
 @import "../styles/reference-alignment.css" layer(veza-reference);
 @import "../styles/brand-assets.css" layer(veza-reference);
