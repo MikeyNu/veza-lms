@@ -24,6 +24,31 @@ const roles: readonly BaselineRoleKey[] = [
   "auditor",
 ];
 
+const tenantInviteRoles: readonly BaselineRoleKey[] = ["tenant-owner", "auditor"];
+const tenantOwnerInstitutionInviteRoles: readonly BaselineRoleKey[] = [
+  "institution-admin",
+  "registrar",
+  "curriculum-manager",
+  "course-manager",
+  "instructor",
+  "assessor",
+  "moderator",
+  "learner",
+  "guardian-sponsor",
+  "auditor",
+];
+const institutionAdminInviteRoles: readonly BaselineRoleKey[] = [
+  "registrar",
+  "curriculum-manager",
+  "course-manager",
+  "instructor",
+  "assessor",
+  "moderator",
+  "learner",
+  "guardian-sponsor",
+  "auditor",
+];
+
 function human(value: string): string {
   return value.replaceAll("-", " ").replace(/\b\w/g, (character) => character.toUpperCase());
 }
@@ -34,6 +59,18 @@ function date(value: string): string {
     timeStyle: "short",
     timeZone: "Africa/Johannesburg",
   }).format(new Date(value));
+}
+
+function inviteRolesFor(
+  canUseTenantScope: boolean,
+  scopeType: "tenant" | "institution",
+): readonly BaselineRoleKey[] {
+  if (scopeType === "tenant") return canUseTenantScope ? tenantInviteRoles : [];
+  return canUseTenantScope ? tenantOwnerInstitutionInviteRoles : institutionAdminInviteRoles;
+}
+
+function preferredInviteRole(options: readonly BaselineRoleKey[]): BaselineRoleKey {
+  return options.includes("instructor") ? "instructor" : options[0] ?? "auditor";
 }
 
 function selectedScope(form: FormData): { readonly scopeType: "tenant" | "institution"; readonly scopeId: string } {
@@ -96,13 +133,29 @@ function InviteForm({
   readonly canUseTenantScope: boolean;
   readonly onDone: (message: string) => void;
 }) {
+  const initialScope = institutions[0]
+    ? `institution:${institutions[0].id}`
+    : canUseTenantScope
+      ? `tenant:${tenantId}`
+      : "";
+  const initialScopeType = initialScope.startsWith("tenant:") ? "tenant" : "institution";
+  const initialRole = preferredInviteRole(inviteRolesFor(canUseTenantScope, initialScopeType));
   const [state, setState] = useState<"idle" | "saving" | "error">("idle");
   const [message, setMessage] = useState("");
-  const defaultScope = canUseTenantScope
-    ? `tenant:${tenantId}`
-    : `institution:${institutions[0]?.id ?? ""}`;
-  const availableRoles = canUseTenantScope ? roles : roles.filter((role) => role !== "tenant-owner");
-  const hasScope = canUseTenantScope || institutions.length > 0;
+  const [scope, setScope] = useState(initialScope);
+  const [roleKey, setRoleKey] = useState<BaselineRoleKey>(initialRole);
+  const scopeType = scope.startsWith("tenant:") ? "tenant" : "institution";
+  const availableRoles = inviteRolesFor(canUseTenantScope, scopeType);
+  const hasScope = scope.length > 0 && availableRoles.length > 0;
+
+  function changeScope(value: string) {
+    const nextScopeType = value.startsWith("tenant:") ? "tenant" : "institution";
+    const nextRoles = inviteRolesFor(canUseTenantScope, nextScopeType);
+    setScope(value);
+    if (!nextRoles.includes(roleKey)) setRoleKey(preferredInviteRole(nextRoles));
+    setMessage("");
+    if (state === "error") setState("idle");
+  }
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -112,14 +165,16 @@ function InviteForm({
     setState("saving");
     setMessage("");
     try {
-      const scope = selectedScope(form);
+      const selected = selectedScope(form);
       await mutate("invite", {
         email: String(form.get("email") ?? "").trim().toLowerCase(),
         roleKey: String(form.get("roleKey")),
-        ...scope,
+        ...selected,
         expiresInDays: Number(form.get("expiresInDays")),
       });
       formElement.reset();
+      setScope(initialScope);
+      setRoleKey(initialRole);
       setState("idle");
       onDone("Invitation queued. The recipient can activate access after verifying the invited email address.");
     } catch (error) {
@@ -150,24 +205,36 @@ function InviteForm({
         />
       </Field>
       <Field
-        label="Role"
-        description="Choose only the access this person needs. The API rechecks whether you can delegate it."
-      >
-        <Select name="roleKey" defaultValue="instructor" required>
-          {availableRoles.map((role) => <option key={role} value={role}>{human(role)}</option>)}
-        </Select>
-      </Field>
-      <Field
         label="Access scope"
-        description={canUseTenantScope ? "Tenant owners can grant tenant-wide or institution-specific access." : "Your invitation is limited to an institution you administer."}
+        description={canUseTenantScope ? "Choose a specific institution for least-privilege access, or explicitly choose tenant-wide access." : "Your invitation is limited to an institution you administer."}
       >
-        <Select name="scope" defaultValue={defaultScope} required disabled={!hasScope}>
-          {canUseTenantScope ? <option value={`tenant:${tenantId}`}>All institutions in this tenant</option> : null}
+        <Select
+          name="scope"
+          value={scope}
+          required
+          disabled={!initialScope}
+          onChange={(event) => changeScope(event.currentTarget.value)}
+        >
           {institutions.map((institution) => (
             <option key={institution.id} value={`institution:${institution.id}`}>
               {institution.displayName}
             </option>
           ))}
+          {canUseTenantScope ? <option value={`tenant:${tenantId}`}>All institutions in this tenant</option> : null}
+        </Select>
+      </Field>
+      <Field
+        label="Role"
+        description="Only roles delegable from the selected scope are shown. The API still rechecks authorization before creating the invitation."
+      >
+        <Select
+          name="roleKey"
+          value={roleKey}
+          required
+          disabled={!hasScope}
+          onChange={(event) => setRoleKey(event.currentTarget.value as BaselineRoleKey)}
+        >
+          {availableRoles.map((role) => <option key={role} value={role}>{human(role)}</option>)}
         </Select>
       </Field>
       <Field
@@ -181,7 +248,7 @@ function InviteForm({
           <option value="30">30 days</option>
         </Select>
       </Field>
-      {!hasScope ? <p className="access-error" role="alert">No institution scope is available for this membership.</p> : null}
+      {!hasScope ? <p className="access-error" role="alert">No delegable institution scope is available for this membership.</p> : null}
       <Button type="submit" loading={state === "saving"} disabled={!hasScope}>
         Send invitation
       </Button>
