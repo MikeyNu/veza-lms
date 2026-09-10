@@ -1,6 +1,15 @@
 "use client";
 
-import { Button, Drawer, Field, Select, TextInput, ValidationSummary } from "@veza/ui";
+import {
+  Button,
+  Dialog,
+  Drawer,
+  DropdownMenu,
+  Field,
+  Select,
+  TextInput,
+  ValidationSummary,
+} from "@veza/ui";
 import { useRouter } from "next/navigation";
 import { useMemo, useState, type FormEvent } from "react";
 import type { BaselineRoleKey } from "@veza/contracts";
@@ -256,6 +265,8 @@ function InviteForm({
   );
 }
 
+type MembershipAction = "assign" | "lifecycle" | null;
+
 function MembershipInspector({
   membership,
   tenantId,
@@ -272,79 +283,158 @@ function MembershipInspector({
   readonly onDone: (message: string) => void;
 }) {
   const [message, setMessage] = useState("");
-  async function submit(operation: string, input: Readonly<Record<string, unknown>>, success: string) {
+  const [busy, setBusy] = useState(false);
+  const [action, setAction] = useState<MembershipAction>(null);
+  const [endingRoleId, setEndingRoleId] = useState<string | null>(null);
+  const endingRole = membership.roles.find((role) => role.id === endingRoleId);
+
+  async function submit(operation: string, input: Readonly<Record<string, unknown>>, success: string): Promise<boolean> {
+    setBusy(true);
     setMessage("");
     try {
       await mutate(operation, input);
       onDone(success);
+      return true;
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Access operation failed");
+      return false;
+    } finally {
+      setBusy(false);
     }
   }
+
+  async function assignRole(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const form = new FormData(event.currentTarget);
+    const scope = selectedScope(form);
+    const saved = await submit("role-assign", {
+      membershipId: membership.id,
+      roleKey: String(form.get("roleKey")),
+      ...scope,
+      ...(String(form.get("validUntil")) ? { validUntil: String(form.get("validUntil")) } : {}),
+    }, "Role assignment created.");
+    if (saved) setAction(null);
+  }
+
+  async function changeLifecycle(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const form = new FormData(event.currentTarget);
+    const status = String(form.get("status"));
+    const saved = await submit("membership-status", {
+      membershipId: membership.id,
+      status,
+      reason: String(form.get("reason")),
+    }, `Membership set to ${status}.`);
+    if (saved) setAction(null);
+  }
+
+  async function endRole(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!endingRole) return;
+    const form = new FormData(event.currentTarget);
+    const saved = await submit("role-end", {
+      assignmentId: endingRole.id,
+      reason: String(form.get("reason")),
+    }, "Role assignment ended with audit evidence.");
+    if (saved) setEndingRoleId(null);
+  }
+
   return (
     <aside className="access-inspector">
       <header><p>MEMBERSHIP</p><h2>{membership.identity.displayName ?? membership.identity.email ?? "Verified identity"}</h2><span>{membership.identity.email ?? "No email claim"}</span></header>
       <dl><div><dt>Status</dt><dd>{human(membership.status)}</dd></div><div><dt>Locale</dt><dd>{membership.locale}</dd></div><div><dt>Timezone</dt><dd>{membership.timezone}</dd></div><div><dt>Created</dt><dd>{date(membership.createdAt)}</dd></div></dl>
       <section>
-        <h3>Current role assignments</h3>
+        <div className="access-section-heading"><h3>Current role assignments</h3><Button type="button" size="small" variant="secondary" onClick={() => setAction("assign")}>Assign role</Button></div>
         {membership.roles.length ? (
           <ul className="access-role-list">
             {membership.roles.map((role) => (
               <li key={role.id}>
                 <div><strong>{human(role.roleKey)}</strong><span>{role.scopeLabel ?? role.scopeId}</span><small>{role.validUntil ? `Ends ${date(role.validUntil)}` : "No scheduled end"}</small></div>
-                <details><summary>End role</summary><form onSubmit={(event) => { event.preventDefault(); const form = new FormData(event.currentTarget); void submit("role-end", { assignmentId: role.id, reason: String(form.get("reason")) }, "Role assignment ended with audit evidence."); }}><textarea name="reason" required minLength={20} maxLength={500} rows={2} placeholder="Reason for ending this role" /><button>End assignment</button></form></details>
+                <Button type="button" size="small" variant="quiet" onClick={() => setEndingRoleId(role.id)}>End role</Button>
               </li>
             ))}
           </ul>
-        ) : <p className="access-empty-copy">No current roles.</p>}
+        ) : <p className="access-empty-copy access-empty-copy--compact">No current roles.</p>}
       </section>
-      <section>
-        <h3>Assign role</h3>
-        <form className="access-form compact" onSubmit={(event) => {
-          event.preventDefault();
-          const form = new FormData(event.currentTarget);
-          const scope = selectedScope(form);
-          void submit("role-assign", {
-            membershipId: membership.id,
-            roleKey: String(form.get("roleKey")),
-            ...scope,
-            ...(String(form.get("validUntil")) ? { validUntil: String(form.get("validUntil")) } : {}),
-          }, "Role assignment created.");
-        }}>
+      {canChangeStatus ? (
+        <section className="access-lifecycle-summary">
+          <div><h3>Membership lifecycle</h3><p>State changes are audited and require an explicit reason.</p></div>
+          <Button type="button" size="small" variant="secondary" onClick={() => setAction("lifecycle")}>Change status</Button>
+        </section>
+      ) : null}
+      {message ? <p role="alert" className="access-error access-inspector-error">{message}</p> : null}
+
+      <Dialog
+        open={action === "assign"}
+        onClose={() => setAction(null)}
+        title="Assign role"
+        description="Grant the selected membership a role at the narrowest appropriate access scope."
+        size="small"
+        footer={
+          <>
+            <Button type="button" variant="secondary" onClick={() => setAction(null)} disabled={busy}>Cancel</Button>
+            <Button type="submit" form="access-assign-role-form" loading={busy} disabled={busy}>Assign role</Button>
+          </>
+        }
+      >
+        <form id="access-assign-role-form" className="access-form compact" onSubmit={assignRole}>
           <label>Role<select name="roleKey">{roles.map((role) => <option key={role} value={role}>{human(role)}</option>)}</select></label>
           <ScopeField tenantId={tenantId} institutions={institutions} canUseTenantScope={canUseTenantScope} />
           <label>Valid until<input name="validUntil" type="datetime-local" /></label>
-          <button>Assign role</button>
         </form>
-      </section>
-      {canChangeStatus ? (
-        <section>
-          <h3>Membership lifecycle</h3>
-          <form className="access-form compact" onSubmit={(event) => {
-            event.preventDefault();
-            const form = new FormData(event.currentTarget);
-            const status = String(form.get("status"));
-            void submit("membership-status", {
-              membershipId: membership.id,
-              status,
-              reason: String(form.get("reason")),
-            }, `Membership set to ${status}.`);
-          }}>
-            <label>Status<select name="status" defaultValue={membership.status === "active" ? "suspended" : "active"}><option value="active">Active</option><option value="suspended">Suspended</option><option value="revoked">Revoked</option></select></label>
-            <label>Reason<textarea name="reason" required minLength={20} maxLength={500} rows={2} /></label>
-            <button>Apply membership state</button>
-          </form>
-        </section>
-      ) : null}
-      {message ? <p role="alert" className="access-error">{message}</p> : null}
+      </Dialog>
+
+      <Dialog
+        open={action === "lifecycle"}
+        onClose={() => setAction(null)}
+        title="Change membership status"
+        description="Apply an audited membership lifecycle state. Revocation should only be used when access must end permanently."
+        size="small"
+        destructive={false}
+        footer={
+          <>
+            <Button type="button" variant="secondary" onClick={() => setAction(null)} disabled={busy}>Cancel</Button>
+            <Button type="submit" form="access-membership-lifecycle-form" loading={busy} disabled={busy}>Apply status</Button>
+          </>
+        }
+      >
+        <form id="access-membership-lifecycle-form" className="access-form compact" onSubmit={changeLifecycle}>
+          <label>Status<select name="status" defaultValue={membership.status === "active" ? "suspended" : "active"}><option value="active">Active</option><option value="suspended">Suspended</option><option value="revoked">Revoked</option></select></label>
+          <label>Reason<textarea name="reason" required minLength={20} maxLength={500} rows={3} placeholder="Explain why this membership state must change." /></label>
+        </form>
+      </Dialog>
+
+      <Dialog
+        open={Boolean(endingRole)}
+        onClose={() => setEndingRoleId(null)}
+        title="End role assignment"
+        description={endingRole ? `End ${human(endingRole.roleKey)} access for this membership while preserving the assignment evidence.` : undefined}
+        size="small"
+        footer={
+          <>
+            <Button type="button" variant="secondary" onClick={() => setEndingRoleId(null)} disabled={busy}>Cancel</Button>
+            <Button type="submit" form="access-end-role-form" variant="danger" loading={busy} disabled={busy}>End assignment</Button>
+          </>
+        }
+      >
+        <form id="access-end-role-form" className="access-form compact" onSubmit={endRole}>
+          <label>Reason<textarea name="reason" required minLength={20} maxLength={500} rows={3} placeholder="Explain why this role assignment must end." /></label>
+        </form>
+      </Dialog>
     </aside>
   );
 }
 
+type InvitationAction = "resend" | "revoke" | null;
+
 function InvitationActions({ invitation, onDone }: { readonly invitation: AccessInvitationRecord; readonly onDone: (message: string) => void }) {
+  const [action, setAction] = useState<InvitationAction>(null);
+  const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
+
   async function perform(operation: "invitation-resend" | "invitation-revoke", form: HTMLFormElement) {
     const data = new FormData(form);
+    setBusy(true);
     setMessage("");
     try {
       await mutate(operation, {
@@ -352,16 +442,64 @@ function InvitationActions({ invitation, onDone }: { readonly invitation: Access
         reason: String(data.get("reason")),
         ...(operation === "invitation-resend" ? { expiresInDays: Number(data.get("expiresInDays")) } : {}),
       });
+      setAction(null);
       onDone(operation === "invitation-resend" ? "Invitation token rotated and delivery queued." : "Invitation revoked.");
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Invitation operation failed");
+    } finally {
+      setBusy(false);
     }
   }
+
   return (
     <div className="access-invitation-actions">
-      <details><summary>Resend</summary><form onSubmit={(event) => { event.preventDefault(); void perform("invitation-resend", event.currentTarget); }}><select name="expiresInDays" defaultValue="7"><option value="3">3 days</option><option value="7">7 days</option><option value="14">14 days</option></select><textarea name="reason" required minLength={20} maxLength={500} rows={2} placeholder="Reason for rotating and resending" /><button>Rotate and resend</button></form></details>
-      <details><summary>Revoke</summary><form onSubmit={(event) => { event.preventDefault(); void perform("invitation-revoke", event.currentTarget); }}><textarea name="reason" required minLength={20} maxLength={500} rows={2} placeholder="Reason for revocation" /><button>Revoke invitation</button></form></details>
-      {message ? <p role="alert" className="access-error">{message}</p> : null}
+      <DropdownMenu
+        label={`Actions for ${invitation.email}`}
+        trigger={<Button type="button" size="small" variant="quiet">Actions</Button>}
+        entries={[
+          { key: "resend", label: "Resend invitation", onSelect: () => setAction("resend") },
+          { type: "separator", key: "divider" },
+          { key: "revoke", label: "Revoke invitation", destructive: true, onSelect: () => setAction("revoke") },
+        ]}
+      />
+      <Dialog
+        open={action === "resend"}
+        onClose={() => setAction(null)}
+        title="Resend invitation"
+        description={`Rotate the one-time token and resend access to ${invitation.email}.`}
+        size="small"
+        footer={
+          <>
+            <Button type="button" variant="secondary" onClick={() => setAction(null)} disabled={busy}>Cancel</Button>
+            <Button type="submit" form={`access-resend-${invitation.id}`} loading={busy} disabled={busy}>Rotate and resend</Button>
+          </>
+        }
+      >
+        <form id={`access-resend-${invitation.id}`} className="access-form compact" onSubmit={(event) => { event.preventDefault(); void perform("invitation-resend", event.currentTarget); }}>
+          <label>Invitation validity<select name="expiresInDays" defaultValue="7"><option value="3">3 days</option><option value="7">7 days</option><option value="14">14 days</option></select></label>
+          <label>Reason<textarea name="reason" required minLength={20} maxLength={500} rows={3} placeholder="Explain why the invitation needs a new token and delivery attempt." /></label>
+          {message ? <p role="alert" className="access-error">{message}</p> : null}
+        </form>
+      </Dialog>
+      <Dialog
+        open={action === "revoke"}
+        onClose={() => setAction(null)}
+        title="Revoke invitation"
+        description={`Revoke the active invitation for ${invitation.email}. The current token will no longer be accepted.`}
+        size="small"
+        destructive
+        footer={
+          <>
+            <Button type="button" variant="secondary" onClick={() => setAction(null)} disabled={busy}>Cancel</Button>
+            <Button type="submit" form={`access-revoke-${invitation.id}`} variant="danger" loading={busy} disabled={busy}>Revoke invitation</Button>
+          </>
+        }
+      >
+        <form id={`access-revoke-${invitation.id}`} className="access-form compact" onSubmit={(event) => { event.preventDefault(); void perform("invitation-revoke", event.currentTarget); }}>
+          <label>Reason<textarea name="reason" required minLength={20} maxLength={500} rows={3} placeholder="Explain why this invitation must be revoked." /></label>
+          {message ? <p role="alert" className="access-error">{message}</p> : null}
+        </form>
+      </Dialog>
     </div>
   );
 }
@@ -382,6 +520,7 @@ export function AccessAdministrationWorkspace({
   const [selectedMembershipId, setSelectedMembershipId] = useState(directory.memberships[0]?.id ?? "");
   const [selectedInvitationIds, setSelectedInvitationIds] = useState<Set<string>>(() => new Set());
   const [bulkOpen, setBulkOpen] = useState(false);
+  const [bulkBusy, setBulkBusy] = useState(false);
   const [inviteOpen, setInviteOpen] = useState(false);
   const [message, setMessage] = useState("");
   const selectedMembership = directory.memberships.find((membership) => membership.id === selectedMembershipId);
@@ -389,6 +528,7 @@ export function AccessAdministrationWorkspace({
     () => directory.invitations.filter((invitation) => selectedInvitationIds.has(invitation.id)),
     [directory.invitations, selectedInvitationIds],
   );
+
   function done(value: string) {
     setMessage(value);
     setSelectedInvitationIds(new Set());
@@ -396,9 +536,11 @@ export function AccessAdministrationWorkspace({
     setInviteOpen(false);
     router.refresh();
   }
+
   async function bulkRevoke(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
+    setBulkBusy(true);
     try {
       await mutate("invitations-bulk-revoke", {
         invitationIds: selectedInvitations.map((invitation) => invitation.id),
@@ -407,8 +549,11 @@ export function AccessAdministrationWorkspace({
       done(`${selectedInvitations.length} invitations revoked.`);
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Bulk revocation failed");
+    } finally {
+      setBulkBusy(false);
     }
   }
+
   return (
     <div className="access-workspace">
       <header className="access-heading">
@@ -442,8 +587,9 @@ export function AccessAdministrationWorkspace({
                 <Button size="small" type="button" onClick={() => setInviteOpen(true)}>Invite access</Button>
               </div>
             </header>
-            <BulkSelectionToolbar selectedCount={selectedInvitationIds.size} totalVisible={directory.invitations.length} label="Invitation bulk actions" onClear={() => setSelectedInvitationIds(new Set())}><button type="button" onClick={() => setBulkOpen(true)}>Revoke selected</button></BulkSelectionToolbar>
-            {bulkOpen ? <form className="access-bulk-confirmation" onSubmit={bulkRevoke}><strong>Revoke {selectedInvitationIds.size} active invitations</strong><p>The transaction fails without changing any invitation if one selected record is no longer active or no longer delegable.</p><textarea name="reason" required minLength={20} maxLength={500} rows={3} placeholder="Reason for revoking this invitation set" /><div><button type="button" className="secondary" onClick={() => setBulkOpen(false)}>Cancel</button><button>Confirm revocation</button></div></form> : null}
+            <BulkSelectionToolbar selectedCount={selectedInvitationIds.size} totalVisible={directory.invitations.length} label="Invitation bulk actions" onClear={() => setSelectedInvitationIds(new Set())}>
+              <Button type="button" size="small" variant="danger" onClick={() => setBulkOpen(true)}>Revoke selected</Button>
+            </BulkSelectionToolbar>
             {directory.invitations.length ? <div className="access-table-wrap"><table><thead><tr><th className="people-select-column"><span className="sr-only">Select</span></th><th>Email</th><th>Role and scope</th><th>Status</th><th>Expires</th><th>Actions</th></tr></thead><tbody>{directory.invitations.map((invitation) => <tr key={invitation.id}><td className="people-select-column"><input type="checkbox" checked={selectedInvitationIds.has(invitation.id)} onChange={() => setSelectedInvitationIds((current) => { const next = new Set(current); if (next.has(invitation.id)) next.delete(invitation.id); else next.add(invitation.id); return next; })} aria-label={`Select invitation for ${invitation.email}`} /></td><td><strong>{invitation.email}</strong><small>Created {date(invitation.createdAt)}</small></td><td><strong>{human(invitation.roleKey)}</strong><small>{invitation.scopeLabel ?? invitation.scopeId}</small></td><td><span className={`access-status ${invitation.status}`}>{human(invitation.status)}</span></td><td>{date(invitation.expiresAt)}</td><td><InvitationActions invitation={invitation} onDone={done} /></td></tr>)}</tbody></table></div> : <p className="access-empty-copy">No active invitations.</p>}
           </div>
         </section>
@@ -457,6 +603,24 @@ export function AccessAdministrationWorkspace({
       >
         <InviteForm tenantId={tenantId} institutions={institutions} canUseTenantScope={tenantOwner} onDone={done} />
       </Drawer>
+      <Dialog
+        open={bulkOpen}
+        onClose={() => setBulkOpen(false)}
+        title={`Revoke ${selectedInvitationIds.size} invitations`}
+        description="This audited transaction fails without changing any invitation if a selected record is no longer active or delegable."
+        size="small"
+        destructive
+        footer={
+          <>
+            <Button type="button" variant="secondary" onClick={() => setBulkOpen(false)} disabled={bulkBusy}>Cancel</Button>
+            <Button type="submit" form="access-bulk-revoke-form" variant="danger" loading={bulkBusy} disabled={bulkBusy || selectedInvitationIds.size === 0}>Confirm revocation</Button>
+          </>
+        }
+      >
+        <form id="access-bulk-revoke-form" className="access-form compact" onSubmit={bulkRevoke}>
+          <label>Reason<textarea name="reason" required minLength={20} maxLength={500} rows={3} placeholder="Explain why this invitation set must be revoked." /></label>
+        </form>
+      </Dialog>
     </div>
   );
 }
