@@ -282,6 +282,55 @@
   color: white;
 }
 
+.access-section-heading,
+.access-lifecycle-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.access-section-heading h3,
+.access-lifecycle-summary h3 {
+  margin: 0;
+}
+
+.access-lifecycle-summary > div {
+  min-width: 0;
+}
+
+.access-lifecycle-summary p {
+  margin: 0.3rem 0 0;
+  color: var(--muted);
+  font-size: 0.58rem;
+  line-height: 1.5;
+}
+
+.access-role-list li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.access-role-list .vz-button {
+  align-self: center;
+}
+
+.access-empty-copy--compact {
+  margin: 0;
+  padding: 0.3rem 0 0;
+}
+
+.access-inspector-error {
+  margin: 0.75rem 1rem 1rem;
+}
+
+.access-invitation-actions {
+  display: inline-flex;
+  min-width: 0;
+}
+
 @media (max-width: 720px) {
   .catalogue-actions {
     justify-content: stretch;
@@ -331,6 +380,17 @@
   .service-account-heading-actions {
     display: grid;
     grid-template-columns: 1fr;
+    width: 100%;
+  }
+
+  .access-section-heading,
+  .access-lifecycle-summary {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .access-section-heading .vz-button,
+  .access-lifecycle-summary .vz-button {
     width: 100%;
   }
 }
