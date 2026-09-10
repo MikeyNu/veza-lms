@@ -66,14 +66,16 @@ export function AnalyticsReferenceWorkspace({ metrics }: { metrics: readonly Ana
     }
     return [...map.entries()].map(([key, rows]) => {
       const ordered = [...rows].sort((a, b) => a.measuredAt.localeCompare(b.measuredAt));
-      return { key, rows: ordered, latest: ordered[ordered.length - 1]! };
+      const latest = ordered.at(-1);
+      if (!latest) throw new Error(`Analytics metric ${key} has no snapshots`);
+      return { key, rows: ordered, latest };
     });
   }, [metrics]);
 
   const [selectedKey, setSelectedKey] = useState(groups[0]?.key ?? "");
   const selected = groups.find((group) => group.key === selectedKey) ?? groups[0];
 
-  if (!groups.length) {
+  if (!selected) {
     return (
       <div className="vz-analytics-reference">
         <div className="vz-empty-state">
@@ -84,11 +86,11 @@ export function AnalyticsReferenceWorkspace({ metrics }: { metrics: readonly Ana
     );
   }
 
-  const selectedRows = selected!.rows.slice(-8);
+  const selectedRows = selected.rows.slice(-8);
   const selectedValues = selectedRows.map((row) => row.value);
   const trendPoints = chartPoints(selectedValues.length > 1 ? selectedValues : [selectedValues[0] ?? 0, selectedValues[0] ?? 0]);
-  const labels = axisLabels(selectedValues, selected!.latest.unit);
-  const previous = selected!.rows[selected!.rows.length - 2];
+  const labels = axisLabels(selectedValues, selected.latest.unit);
+  const previous = selected.rows[selected.rows.length - 2];
 
   return (
     <div className="vz-analytics-reference">
@@ -100,7 +102,7 @@ export function AnalyticsReferenceWorkspace({ metrics }: { metrics: readonly Ana
         </div>
         <div className="vz-analytics-freshness">
           <span>Latest snapshot</span>
-          <strong>{when(selected!.latest.measuredAt)}</strong>
+          <strong>{when(selected.latest.measuredAt)}</strong>
         </div>
       </header>
 
@@ -109,7 +111,7 @@ export function AnalyticsReferenceWorkspace({ metrics }: { metrics: readonly Ana
           const current = group.latest;
           const prior = group.rows[group.rows.length - 2];
           const delta = prior ? current.value - prior.value : undefined;
-          const active = selected!.key === group.key;
+          const active = selected.key === group.key;
           return (
             <button
               type="button"
@@ -127,22 +129,22 @@ export function AnalyticsReferenceWorkspace({ metrics }: { metrics: readonly Ana
         })}
       </section>
 
-      <section className="vz-analytics-dashboard" aria-label={`${selected!.latest.title} analysis`}>
+      <section className="vz-analytics-dashboard" aria-label={`${selected.latest.title} analysis`}>
         <article className="vz-analytics-trend-panel">
           <header>
             <div>
               <p>Performance trend</p>
-              <h2>{selected!.latest.title}</h2>
-              <span>{trendCopy(selected!.latest, previous)}</span>
+              <h2>{selected.latest.title}</h2>
+              <span>{trendCopy(selected.latest, previous)}</span>
             </div>
-            <strong>{fmt(selected!.latest.value, selected!.latest.unit)}</strong>
+            <strong>{fmt(selected.latest.value, selected.latest.unit)}</strong>
           </header>
 
           <div className="vz-analytics-line-chart">
             <div className="vz-chart-y" aria-hidden="true">
               {labels.map((label) => <span key={label}>{label}</span>)}
             </div>
-            <svg viewBox="0 0 760 230" role="img" aria-label={`${selected!.latest.title} trend`} preserveAspectRatio="none">
+            <svg viewBox="0 0 760 230" role="img" aria-label={`${selected.latest.title} trend`} preserveAspectRatio="none">
               <path className="grid" d="M0 12H760M0 115H760M0 218H760" />
               <polyline className="line" points={trendPoints} />
               {trendPoints.split(" ").filter(Boolean).map((point, index) => {
@@ -156,7 +158,7 @@ export function AnalyticsReferenceWorkspace({ metrics }: { metrics: readonly Ana
           </div>
 
           <footer>
-            <span>Source current to {when(selected!.latest.sourceMaxOccurredAt)}</span>
+            <span>Source current to {when(selected.latest.sourceMaxOccurredAt)}</span>
             <span>{selectedRows.length} snapshot{selectedRows.length === 1 ? "" : "s"} shown</span>
           </footer>
         </article>
@@ -167,24 +169,24 @@ export function AnalyticsReferenceWorkspace({ metrics }: { metrics: readonly Ana
               <p>Metric evidence</p>
               <h2 id="metric-evidence-title">What this number means</h2>
             </div>
-            <code>{selected!.latest.key}</code>
+            <code>{selected.latest.key}</code>
           </header>
           <dl>
             <div>
               <dt>Definition</dt>
-              <dd>{selected!.latest.description}</dd>
+              <dd>{selected.latest.description}</dd>
             </div>
             <div>
               <dt>Measured</dt>
-              <dd>{when(selected!.latest.measuredAt)}</dd>
+              <dd>{when(selected.latest.measuredAt)}</dd>
             </div>
             <div>
               <dt>Freshness</dt>
-              <dd>{freshness(selected!.latest.freshnessSeconds)}</dd>
+              <dd>{freshness(selected.latest.freshnessSeconds)}</dd>
             </div>
             <div>
               <dt>Drill-through filter</dt>
-              <dd><pre>{JSON.stringify(selected!.latest.drillthroughFilter ?? {}, null, 2)}</pre></dd>
+              <dd><pre>{JSON.stringify(selected.latest.drillthroughFilter ?? {}, null, 2)}</pre></dd>
             </div>
           </dl>
         </aside>
