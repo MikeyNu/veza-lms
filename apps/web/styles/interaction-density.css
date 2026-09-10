@@ -1,0 +1,126 @@
+/*
+ * Interaction density contract
+ *
+ * Primary workspace content owns the page. Secondary create, assign, enrol,
+ * import and configuration workflows are invoked on demand and use Veza
+ * overlays rather than reserving permanent desktop columns.
+ */
+
+.catalogue-view-grid {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.catalogue-main-surface.catalogue-wide {
+  grid-row: auto;
+}
+
+.catalogue-actions {
+  grid-column: 1;
+  grid-row: 1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--veza-space-2);
+  overflow: visible;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+.curriculum-governance-grid .catalogue-actions {
+  align-self: start;
+}
+
+.people-heading-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.people-create-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.people-create-form label {
+  display: grid;
+  min-width: 0;
+  gap: 7px;
+  font-weight: 700;
+}
+
+.people-create-form input {
+  width: 100%;
+  min-width: 0;
+  border: 1px solid var(--line-strong);
+  border-radius: 10px;
+  background: white;
+  padding: 11px 12px;
+}
+
+.people-create-form .people-error {
+  grid-column: 1 / -1;
+}
+
+.people-import--drawer {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 20px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  padding: 0;
+}
+
+.people-import--drawer .people-import-controls {
+  align-items: stretch;
+  flex-direction: column;
+}
+
+.people-import--drawer .people-import-controls input {
+  width: 100%;
+  min-width: 0;
+}
+
+.people-import--drawer .people-import-result {
+  grid-column: 1;
+}
+
+.people-import--drawer .people-import-result dl {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+@media (max-width: 720px) {
+  .catalogue-actions {
+    justify-content: stretch;
+  }
+
+  .catalogue-actions .governed-action-panel {
+    flex: 1 1 100%;
+  }
+
+  .people-heading-actions {
+    display: grid;
+    grid-template-columns: 1fr;
+    width: 100%;
+  }
+
+  .people-heading-actions .vz-button {
+    width: 100%;
+  }
+
+  .people-create-form {
+    grid-template-columns: 1fr;
+  }
+
+  .people-create-form .people-error {
+    grid-column: 1;
+  }
+
+  .people-import--drawer .people-import-result dl {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
