@@ -1,9 +1,9 @@
 "use client";
 
+import type { PersonDirectoryPage, WorkspaceSession } from "@veza/contracts";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useRef, useState, type FormEvent } from "react";
-import type { PersonDirectoryPage, WorkspaceSession } from "@veza/contracts";
 import type { PeopleFilters } from "../../server/people-api";
 import { PeopleBulkActions } from "./people-bulk-actions";
 
@@ -78,6 +78,7 @@ function CreatePersonPanel() {
 function ImportPanel({ institutionId }: { readonly institutionId: string | undefined }) {
   const router = useRouter();
   const input = useRef<HTMLInputElement>(null);
+  const [open, setOpen] = useState(false);
   const [state, setState] = useState<"idle" | "checking" | "ready" | "committing" | "error">("idle");
   const [result, setResult] = useState<{ importId: string; totalRows: number; validRows: number; invalidRows: number; duplicateRows: number; errors: readonly { rowNumber: number; message: string }[] } | null>(null);
   const [message, setMessage] = useState("");
@@ -87,6 +88,7 @@ function ImportPanel({ institutionId }: { readonly institutionId: string | undef
     if (!file || !institutionId) return;
     setState("checking");
     setMessage("");
+    setResult(null);
     try {
       const csv = await file.text();
       const response = await fetch("/api/people/imports/dry-run", {
@@ -107,6 +109,7 @@ function ImportPanel({ institutionId }: { readonly institutionId: string | undef
   async function commit() {
     if (!result) return;
     setState("committing");
+    setMessage("");
     try {
       const response = await fetch(`/api/people/imports/${result.importId}/commit`, {
         method: "POST",
@@ -118,6 +121,7 @@ function ImportPanel({ institutionId }: { readonly institutionId: string | undef
       setResult(null);
       setState("idle");
       if (input.current) input.current.value = "";
+      setOpen(false);
       router.refresh();
     } catch (error) {
       setState("error");
@@ -126,22 +130,38 @@ function ImportPanel({ institutionId }: { readonly institutionId: string | undef
   }
 
   return (
-    <section className="people-import">
-      <div><p>BULK ONBOARDING</p><h2>CSV import workbench</h2><span>Dry-run every row before a single person record is committed.</span></div>
-      <div className="people-import-controls"><input ref={input} type="file" accept=".csv,text/csv" aria-label="Select people CSV" /><button onClick={dryRun} disabled={!institutionId || state === "checking"}>{state === "checking" ? "Validating..." : "Run dry check"}</button></div>
-      {message ? <p className="people-error" role="alert">{message}</p> : null}
-      {result ? (
-        <div className="people-import-result">
-          <dl><div><dt>Total</dt><dd>{result.totalRows}</dd></div><div><dt>Valid</dt><dd>{result.validRows}</dd></div><div><dt>Invalid</dt><dd>{result.invalidRows}</dd></div><div><dt>Duplicates</dt><dd>{result.duplicateRows}</dd></div></dl>
-          {result.errors.length ? <details><summary>Review {result.errors.length} validation errors</summary><ul>{result.errors.slice(0, 20).map((error, index) => <li key={`${error.rowNumber}-${index}`}>Row {error.rowNumber}: {error.message}</li>)}</ul></details> : null}
-          <button onClick={commit} disabled={result.invalidRows > 0 || state === "committing"}>{state === "committing" ? "Committing..." : "Commit verified rows"}</button>
+    <>
+      <button className="people-secondary-action" type="button" onClick={() => setOpen(true)}>Bulk import</button>
+      {open ? (
+        <div className="people-modal-backdrop" role="presentation">
+          <section className="people-modal people-import-modal" role="dialog" aria-modal="true" aria-labelledby="people-import-title">
+            <header>
+              <div><p>BULK ONBOARDING</p><h2 id="people-import-title">Import people from CSV</h2></div>
+              <button type="button" onClick={() => setOpen(false)} aria-label="Close">×</button>
+            </header>
+            <div className="people-import-body">
+              <p className="people-import-intro">Select a CSV file, validate every row, review duplicates and errors, then commit only a verified import.</p>
+              <div className="people-import-controls">
+                <label><span>CSV file</span><input ref={input} type="file" accept=".csv,text/csv" aria-label="Select people CSV" /></label>
+                <button type="button" onClick={dryRun} disabled={!institutionId || state === "checking"}>{state === "checking" ? "Validating..." : "Validate file"}</button>
+              </div>
+              {message ? <p className="people-error" role="alert">{message}</p> : null}
+              {result ? (
+                <div className="people-import-result">
+                  <dl><div><dt>Total</dt><dd>{result.totalRows}</dd></div><div><dt>Valid</dt><dd>{result.validRows}</dd></div><div><dt>Invalid</dt><dd>{result.invalidRows}</dd></div><div><dt>Duplicates</dt><dd>{result.duplicateRows}</dd></div></dl>
+                  {result.errors.length ? <details><summary>Review {result.errors.length} validation errors</summary><ul>{result.errors.slice(0, 20).map((error, index) => <li key={`${error.rowNumber}-${index}`}>Row {error.rowNumber}: {error.message}</li>)}</ul></details> : <p className="people-import-ready">Validation passed. The file is ready for an authorised commit.</p>}
+                  <div className="people-import-footer"><button type="button" className="people-cancel" onClick={() => setOpen(false)}>Cancel</button><button type="button" onClick={commit} disabled={result.invalidRows > 0 || state === "committing"}>{state === "committing" ? "Committing..." : "Commit verified rows"}</button></div>
+                </div>
+              ) : null}
+            </div>
+          </section>
         </div>
       ) : null}
-    </section>
+    </>
   );
 }
 
-export function PeopleWorkspace({ page, filters, session }: { readonly page: PersonDirectoryPage; readonly filters: PeopleFilters; readonly session: WorkspaceSession }) {
+export function PeopleWorkspace({ page, filters, session, canManageDirectory }: { readonly page: PersonDirectoryPage; readonly filters: PeopleFilters; readonly session: WorkspaceSession; readonly canManageDirectory: boolean }) {
   const router = useRouter();
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
   const [notice, setNotice] = useState("");
@@ -181,22 +201,24 @@ export function PeopleWorkspace({ page, filters, session }: { readonly page: Per
 
   return (
     <div className="people-workspace">
-      <header className="people-heading"><div><p>PEOPLE & RELATIONSHIPS</p><h1>Institution directory</h1><span>Canonical learner, staff and authorised-contact records with effective-dated evidence.</span></div><CreatePersonPanel /></header>
-      <section className="people-metrics"><article><span>Visible records</span><strong>{page.items.length}</strong><small>Current page</small></article><article><span>Learners</span><strong>{page.items.filter((item) => item.learnerStatus).length}</strong><small>With learner profiles</small></article><article><span>Staff</span><strong>{page.items.filter((item) => item.staffStatus).length}</strong><small>With staff profiles</small></article><article><span>Data boundary</span><strong>Tenant</strong><small>RLS enforced</small></article></section>
+      <header className="people-heading">
+        <div><p>PEOPLE & RELATIONSHIPS</p><h1>Institution directory</h1><span>Canonical learner, staff and authorised-contact records with effective-dated evidence.</span></div>
+        {canManageDirectory ? <div className="people-heading-actions"><ImportPanel institutionId={session.membership.institutionIds[0]} /><CreatePersonPanel /></div> : null}
+      </header>
+      <section className="people-metrics"><article><span>Visible records</span><strong>{page.items.length}</strong><small>Current page</small></article><article><span>Learners</span><strong>{page.items.filter((item) => item.learnerStatus).length}</strong><small>With learner profiles</small></article><article><span>Staff</span><strong>{page.items.filter((item) => item.staffStatus).length}</strong><small>With staff profiles</small></article><article><span>Directory access</span><strong>{canManageDirectory ? "Manage" : "Read"}</strong><small>{canManageDirectory ? "Administrative actions available" : "Record review only"}</small></article></section>
       <form className="people-filters" method="get"><label><span>Search people</span><input name="search" defaultValue={filters.search} placeholder="Name, email or identifier" /></label><label><span>Status</span><select name="status" defaultValue={filters.status ?? ""}><option value="">All active records</option><option value="active">Active</option><option value="inactive">Inactive</option><option value="deceased">Deceased</option></select></label><label className="people-check"><input type="checkbox" name="learnersOnly" value="true" defaultChecked={filters.learnersOnly} /><span>Learners only</span></label><label className="people-check"><input type="checkbox" name="staffOnly" value="true" defaultChecked={filters.staffOnly} /><span>Staff only</span></label><button type="submit">Apply</button><Link href="/people">Reset</Link></form>
       {notice ? <p className="bulk-action-notice" role="status">{notice}</p> : null}
-      <PeopleBulkActions selected={selected} eligibleCount={eligible.length} onClear={() => setSelectedIds(new Set())} onCompleted={completed} />
+      {canManageDirectory ? <PeopleBulkActions selected={selected} eligibleCount={eligible.length} onClear={() => setSelectedIds(new Set())} onCompleted={completed} /> : null}
       <section className="people-table-panel">
-        <header><div><h2>People records</h2><p>Open a record to manage profiles, identifiers, guardians and disclosure authority.</p></div><span>{page.items.length} shown</span></header>
+        <header><div><h2>People records</h2><p>Open a record to review profiles, identifiers, guardians and disclosure authority.</p></div><span>{page.items.length} shown</span></header>
         {page.items.length ? (
-          <div className="people-table-wrap"><table><thead><tr><th className="people-select-column"><input type="checkbox" checked={allEligibleSelected} onChange={toggleAll} aria-label="Select all eligible visible people" /></th><th>Person</th><th>Profiles</th><th>Identifier</th><th>Status</th><th>Updated</th><th><span className="sr-only">Open</span></th></tr></thead><tbody>{page.items.map((person) => {
+          <div className="people-table-wrap"><table><thead><tr>{canManageDirectory ? <th className="people-select-column"><input type="checkbox" checked={allEligibleSelected} onChange={toggleAll} aria-label="Select all eligible visible people" /></th> : null}<th>Person</th><th>Profiles</th><th>Identifier</th><th>Status</th><th>Updated</th><th><span className="sr-only">Open</span></th></tr></thead><tbody>{page.items.map((person) => {
             const eligibleForBulk = person.status === "active" || person.status === "inactive";
-            return <tr key={person.id} className={selectedIds.has(person.id) ? "selected" : undefined}><td className="people-select-column"><input type="checkbox" checked={selectedIds.has(person.id)} disabled={!eligibleForBulk} onChange={() => toggle(person.id)} aria-label={eligibleForBulk ? `Select ${person.displayName}` : `${person.displayName} requires individual review`} /></td><td><div className="people-person"><span>{initials(person.displayName)}</span><div><strong>{person.displayName}</strong><small>{person.primaryEmail ?? "No primary email"}</small></div></div></td><td><div className="people-badges">{person.learnerStatus ? <em>LEARNER · {person.learnerStatus}</em> : null}{person.staffStatus ? <em>STAFF · {person.staffStatus}</em> : null}{!person.learnerStatus && !person.staffStatus ? <small>No institutional profile</small> : null}</div></td><td>{person.institutionalIdentifiers[0] ?? "Not assigned"}</td><td><span className={`people-status ${person.status}`}>{person.status}</span></td><td>{date(person.updatedAt)}</td><td><Link className="people-open" href={`/people/${person.id}`} aria-label={`Open ${person.displayName}`}>→</Link></td></tr>;
+            return <tr key={person.id} className={canManageDirectory && selectedIds.has(person.id) ? "selected" : undefined}>{canManageDirectory ? <td className="people-select-column"><input type="checkbox" checked={selectedIds.has(person.id)} disabled={!eligibleForBulk} onChange={() => toggle(person.id)} aria-label={eligibleForBulk ? `Select ${person.displayName}` : `${person.displayName} requires individual review`} /></td> : null}<td><div className="people-person"><span>{initials(person.displayName)}</span><div><strong>{person.displayName}</strong><small>{person.primaryEmail ?? "No primary email"}</small></div></div></td><td><div className="people-badges">{person.learnerStatus ? <em>LEARNER · {person.learnerStatus}</em> : null}{person.staffStatus ? <em>STAFF · {person.staffStatus}</em> : null}{!person.learnerStatus && !person.staffStatus ? <small>No institutional profile</small> : null}</div></td><td>{person.institutionalIdentifiers[0] ?? "Not assigned"}</td><td><span className={`people-status ${person.status}`}>{person.status}</span></td><td>{date(person.updatedAt)}</td><td><Link className="people-open" href={`/people/${person.id}`} aria-label={`Open ${person.displayName}`}>→</Link></td></tr>;
           })}</tbody></table></div>
-        ) : <div className="people-empty"><strong>No people match this view</strong><p>Adjust the filters, add a person, or stage a verified CSV import.</p></div>}
+        ) : <div className="people-empty"><strong>No people match this view</strong><p>Adjust the filters{canManageDirectory ? ", add a person, or import a verified CSV file" : " or clear them to return to the full directory"}.</p></div>}
         {page.page.nextCursor ? <Link className="people-next" href={`/people?${next}`}>View next page →</Link> : null}
       </section>
-      <ImportPanel institutionId={session.membership.institutionIds[0]} />
     </div>
   );
 }
