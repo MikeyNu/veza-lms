@@ -91,11 +91,19 @@ class HttpNotificationProvider implements NotificationProvider {
   }
 }
 
+function notificationProviderTimeoutMs(): number {
+  const value = Number(process.env.NOTIFICATION_PROVIDER_TIMEOUT_MS ?? 15_000);
+  if (!Number.isInteger(value) || value < 1_000 || value > 45_000) {
+    throw new Error("NOTIFICATION_PROVIDER_TIMEOUT_MS must be an integer between 1000 and 45000");
+  }
+  return value;
+}
+
 export class NotificationProviderRegistry {
   private readonly providers = new Map<string, NotificationProvider>();
 
   constructor() {
-    const timeoutMs = Number(process.env.NOTIFICATION_PROVIDER_TIMEOUT_MS ?? 15_000);
+    const timeoutMs = notificationProviderTimeoutMs();
     this.providers.set("stdout", new StdoutNotificationProvider());
     for (const channel of ["EMAIL", "SMS", "PUSH"] as const) {
       const endpoint = process.env[`${channel}_PROVIDER_URL`]?.trim();
