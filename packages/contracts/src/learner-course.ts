@@ -65,6 +65,32 @@ export interface LearnerCourseRoom {
   readonly dataFreshness: string;
 }
 
+export interface LearnerCalendarSlot {
+  readonly id: string;
+  readonly institutionId: string;
+  readonly courseRunId: string;
+  readonly courseTitle: string;
+  readonly classSectionId?: string;
+  readonly title: string;
+  readonly startsAt: string;
+  readonly endsAt: string;
+  readonly timezone: string;
+  readonly deliveryMode: "in_person" | "online" | "blended" | "workplace";
+  readonly roomKey?: string;
+  readonly locationLabel?: string;
+  readonly onlineJoinUrl?: string;
+  readonly status: "scheduled";
+  readonly version: number;
+}
+
+export interface LearnerCalendar {
+  readonly learnerPersonId: string;
+  readonly from: string;
+  readonly to: string;
+  readonly slots: readonly LearnerCalendarSlot[];
+  readonly generatedAt: string;
+}
+
 export interface LearnerHome {
   readonly learnerPersonId: string;
   readonly today: readonly LearnerTodayItem[];
