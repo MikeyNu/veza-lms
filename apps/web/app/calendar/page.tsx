@@ -227,6 +227,16 @@ function locationLabel(slot: CalendarSlot): string {
   return "Location not published";
 }
 
+function safeExternalUrl(value: string | undefined): string | undefined {
+  if (!value) return undefined;
+  try {
+    const url = new URL(value);
+    return url.protocol === "https:" || url.protocol === "http:" ? url.toString() : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 function modeLabel(mode: CalendarSlot["deliveryMode"]): string {
   if (mode === "in_person") return "In person";
   if (mode === "online") return "Online";
@@ -336,6 +346,7 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
   };
   const currentDateKey = dateKeyAt(new Date(), displayTimeZone);
   const dayHeadings = weekdays.map(dayHeading);
+  const selectedJoinUrl = selected ? safeExternalUrl(selected.onlineJoinUrl) : undefined;
 
   return (
     <AppShell session={resolution.session} active="calendar">
@@ -433,10 +444,10 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
                   </dl>
                   <div className="session-resource">
                     <div>
-                      <strong>{selected.onlineJoinUrl ? "Online session link" : "Session access"}</strong>
-                      <small>{selected.onlineJoinUrl ? "Published with the timetable" : "No online join link is published"}</small>
+                      <strong>{selectedJoinUrl ? "Online session link" : "Session access"}</strong>
+                      <small>{selectedJoinUrl ? "Published with the timetable" : "No safe online join link is published"}</small>
                     </div>
-                    {selected.onlineJoinUrl ? <a href={selected.onlineJoinUrl} target="_blank" rel="noreferrer">Open session</a> : null}
+                    {selectedJoinUrl ? <a href={selectedJoinUrl} target="_blank" rel="noreferrer">Open session</a> : null}
                   </div>
                 </section>
 
