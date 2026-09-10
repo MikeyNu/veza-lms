@@ -7,15 +7,18 @@ import { CatalogueService } from "./application/catalogue.service.js";
 import { CatalogueWorkspaceQueryService } from "./application/catalogue-workspace-query.service.js";
 import { CurriculumApprovalService } from "./application/curriculum-approval.service.js";
 import { DeliveryCompletionService } from "./application/delivery-completion.service.js";
+import { DeliveryTimetableQueryService } from "./application/delivery-timetable-query.service.js";
 import { CatalogueGovernanceController } from "./http/catalogue-governance.controller.js";
 import { CatalogueController } from "./http/catalogue.controller.js";
 import { DeliveryCompletionController } from "./http/delivery-completion.controller.js";
+import { DeliveryTimetableQueryController } from "./http/delivery-timetable-query.controller.js";
 
 @Module({
   controllers: [
     CatalogueController,
     CatalogueGovernanceController,
     DeliveryCompletionController,
+    DeliveryTimetableQueryController,
   ],
   providers: [
     CatalogueService,
@@ -26,6 +29,7 @@ import { DeliveryCompletionController } from "./http/delivery-completion.control
     CatalogueAnalysisService,
     CurriculumApprovalService,
     DeliveryCompletionService,
+    DeliveryTimetableQueryService,
   ],
   exports: [
     CatalogueService,
@@ -34,6 +38,7 @@ import { DeliveryCompletionController } from "./http/delivery-completion.control
     CatalogueGovernanceService,
     CatalogueAnalysisService,
     DeliveryCompletionService,
+    DeliveryTimetableQueryService,
   ],
 })
 export class CatalogueModule {}
