@@ -74,11 +74,12 @@ export class ConsumerRepository {
            JOIN event_consumer_definitions consumer
              ON consumer.consumer_key = inbox.consumer_key
             AND consumer.status = 'active'
-           WHERE inbox.state IN ('pending','retry')
-             AND inbox.next_attempt_at <= now()
-             AND (
-               inbox.leased_at IS NULL OR
-               inbox.leased_at < now() - (consumer.lease_seconds * interval '1 second')
+           WHERE (
+               inbox.state IN ('pending','retry')
+               AND inbox.next_attempt_at <= now()
+             ) OR (
+               inbox.state = 'processing'
+               AND inbox.leased_at < now() - (consumer.lease_seconds * interval '1 second')
              )
            ORDER BY inbox.next_attempt_at, inbox.first_seen_at, inbox.id
            FOR UPDATE OF inbox SKIP LOCKED
