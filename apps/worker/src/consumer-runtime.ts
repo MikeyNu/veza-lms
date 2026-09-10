@@ -68,10 +68,13 @@ export class ConsumerRuntime {
     readonly completed: number;
     readonly failed: number;
   }> {
-    const deliveries = await this.repository.claim(this.workerId, this.batchSize);
+    let claimed = 0;
     let completed = 0;
     let failed = 0;
-    for (const delivery of deliveries) {
+    for (let index = 0; index < this.batchSize; index += 1) {
+      const delivery = (await this.repository.claim(this.workerId, 1))[0];
+      if (!delivery) break;
+      claimed += 1;
       const startedAt = Date.now();
       const handler = this.handlers.get(delivery.handlerKey);
       try {
@@ -95,7 +98,7 @@ export class ConsumerRuntime {
           this.retryBaseSeconds,
           this.retryMaximumSeconds,
         );
-        await this.repository.fail(
+        const recorded = await this.repository.fail(
           this.workerId,
           delivery,
           message,
@@ -103,9 +106,9 @@ export class ConsumerRuntime {
           deadLetter,
           Date.now() - startedAt,
         );
-        failed += 1;
+        if (recorded) failed += 1;
       }
     }
-    return { claimed: deliveries.length, completed, failed };
+    return { claimed, completed, failed };
   }
 }
