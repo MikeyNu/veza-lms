@@ -2,6 +2,7 @@
 
 import { useMemo, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
+import { Button, Dialog, Drawer } from "@veza/ui";
 import type {
   ServiceAccountDirectory,
   ServiceAccountView,
@@ -14,6 +15,8 @@ interface SecretDisclosure {
   readonly accountId: string;
   readonly operation: "created" | "rotated";
 }
+
+type ServiceAccountStatusTarget = "active" | "suspended" | "retired";
 
 function formatDate(value: string | undefined): string {
   if (!value) return "Never";
@@ -62,6 +65,9 @@ export function ServiceAccountWorkspace({
   const [message, setMessage] = useState<string>();
   const [error, setError] = useState<string>();
   const [busy, setBusy] = useState(false);
+  const [createOpen, setCreateOpen] = useState(false);
+  const [rotateOpen, setRotateOpen] = useState(false);
+  const [statusTarget, setStatusTarget] = useState<ServiceAccountStatusTarget | null>(null);
   const selected = directory.items.find((account) => account.id === selectedId);
   const summary = useMemo(() => ({
     active: directory.items.filter((account) => account.status === "active").length,
@@ -107,12 +113,14 @@ export function ServiceAccountWorkspace({
     });
     setMessage("Service account created. Copy the credential before leaving this page.");
     form.reset();
+    setCreateOpen(false);
   }
 
   async function rotateSecret(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!selected) return;
-    const values = new FormData(event.currentTarget);
+    const form = event.currentTarget;
+    const values = new FormData(form);
     const result = await run(`rotate:${selected.id}`, {
       reason: String(values.get("reason") ?? ""),
     });
@@ -125,22 +133,23 @@ export function ServiceAccountWorkspace({
       operation: "rotated",
     });
     setMessage("The previous secret was retired and the replacement is shown once below.");
-    event.currentTarget.reset();
+    form.reset();
+    setRotateOpen(false);
   }
 
-  async function changeStatus(status: "active" | "suspended" | "retired") {
-    if (!selected) return;
-    const reason = window.prompt(
-      status === "retired"
-        ? "Record why this account is being permanently retired."
-        : `Record why this account is being set to ${status}.`,
-    );
-    if (!reason || reason.trim().length < 10) {
-      setError("A reason of at least 10 characters is required.");
-      return;
-    }
-    const result = await run(`status:${selected.id}`, { status, reason });
-    if (result) setMessage(`Service account status changed to ${status}.`);
+  async function changeStatus(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!selected || !statusTarget) return;
+    const form = event.currentTarget;
+    const values = new FormData(form);
+    const result = await run(`status:${selected.id}`, {
+      status: statusTarget,
+      reason: String(values.get("reason") ?? ""),
+    });
+    if (!result) return;
+    setMessage(`Service account status changed to ${statusTarget}.`);
+    form.reset();
+    setStatusTarget(null);
   }
 
   async function copy(value: string) {
@@ -191,10 +200,13 @@ export function ServiceAccountWorkspace({
         <main className="service-account-directory">
           <div className="service-account-panel-heading">
             <div><p className="admin-eyebrow">MACHINE IDENTITIES</p><h2>Tenant directory</h2></div>
-            <span>{directory.items.length} configured</span>
+            <div className="service-account-heading-actions">
+              <span>{directory.items.length} configured</span>
+              <Button type="button" size="small" onClick={() => setCreateOpen(true)}>Create service account</Button>
+            </div>
           </div>
           {directory.items.length === 0 ? (
-            <div className="service-account-empty"><strong>No service accounts</strong><p>Create the first machine identity from the configuration panel.</p></div>
+            <div className="service-account-empty"><strong>No service accounts</strong><p>Create the first machine identity using the action above.</p></div>
           ) : (
             <div className="service-account-table-wrap">
               <table className="service-account-table">
@@ -235,30 +247,71 @@ export function ServiceAccountWorkspace({
                 <small>Granted scopes</small>
                 <div>{selected.scopes.map((scope) => <span key={scope}>{scope}</span>)}</div>
               </div>
-              <form onSubmit={rotateSecret} className="service-account-rotation">
-                <label>Rotation reason<textarea name="reason" required minLength={10} maxLength={1000} placeholder="Scheduled credential rotation for the integration owner."/></label>
-                <button type="submit" disabled={busy || selected.status !== "active"}>Rotate secret</button>
-              </form>
-              <div className="service-account-status-actions">
-                {selected.status === "active" ? <button type="button" disabled={busy} onClick={() => changeStatus("suspended")}>Suspend</button> : null}
-                {selected.status === "suspended" ? <button type="button" disabled={busy} onClick={() => changeStatus("active")}>Reactivate</button> : null}
-                {selected.status !== "retired" ? <button className="critical" type="button" disabled={busy} onClick={() => changeStatus("retired")}>Retire permanently</button> : null}
+              <div className="service-account-status-actions service-account-context-actions">
+                <Button type="button" variant="secondary" size="small" disabled={busy || selected.status !== "active"} onClick={() => setRotateOpen(true)}>Rotate secret</Button>
+                {selected.status === "active" ? <Button type="button" variant="secondary" size="small" disabled={busy} onClick={() => setStatusTarget("suspended")}>Suspend</Button> : null}
+                {selected.status === "suspended" ? <Button type="button" variant="secondary" size="small" disabled={busy} onClick={() => setStatusTarget("active")}>Reactivate</Button> : null}
+                {selected.status !== "retired" ? <Button type="button" variant="danger" size="small" disabled={busy} onClick={() => setStatusTarget("retired")}>Retire permanently</Button> : null}
               </div>
             </section>
           ) : null}
-
-          <form className="service-account-create" onSubmit={createAccount}>
-            <div className="service-account-panel-heading"><div><p className="admin-eyebrow">NEW IDENTITY</p><h2>Create service account</h2></div></div>
-            <label>Display name<input name="displayName" required minLength={3} maxLength={160} placeholder="Student records synchronisation"/></label>
-            <label>Principal user ID<input name="principalUserId" required defaultValue={currentUserId} pattern="[0-9a-fA-F-]{36}"/></label>
-            <label>Scopes<textarea name="scopes" required placeholder="people.read&#10;enrolment.read"/></label>
-            <label>Allowed IP CIDRs <span>optional</span><textarea name="allowedIpCidrs" placeholder="196.25.0.0/16&#10;10.20.0.0/24"/></label>
-            <label>Token lifetime<select name="tokenTtlSeconds" defaultValue="900"><option value="300">5 minutes</option><option value="900">15 minutes</option><option value="1800">30 minutes</option><option value="3600">60 minutes</option></select></label>
-            <button type="submit" disabled={busy}>{busy ? "Applying…" : "Create and reveal secret"}</button>
-            <p>The selected principal must have an active tenant membership. Its existing policy assignments remain the final authorisation boundary.</p>
-          </form>
         </aside>
       </div>
+
+      <Drawer
+        open={createOpen}
+        onClose={() => setCreateOpen(false)}
+        title="Create service account"
+        description="Issue a narrowly scoped machine identity. The generated secret is revealed once after creation."
+        width="standard"
+      >
+        <form className="service-account-create service-account-create--drawer" onSubmit={createAccount}>
+          <label>Display name<input name="displayName" required minLength={3} maxLength={160} placeholder="Student records synchronisation"/></label>
+          <label>Principal user ID<input name="principalUserId" required defaultValue={currentUserId} pattern="[0-9a-fA-F-]{36}"/></label>
+          <label>Scopes<textarea name="scopes" required placeholder="people.read&#10;enrolment.read"/></label>
+          <label>Allowed IP CIDRs <span>optional</span><textarea name="allowedIpCidrs" placeholder="196.25.0.0/16&#10;10.20.0.0/24"/></label>
+          <label>Token lifetime<select name="tokenTtlSeconds" defaultValue="900"><option value="300">5 minutes</option><option value="900">15 minutes</option><option value="1800">30 minutes</option><option value="3600">60 minutes</option></select></label>
+          <Button type="submit" loading={busy} disabled={busy}>Create and reveal secret</Button>
+          <p>The selected principal must have an active tenant membership. Its existing policy assignments remain the final authorisation boundary.</p>
+        </form>
+      </Drawer>
+
+      <Dialog
+        open={rotateOpen}
+        onClose={() => setRotateOpen(false)}
+        title="Rotate service account secret"
+        description={selected ? `Rotate the active credential for ${selected.displayName}. The previous secret will stop working after the change.` : undefined}
+        size="small"
+        footer={
+          <>
+            <Button type="button" variant="secondary" onClick={() => setRotateOpen(false)} disabled={busy}>Cancel</Button>
+            <Button type="submit" form="service-account-rotate-form" loading={busy} disabled={busy || selected?.status !== "active"}>Rotate secret</Button>
+          </>
+        }
+      >
+        <form id="service-account-rotate-form" className="service-account-overlay-form" onSubmit={rotateSecret}>
+          <label>Rotation reason<textarea name="reason" required minLength={10} maxLength={1000} placeholder="Scheduled credential rotation for the integration owner."/></label>
+        </form>
+      </Dialog>
+
+      <Dialog
+        open={statusTarget !== null}
+        onClose={() => setStatusTarget(null)}
+        title={statusTarget === "retired" ? "Retire service account" : statusTarget === "active" ? "Reactivate service account" : "Suspend service account"}
+        description={selected && statusTarget ? `${selected.displayName} will be set to ${statusTarget}. Record the reason for this audited lifecycle change.` : undefined}
+        size="small"
+        destructive={statusTarget === "retired"}
+        footer={
+          <>
+            <Button type="button" variant="secondary" onClick={() => setStatusTarget(null)} disabled={busy}>Cancel</Button>
+            <Button type="submit" form="service-account-status-form" variant={statusTarget === "retired" ? "danger" : "primary"} loading={busy} disabled={busy}>Confirm change</Button>
+          </>
+        }
+      >
+        <form id="service-account-status-form" className="service-account-overlay-form" onSubmit={changeStatus}>
+          <label>Reason<textarea name="reason" required minLength={10} maxLength={1000} placeholder="Explain why this access state needs to change."/></label>
+        </form>
+      </Dialog>
     </section>
   );
 }

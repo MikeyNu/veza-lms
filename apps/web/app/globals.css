@@ -53,3 +53,4 @@
 @import "../styles/duplicate-review-v2.css" layer(veza-reference);
 @import "../styles/governance-disclosure-v2.css" layer(veza-reference);
 @import "../styles/shell-interaction-v2.css" layer(veza-reference);
+@import "../styles/interaction-density.css" layer(veza-reference);

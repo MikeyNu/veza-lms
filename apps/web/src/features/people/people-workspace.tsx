@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useRef, useState, type FormEvent } from "react";
 import type { PersonDirectoryPage, WorkspaceSession } from "@veza/contracts";
+import { Button, Dialog, Drawer, Icon } from "@veza/ui";
 import type { PeopleFilters } from "../../server/people-api";
 import { PeopleBulkActions } from "./people-bulk-actions";
 
@@ -21,11 +22,18 @@ function CreatePersonPanel() {
   const [state, setState] = useState<"idle" | "saving" | "error">("idle");
   const [message, setMessage] = useState("");
 
+  function close() {
+    setOpen(false);
+    setState("idle");
+    setMessage("");
+  }
+
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    const element = event.currentTarget;
     setState("saving");
     setMessage("");
-    const form = new FormData(event.currentTarget);
+    const form = new FormData(element);
     const payload = {
       givenName: String(form.get("givenName") ?? ""),
       familyName: String(form.get("familyName") ?? ""),
@@ -43,9 +51,8 @@ function CreatePersonPanel() {
       });
       const result = await response.json() as { message?: string };
       if (!response.ok) throw new Error(result.message ?? "Person could not be created");
-      event.currentTarget.reset();
-      setOpen(false);
-      setState("idle");
+      element.reset();
+      close();
       router.refresh();
     } catch (error) {
       setState("error");
@@ -55,22 +62,37 @@ function CreatePersonPanel() {
 
   return (
     <>
-      <button className="people-primary" type="button" onClick={() => setOpen(true)}>Add person <span>＋</span></button>
-      {open ? (
-        <div className="people-modal-backdrop" role="presentation">
-          <section className="people-modal" role="dialog" aria-modal="true" aria-labelledby="create-person-title">
-            <header><div><p>NEW RECORD</p><h2 id="create-person-title">Add a person</h2></div><button type="button" onClick={() => setOpen(false)} aria-label="Close">×</button></header>
-            <form onSubmit={submit}>
-              <label>Given names<input name="givenName" required minLength={1} maxLength={120} autoFocus /></label>
-              <label>Family name<input name="familyName" required minLength={1} maxLength={120} /></label>
-              <label>Preferred name<input name="preferredName" maxLength={120} /></label>
-              <label>Primary email<input name="email" type="email" maxLength={320} /></label>
-              {message ? <p className="people-error" role="alert">{message}</p> : null}
-              <footer><button type="button" onClick={() => setOpen(false)}>Cancel</button><button type="submit" disabled={state === "saving"}>{state === "saving" ? "Creating..." : "Create record"}</button></footer>
-            </form>
-          </section>
-        </div>
-      ) : null}
+      <Button
+        type="button"
+        leadingIcon={<Icon name="plus" size="small" />}
+        onClick={() => setOpen(true)}
+        aria-haspopup="dialog"
+        aria-expanded={open}
+      >
+        Add person
+      </Button>
+      <Dialog
+        open={open}
+        onClose={close}
+        title="Add a person"
+        description="Create the canonical person record. Institutional profiles can be managed after creation."
+        size="medium"
+        closeLabel="Close add person"
+        footer={
+          <>
+            <Button type="button" variant="secondary" onClick={close} disabled={state === "saving"}>Cancel</Button>
+            <Button type="submit" form="create-person-form" loading={state === "saving"} disabled={state === "saving"}>Create record</Button>
+          </>
+        }
+      >
+        <form id="create-person-form" className="people-create-form" onSubmit={submit}>
+          <label>Given names<input name="givenName" required minLength={1} maxLength={120} autoFocus /></label>
+          <label>Family name<input name="familyName" required minLength={1} maxLength={120} /></label>
+          <label>Preferred name<input name="preferredName" maxLength={120} /></label>
+          <label>Primary email<input name="email" type="email" maxLength={320} /></label>
+          {message ? <p className="people-error" role="alert">{message}</p> : null}
+        </form>
+      </Dialog>
     </>
   );
 }
@@ -78,6 +100,7 @@ function CreatePersonPanel() {
 function ImportPanel({ institutionId }: { readonly institutionId: string | undefined }) {
   const router = useRouter();
   const input = useRef<HTMLInputElement>(null);
+  const [open, setOpen] = useState(false);
   const [state, setState] = useState<"idle" | "checking" | "ready" | "committing" | "error">("idle");
   const [result, setResult] = useState<{ importId: string; totalRows: number; validRows: number; invalidRows: number; duplicateRows: number; errors: readonly { rowNumber: number; message: string }[] } | null>(null);
   const [message, setMessage] = useState("");
@@ -107,6 +130,7 @@ function ImportPanel({ institutionId }: { readonly institutionId: string | undef
   async function commit() {
     if (!result) return;
     setState("committing");
+    setMessage("");
     try {
       const response = await fetch(`/api/people/imports/${result.importId}/commit`, {
         method: "POST",
@@ -118,6 +142,7 @@ function ImportPanel({ institutionId }: { readonly institutionId: string | undef
       setResult(null);
       setState("idle");
       if (input.current) input.current.value = "";
+      setOpen(false);
       router.refresh();
     } catch (error) {
       setState("error");
@@ -126,18 +151,42 @@ function ImportPanel({ institutionId }: { readonly institutionId: string | undef
   }
 
   return (
-    <section className="people-import">
-      <div><p>BULK ONBOARDING</p><h2>CSV import workbench</h2><span>Dry-run every row before a single person record is committed.</span></div>
-      <div className="people-import-controls"><input ref={input} type="file" accept=".csv,text/csv" aria-label="Select people CSV" /><button onClick={dryRun} disabled={!institutionId || state === "checking"}>{state === "checking" ? "Validating..." : "Run dry check"}</button></div>
-      {message ? <p className="people-error" role="alert">{message}</p> : null}
-      {result ? (
-        <div className="people-import-result">
-          <dl><div><dt>Total</dt><dd>{result.totalRows}</dd></div><div><dt>Valid</dt><dd>{result.validRows}</dd></div><div><dt>Invalid</dt><dd>{result.invalidRows}</dd></div><div><dt>Duplicates</dt><dd>{result.duplicateRows}</dd></div></dl>
-          {result.errors.length ? <details><summary>Review {result.errors.length} validation errors</summary><ul>{result.errors.slice(0, 20).map((error, index) => <li key={`${error.rowNumber}-${index}`}>Row {error.rowNumber}: {error.message}</li>)}</ul></details> : null}
-          <button onClick={commit} disabled={result.invalidRows > 0 || state === "committing"}>{state === "committing" ? "Committing..." : "Commit verified rows"}</button>
-        </div>
-      ) : null}
-    </section>
+    <>
+      <Button
+        type="button"
+        variant="secondary"
+        disabled={!institutionId}
+        onClick={() => setOpen(true)}
+        aria-haspopup="dialog"
+        aria-expanded={open}
+      >
+        Import CSV
+      </Button>
+      <Drawer
+        open={open}
+        onClose={() => setOpen(false)}
+        title="Import people from CSV"
+        description="Validate every row before committing any person records."
+        width="wide"
+        closeLabel="Close CSV import"
+      >
+        <section className="people-import people-import--drawer">
+          <div><p>BULK ONBOARDING</p><h2>CSV import workbench</h2><span>Dry-run every row before a single person record is committed.</span></div>
+          <div className="people-import-controls">
+            <input ref={input} type="file" accept=".csv,text/csv" aria-label="Select people CSV" />
+            <Button type="button" onClick={dryRun} disabled={!institutionId || state === "checking"} loading={state === "checking"}>Run dry check</Button>
+          </div>
+          {message ? <p className="people-error" role="alert">{message}</p> : null}
+          {result ? (
+            <div className="people-import-result">
+              <dl><div><dt>Total</dt><dd>{result.totalRows}</dd></div><div><dt>Valid</dt><dd>{result.validRows}</dd></div><div><dt>Invalid</dt><dd>{result.invalidRows}</dd></div><div><dt>Duplicates</dt><dd>{result.duplicateRows}</dd></div></dl>
+              {result.errors.length ? <details><summary>Review {result.errors.length} validation errors</summary><ul>{result.errors.slice(0, 20).map((error, index) => <li key={`${error.rowNumber}-${index}`}>Row {error.rowNumber}: {error.message}</li>)}</ul></details> : null}
+              <Button type="button" onClick={commit} disabled={result.invalidRows > 0 || state === "committing"} loading={state === "committing"}>Commit verified rows</Button>
+            </div>
+          ) : null}
+        </section>
+      </Drawer>
+    </>
   );
 }
 
@@ -181,7 +230,10 @@ export function PeopleWorkspace({ page, filters, session }: { readonly page: Per
 
   return (
     <div className="people-workspace">
-      <header className="people-heading"><div><p>PEOPLE & RELATIONSHIPS</p><h1>Institution directory</h1><span>Canonical learner, staff and authorised-contact records with effective-dated evidence.</span></div><CreatePersonPanel /></header>
+      <header className="people-heading">
+        <div><p>PEOPLE & RELATIONSHIPS</p><h1>Institution directory</h1><span>Canonical learner, staff and authorised-contact records with effective-dated evidence.</span></div>
+        <div className="people-heading-actions"><ImportPanel institutionId={session.membership.institutionIds[0]} /><CreatePersonPanel /></div>
+      </header>
       <section className="people-metrics"><article><span>Visible records</span><strong>{page.items.length}</strong><small>Current page</small></article><article><span>Learners</span><strong>{page.items.filter((item) => item.learnerStatus).length}</strong><small>With learner profiles</small></article><article><span>Staff</span><strong>{page.items.filter((item) => item.staffStatus).length}</strong><small>With staff profiles</small></article><article><span>Data boundary</span><strong>Tenant</strong><small>RLS enforced</small></article></section>
       <form className="people-filters" method="get"><label><span>Search people</span><input name="search" defaultValue={filters.search} placeholder="Name, email or identifier" /></label><label><span>Status</span><select name="status" defaultValue={filters.status ?? ""}><option value="">All active records</option><option value="active">Active</option><option value="inactive">Inactive</option><option value="deceased">Deceased</option></select></label><label className="people-check"><input type="checkbox" name="learnersOnly" value="true" defaultChecked={filters.learnersOnly} /><span>Learners only</span></label><label className="people-check"><input type="checkbox" name="staffOnly" value="true" defaultChecked={filters.staffOnly} /><span>Staff only</span></label><button type="submit">Apply</button><Link href="/people">Reset</Link></form>
       {notice ? <p className="bulk-action-notice" role="status">{notice}</p> : null}
@@ -196,7 +248,6 @@ export function PeopleWorkspace({ page, filters, session }: { readonly page: Per
         ) : <div className="people-empty"><strong>No people match this view</strong><p>Adjust the filters, add a person, or stage a verified CSV import.</p></div>}
         {page.page.nextCursor ? <Link className="people-next" href={`/people?${next}`}>View next page →</Link> : null}
       </section>
-      <ImportPanel institutionId={session.membership.institutionIds[0]} />
     </div>
   );
 }
