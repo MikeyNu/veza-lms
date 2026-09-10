@@ -1,84 +1,361 @@
+import type { LearnerCalendarSlot } from "@veza/contracts";
+import type { Route } from "next";
+import Link from "next/link";
 import { AppShell } from "../../src/components/app-shell";
+import { institutionalHomeRoles } from "../../src/features/workspace/access-policy";
+import { primaryRole } from "../../src/features/workspace/navigation";
+import {
+  loadInstitutionTimetable,
+  type InstitutionCalendarSlot,
+} from "../../src/server/delivery-api";
+import { loadLearnerCalendar } from "../../src/server/learner-calendar-api";
 import { requireWorkspaceAccess } from "../../src/server/require-workspace-access";
 
 export const dynamic = "force-dynamic";
 
-type CalendarEvent = Readonly<{
+type Query = Readonly<Record<string, string | string[] | undefined>>;
+type LocalDate = Readonly<{ year: number; month: number; day: number }>;
+type CalendarSlot = Readonly<{
   id: string;
-  day: number;
-  row: number;
-  span: number;
-  category: "lecture" | "lab" | "seminar" | "meeting" | "live";
+  courseRunId: string;
+  courseTitle: string;
   title: string;
-  code?: string;
-  time: string;
-  location: string;
+  startsAt: string;
+  endsAt: string;
+  timezone: string;
+  deliveryMode: "in_person" | "online" | "blended" | "workplace";
+  roomKey?: string;
+  locationLabel?: string;
+  onlineJoinUrl?: string;
 }>;
 
-const demoEvents: readonly CalendarEvent[] = [
-  { id: "data-structures-mon", day: 1, row: 2, span: 2, category: "lecture", title: "Data Structures", code: "CS201 • L01", time: "09:00 – 10:30 AM", location: "Room B301" },
-  { id: "statistics-lab", day: 2, row: 2, span: 2, category: "lab", title: "Statistics Lab", code: "MATH201 • L03", time: "09:00 – 11:00 AM", location: "Lab 2" },
-  { id: "economics-tue", day: 2, row: 4, span: 1, category: "seminar", title: "Intro to Economics", code: "EC101 • L02", time: "11:00 AM – 12:00 PM", location: "Room A201" },
-  { id: "design-thinking-wed", day: 3, row: 7, span: 2, category: "seminar", title: "Design Thinking", code: "UX205 • L01", time: "02:00 – 03:30 PM", location: "Design Studio" },
-  { id: "faculty-meeting-wed", day: 3, row: 9, span: 2, category: "meeting", title: "Faculty Senate Meeting", time: "04:00 – 05:30 PM", location: "Senate Room" },
-  { id: "data-structures-thu", day: 4, row: 2, span: 2, category: "lecture", title: "Data Structures", code: "CS201 • L01", time: "09:00 – 10:30 AM", location: "Room B301" },
-  { id: "ai-webinar", day: 4, row: 8, span: 1, category: "live", title: "Future of AI", time: "03:00 – 04:00 PM", location: "Online" },
-  { id: "economics-fri", day: 5, row: 4, span: 1, category: "seminar", title: "Intro to Economics", code: "EC101 • L02", time: "11:00 AM – 12:00 PM", location: "Room A201" },
-];
-
-const times = ["08:00 AM", "09:00 AM", "10:00 AM", "11:00 AM", "12:00 PM", "01:00 PM", "02:00 PM", "03:00 PM", "04:00 PM", "05:00 PM"] as const;
-const days = [["Mon", "May 5"], ["Tue", "May 6"], ["Wed", "May 7"], ["Thu", "May 8"], ["Fri", "May 9"]] as const;
-const attendanceRows = [["Aarav Mehta", "Present"], ["Neha Iyer", "Late"], ["Rohan Das", "Present"], ["Tanvi Kapoor", "Absent"], ["Vikram Singh", "Present"]] as const;
-
-function demoMode(): boolean {
-  return process.env.VEZA_DEMO_MODE === "true";
+function single(value: string | string[] | undefined): string | undefined {
+  return typeof value === "string" && value.length ? value : undefined;
 }
 
-export default async function CalendarPage() {
-  const resolution = await requireWorkspaceAccess("/calendar");
-  const demo = demoMode();
-  const events = demo ? demoEvents : [];
-  const selected = events.find((event) => event.id === "statistics-lab");
+function weekOffset(value: string | undefined): number {
+  if (!value || !/^-?\d{1,3}$/.test(value)) return 0;
+  const parsed = Number(value);
+  if (!Number.isSafeInteger(parsed) || parsed < -52 || parsed > 104) return 0;
+  return parsed;
+}
+
+function safeTimezone(value: string): string {
+  try {
+    new Intl.DateTimeFormat("en-ZA", { timeZone: value }).format(new Date());
+    return value;
+  } catch {
+    return "UTC";
+  }
+}
+
+function datePartsAt(instant: Date, timeZone: string): LocalDate {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(instant);
+  const part = (type: "year" | "month" | "day") => Number(parts.find((item) => item.type === type)?.value);
+  return { year: part("year"), month: part("month"), day: part("day") };
+}
+
+function dateTimePartsAt(instant: Date, timeZone: string) {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(instant);
+  const part = (type: "year" | "month" | "day" | "hour" | "minute" | "second") =>
+    Number(parts.find((item) => item.type === type)?.value);
+  return {
+    year: part("year"),
+    month: part("month"),
+    day: part("day"),
+    hour: part("hour"),
+    minute: part("minute"),
+    second: part("second"),
+  };
+}
+
+function addDays(value: LocalDate, days: number): LocalDate {
+  const date = new Date(Date.UTC(value.year, value.month - 1, value.day + days, 12));
+  return { year: date.getUTCFullYear(), month: date.getUTCMonth() + 1, day: date.getUTCDate() };
+}
+
+function weekday(value: LocalDate): number {
+  return new Date(Date.UTC(value.year, value.month - 1, value.day, 12)).getUTCDay();
+}
+
+function startOfWeek(reference: Date, timeZone: string, offset: number): LocalDate {
+  const local = datePartsAt(reference, timeZone);
+  const day = weekday(local);
+  const daysFromMonday = day === 0 ? 6 : day - 1;
+  return addDays(local, -daysFromMonday + offset * 7);
+}
+
+function zonedMidnight(value: LocalDate, timeZone: string): Date {
+  const target = Date.UTC(value.year, value.month - 1, value.day, 0, 0, 0);
+  let guess = target;
+  for (let iteration = 0; iteration < 3; iteration += 1) {
+    const actual = dateTimePartsAt(new Date(guess), timeZone);
+    const represented = Date.UTC(
+      actual.year,
+      actual.month - 1,
+      actual.day,
+      actual.hour,
+      actual.minute,
+      actual.second,
+    );
+    const correction = target - represented;
+    guess += correction;
+    if (correction === 0) break;
+  }
+  return new Date(guess);
+}
+
+function dateKey(value: LocalDate): string {
+  return `${value.year}-${String(value.month).padStart(2, "0")}-${String(value.day).padStart(2, "0")}`;
+}
+
+function dateKeyAt(instant: string, timeZone: string): string {
+  return dateKey(datePartsAt(new Date(instant), timeZone));
+}
+
+function dateLabel(value: LocalDate): string {
+  return new Intl.DateTimeFormat("en-ZA", {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+    timeZone: "UTC",
+  }).format(new Date(Date.UTC(value.year, value.month - 1, value.day, 12)));
+}
+
+function longDateLabel(value: LocalDate): string {
+  return new Intl.DateTimeFormat("en-ZA", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    timeZone: "UTC",
+  }).format(new Date(Date.UTC(value.year, value.month - 1, value.day, 12)));
+}
+
+function timeLabel(value: string, timeZone: string): string {
+  return new Intl.DateTimeFormat("en-ZA", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+    timeZone,
+  }).format(new Date(value));
+}
+
+function normaliseSlot(slot: InstitutionCalendarSlot | LearnerCalendarSlot): CalendarSlot {
+  return {
+    id: slot.id,
+    courseRunId: slot.courseRunId,
+    courseTitle: slot.courseTitle,
+    title: slot.title,
+    startsAt: slot.startsAt,
+    endsAt: slot.endsAt,
+    timezone: slot.timezone,
+    deliveryMode: slot.deliveryMode,
+    ...(slot.roomKey ? { roomKey: slot.roomKey } : {}),
+    ...(slot.locationLabel ? { locationLabel: slot.locationLabel } : {}),
+    ...(slot.onlineJoinUrl ? { onlineJoinUrl: slot.onlineJoinUrl } : {}),
+  };
+}
+
+function locationLabel(slot: CalendarSlot): string {
+  if (slot.locationLabel) return slot.locationLabel;
+  if (slot.roomKey) return slot.roomKey;
+  if (slot.deliveryMode === "online") return "Online";
+  if (slot.deliveryMode === "workplace") return "Workplace";
+  if (slot.deliveryMode === "blended") return "Blended delivery";
+  return "Location not published";
+}
+
+function modeLabel(mode: CalendarSlot["deliveryMode"]): string {
+  return mode.replaceAll("_", " ");
+}
+
+function weekHref(offset: number): Route {
+  return (offset === 0 ? "/calendar" : `/calendar?week=${offset}`) as Route;
+}
+
+export default async function CalendarPage({ searchParams }: { searchParams: Promise<Query> }) {
+  const [resolution, query] = await Promise.all([
+    requireWorkspaceAccess("/calendar"),
+    searchParams,
+  ]);
+  const role = primaryRole(resolution.session);
+  const displayTimeZone = safeTimezone(
+    resolution.session.membership.timezone || resolution.session.tenant.timezone,
+  );
+  const offset = weekOffset(single(query.week));
+  const weekStart = startOfWeek(new Date(), displayTimeZone, offset);
+  const weekDays = Array.from({ length: 7 }, (_, index) => addDays(weekStart, index));
+  const rangeStart = zonedMidnight(weekStart, displayTimeZone);
+  const rangeEnd = zonedMidnight(addDays(weekStart, 7), displayTimeZone);
+  const from = rangeStart.toISOString();
+  const to = rangeEnd.toISOString();
+
+  let slots: readonly CalendarSlot[] = [];
+  let sourceError = "";
+  let sourceLabel = "Published timetable";
+
+  try {
+    if (role === "learner") {
+      const calendar = await loadLearnerCalendar(from, to);
+      slots = calendar.slots.map(normaliseSlot);
+      sourceLabel = "My enrolled timetable";
+    } else if (institutionalHomeRoles.includes(role)) {
+      const institutionId = resolution.session.membership.institutionIds[0];
+      if (!institutionId) throw new Error("No active institution is available for this timetable");
+      const calendar = await loadInstitutionTimetable(institutionId, from, to);
+      slots = calendar.slots.map(normaliseSlot);
+      sourceLabel = "Institution timetable";
+    } else {
+      sourceError = role === "guardian-sponsor"
+        ? "Calendar disclosure is not available through the guardian summary permission."
+        : "This workspace role does not have an authorised timetable read path.";
+    }
+  } catch {
+    sourceError = "The published timetable could not be loaded. No synthetic schedule has been substituted.";
+  }
+
+  const orderedSlots = [...slots].sort((left, right) =>
+    Date.parse(left.startsAt) - Date.parse(right.startsAt) || left.id.localeCompare(right.id),
+  );
+  const grouped = new Map<string, CalendarSlot[]>();
+  for (const slot of orderedSlots) {
+    const key = dateKeyAt(slot.startsAt, displayTimeZone);
+    grouped.set(key, [...(grouped.get(key) ?? []), slot]);
+  }
+  const now = Date.now();
+  const nextSlot = orderedSlots.find((slot) => Date.parse(slot.endsAt) > now);
+  const uniqueCourses = new Set(orderedSlots.map((slot) => slot.courseRunId)).size;
+  const onlineCount = orderedSlots.filter((slot) => slot.deliveryMode === "online").length;
+  const currentDateKey = dateKeyAt(new Date().toISOString(), displayTimeZone);
 
   return (
     <AppShell session={resolution.session} active="calendar">
       <section className="workspace calendar-workspace" aria-labelledby="calendar-title">
         <header className="calendar-heading">
-          <div><h1 id="calendar-title">Calendar</h1><p>Weekly schedule, live classes, and attendance hub.</p></div>
+          <div>
+            <p className="calendar-context-label">{sourceLabel}</p>
+            <h1 id="calendar-title">{role === "registrar" ? "Timetable" : "Calendar"}</h1>
+            <p>Published scheduling evidence for the selected week, shown in {displayTimeZone}.</p>
+          </div>
+          <nav className="calendar-period-controls" aria-label="Calendar week navigation">
+            <Link href={weekHref(offset - 1)}>Previous week</Link>
+            <strong>{longDateLabel(weekStart)} to {longDateLabel(weekDays[6]!)}</strong>
+            {offset !== 0 ? <Link href="/calendar">Current week</Link> : <span aria-current="date">Current week</span>}
+            <Link href={weekHref(offset + 1)}>Next week</Link>
+          </nav>
         </header>
 
-        <div className="calendar-toolbar" aria-label="Calendar controls">
-          <div className="calendar-period-controls"><button type="button" aria-label="Previous week">‹</button><strong>May 5 – May 9, 2025</strong><button type="button" aria-label="Next week">›</button><button type="button">Today</button></div>
-          <div className="calendar-filter-controls"><label><span>School</span><select defaultValue="all"><option value="all">All Schools</option></select></label><label><span>Programme</span><select defaultValue="all"><option value="all">All Programmes</option></select></label><label><span>Faculty</span><select defaultValue="all"><option value="all">All Faculty</option></select></label><button type="button">Filter</button></div>
-        </div>
+        <section className="calendar-week-strip" aria-label="Week overview">
+          {weekDays.map((day) => {
+            const key = dateKey(day);
+            const count = grouped.get(key)?.length ?? 0;
+            const isToday = key === currentDateKey;
+            return (
+              <div className={isToday ? "is-today" : undefined} key={key}>
+                <span>{dateLabel(day)}</span>
+                <strong>{count}</strong>
+                <small>{count === 1 ? "session" : "sessions"}</small>
+              </div>
+            );
+          })}
+        </section>
 
-        <div className="calendar-layout">
-          <div className="calendar-main">
-            <div className="calendar-grid" role="grid" aria-label="Weekly timetable">
-              <div className="calendar-grid-corner">Time</div>
-              {days.map(([label, date], index) => <div className="calendar-day-heading" key={label}><strong>{label}</strong><span>{date}</span>{index === 1 ? <i>6</i> : null}</div>)}
-              {times.map((time, row) => <div className="calendar-time-row" key={time} style={{ gridRow: row + 2 }}><span>{time}</span></div>)}
-              {Array.from({ length: 50 }, (_, index) => <div className="calendar-cell" aria-hidden="true" key={index} style={{ gridColumn: (index % 5) + 2, gridRow: Math.floor(index / 5) + 2 }} />)}
-              {events.map((event) => <article className={`calendar-event ${event.category}${event.id === selected?.id ? " selected" : ""}`} key={event.id} style={{ gridColumn: event.day + 1, gridRow: `${event.row + 1} / span ${event.span}` }}><div><i aria-hidden="true" /><strong>{event.title}</strong></div>{event.code ? <small>{event.code}</small> : null}<span>{event.time}</span><span>{event.location}</span></article>)}
+        {sourceError ? (
+          <section className="calendar-source-state" role="status">
+            <div>
+              <p>Schedule unavailable</p>
+              <h2>No timetable data is being shown</h2>
+              <span>{sourceError}</span>
             </div>
-            <footer className="calendar-footer"><div className="calendar-legend"><span className="lecture">Lecture</span><span className="lab">Lab</span><span className="seminar">Seminar</span><span className="meeting">Meeting</span><span className="live">Live / Webinar</span></div><div><span>All times in local time (GMT +5:30)</span><button type="button">Week</button></div></footer>
+          </section>
+        ) : (
+          <div className="calendar-layout">
+            <main className="calendar-agenda" aria-label="Published sessions">
+              {weekDays.map((day) => {
+                const key = dateKey(day);
+                const daySlots = grouped.get(key) ?? [];
+                return (
+                  <section className={`calendar-day${key === currentDateKey ? " is-today" : ""}`} key={key}>
+                    <header>
+                      <div>
+                        <span>{key === currentDateKey ? "Today" : "Day"}</span>
+                        <h2>{dateLabel(day)}</h2>
+                      </div>
+                      <strong>{daySlots.length}</strong>
+                    </header>
+                    {daySlots.length ? (
+                      <ol>
+                        {daySlots.map((slot) => (
+                          <li key={slot.id}>
+                            <time dateTime={slot.startsAt}>
+                              <strong>{timeLabel(slot.startsAt, displayTimeZone)}</strong>
+                              <span>{timeLabel(slot.endsAt, displayTimeZone)}</span>
+                            </time>
+                            <div className="calendar-session-copy">
+                              <span>{slot.courseTitle}</span>
+                              <h3>{slot.title}</h3>
+                              <p>{locationLabel(slot)} · {modeLabel(slot.deliveryMode)}</p>
+                              {slot.timezone !== displayTimeZone ? <small>Published in {slot.timezone}</small> : null}
+                            </div>
+                            {slot.onlineJoinUrl ? (
+                              <a href={slot.onlineJoinUrl} target="_blank" rel="noreferrer">Open online session</a>
+                            ) : null}
+                          </li>
+                        ))}
+                      </ol>
+                    ) : <p className="calendar-empty-day">No published sessions.</p>}
+                  </section>
+                );
+              })}
+            </main>
+
+            <aside className="calendar-context" aria-label="Week context">
+              <section className="calendar-side-section calendar-up-next">
+                <header>
+                  <div><span>Next session</span><h2>{nextSlot ? nextSlot.title : "Nothing scheduled next"}</h2></div>
+                </header>
+                {nextSlot ? (
+                  <div className="calendar-next-detail">
+                    <strong>{nextSlot.courseTitle}</strong>
+                    <time dateTime={nextSlot.startsAt}>{dateLabel(datePartsAt(new Date(nextSlot.startsAt), displayTimeZone))}, {timeLabel(nextSlot.startsAt, displayTimeZone)}</time>
+                    <span>{locationLabel(nextSlot)}</span>
+                  </div>
+                ) : <p>No later session exists in this selected week.</p>}
+              </section>
+
+              <section className="calendar-side-section">
+                <header><div><span>Week evidence</span><h2>Schedule summary</h2></div></header>
+                <dl className="calendar-summary-list">
+                  <div><dt>Scheduled sessions</dt><dd>{orderedSlots.length}</dd></div>
+                  <div><dt>Course runs</dt><dd>{uniqueCourses}</dd></div>
+                  <div><dt>Online sessions</dt><dd>{onlineCount}</dd></div>
+                  <div><dt>Display timezone</dt><dd>{displayTimeZone}</dd></div>
+                </dl>
+              </section>
+
+              <section className="calendar-side-section calendar-boundary-note">
+                <header><div><span>Data boundary</span><h2>{role === "learner" ? "Your enrolments only" : "Current institution only"}</h2></div></header>
+                <p>{role === "learner"
+                  ? "Sessions are returned only when they belong to your current enrolments and matching class sections."
+                  : "The timetable query is bounded to the active tenant, institution and selected week."}</p>
+              </section>
+            </aside>
           </div>
-
-          <aside className="calendar-context" aria-label="Selected session details">
-            {selected ? <>
-              <section className="session-summary"><header><div><h2>{selected.title}</h2><span className="calendar-state-live">Live Class</span></div><p>MATH201 • L03 • Statistics for Engineers</p></header><dl><div><dt>Date</dt><dd>Tue, May 6, 2025</dd></div><div><dt>Time</dt><dd>09:00 – 11:00 AM</dd></div><div><dt>Location</dt><dd>Lab 2</dd></div><div><dt>Capacity</dt><dd>42 / 60</dd></div></dl><div className="session-person"><span>PS</span><div><strong>Dr. Priya Sharma</strong><small>Professor</small></div></div><div className="session-resource"><div><strong>Lab Manual: Week 8</strong><small>Class resource</small></div><button type="button">View materials</button></div><div className="session-actions"><button className="primary" type="button" disabled>Join Live Class</button><button type="button" disabled>Class Actions</button></div></section>
-              <section className="session-agenda"><nav><button className="active" type="button">Agenda</button><button type="button">Resources</button><button type="button">Class Insights</button></nav><ol>{[["09:00 AM","Lab Overview & Objectives","10 min"],["09:10 AM","Data Exploration in R","45 min"],["09:55 AM","Break","10 min"],["10:05 AM","Hypothesis Testing","35 min"],["10:40 AM","Lab Exercise","20 min"],["11:00 AM","Wrap-up & Q&A","10 min"]].map(([time,title,duration]) => <li key={`${time}-${title}`}><time>{time}</time><span>{title}</span><small>{duration}</small></li>)}</ol></section>
-              <section className="attendance-panel"><header><div><h2>Attendance</h2><span>Live</span></div><div><button type="button" disabled>Mark all</button><button type="button" disabled>QR Code</button></div></header><div className="attendance-body"><div className="attendance-summary"><h3>Attendance Summary</h3><div className="attendance-donut"><strong>42</strong><span>Total</span></div><ul><li className="present">Present <strong>34 (81%)</strong></li><li className="late">Late <strong>5 (12%)</strong></li><li className="absent">Absent <strong>3 (7%)</strong></li></ul></div><div className="attendance-learners"><h3>Learner Attendance</h3><table><tbody>{attendanceRows.map(([name,status]) => <tr key={name}><td><span className="learner-avatar">{name.split(" ").map((part) => part[0]).join("")}</span>{name}</td><td><span className={`attendance-status ${status.toLowerCase()}`}>{status}</span></td></tr>)}</tbody></table><button className="attendance-view-all" type="button">View all 42 learners</button></div></div></section>
-            </> : <section className="calendar-empty-context"><h2>No published session selected</h2><p>Session details, resources and attendance appear here after an authorised timetable is published.</p></section>}
-          </aside>
-        </div>
-
-        <div className="calendar-utilities">
-          <section><header><h2>Upcoming Deadlines</h2></header>{demo ? <ul><li><strong>Assignment 2: Linked Lists</strong><span>Data Structures (CS201)</span><small>May 8, 11:59 PM</small></li><li><strong>Lab Report: Week 7</strong><span>Statistics for Engineers (MATH201)</span><small>May 9, 5:00 PM</small></li></ul> : <p>No upcoming deadlines are available.</p>}</section>
-          <section><header><h2>Schedule Alerts</h2></header>{demo ? <ul><li><strong>Room Conflict</strong><span>Lab 2 is double-booked on Thu, May 8</span><small>10:00 AM – 12:00 PM</small></li><li><strong>Faculty Unavailable</strong><span>Dr. Michael Lee is unavailable on Fri, May 9</span><small>02:00 – 04:00 PM</small></li></ul> : <p>No schedule alerts are active.</p>}</section>
-          <section><header><h2>Attendance Trend</h2><small>This Week</small></header><strong className="calendar-trend-value">{demo ? "81%" : "—"}</strong><span className="calendar-trend-delta">{demo ? "▲ 6% vs last week" : "No attendance evidence"}</span><div className="calendar-trend-line" aria-hidden="true" /></section>
-          <section><header><h2>Quick Actions</h2></header><div className="calendar-quick-actions"><button type="button" disabled>Create Live Class</button><button type="button" disabled>Upload Materials</button><button type="button" disabled>Take Attendance</button><button type="button" disabled>Send Announcement</button></div></section>
-        </div>
+        )}
       </section>
     </AppShell>
   );
