@@ -41,6 +41,15 @@ function focusIcon(item: LearnerHomeItem): "file" | "calendar" | "message" | "pl
   }
 }
 
+function focusPrompt(item: LearnerHomeItem): string {
+  switch (item.kind) {
+    case "assignment": return "Complete this next to keep your current course work on track.";
+    case "event": return "This is the next scheduled learning event in your available queue.";
+    case "announcement": return "Read this update before continuing with the rest of your course work.";
+    default: return "Pick up from the next available lesson and keep your recorded progress moving.";
+  }
+}
+
 function matchingCourse(item: LearnerHomeItem | undefined, courses: readonly LearnerCourse[]): LearnerCourse | undefined {
   if (!item) return undefined;
   return courses.find((course) => course.courseRunId === item.courseRunId);
@@ -94,6 +103,7 @@ function CourseRow({ course }: { readonly course: LearnerCourse }) {
 export function LearnerTodayWorkspace({ home }: { readonly home: LearnerHome }) {
   const focus = home.today[0];
   const focusCourse = matchingCourse(focus, home.courses);
+  const focusDate = safeDate(focus?.dueAt ?? focus?.startsAt);
   const updated = safeDate(home.generatedAt);
   const upcoming = home.today.slice(1, 6);
 
@@ -103,7 +113,7 @@ export function LearnerTodayWorkspace({ home }: { readonly home: LearnerHome }) 
         <div>
           <p className={styles.context}>My learning</p>
           <h1>Continue your learning</h1>
-          <p>Resume the next available activity, then review upcoming work and current course progress.</p>
+          <p>Your next activity comes first. Upcoming work and course progress stay close without competing for attention.</p>
         </div>
         <div className={styles.headingActions}>
           <small>Updated <time {...(updated.dateTime ? { dateTime: updated.dateTime } : {})}>{updated.label}</time></small>
@@ -118,9 +128,13 @@ export function LearnerTodayWorkspace({ home }: { readonly home: LearnerHome }) 
           <p className={styles.sectionLabel}>Next activity</p>
           {focus ? (
             <>
+              <div className={styles.focusMeta}>
+                <span>{focus.kind.replaceAll("_", " ")}</span>
+                {focusDate.dateTime ? <time dateTime={focusDate.dateTime}>{focusDate.label}</time> : null}
+              </div>
               <span className={styles.focusCourse}>{focus.courseTitle}</span>
               <h2 id="learner-priority-title">{focus.title}</h2>
-              <p>Open the highest-priority available item without losing the published course context or recorded progress.</p>
+              <p>{focusPrompt(focus)}</p>
               {focusCourse ? (
                 <ProgressState
                   className={styles.focusProgress}
@@ -153,9 +167,9 @@ export function LearnerTodayWorkspace({ home }: { readonly home: LearnerHome }) 
           <header>
             <div>
               <p className={styles.sectionLabel}>Schedule</p>
-              <h2 id="learner-upcoming-title">Upcoming</h2>
+              <h2 id="learner-upcoming-title">Coming up</h2>
             </div>
-            <ButtonLink variant="quiet" size="small" href="/calendar">View all</ButtonLink>
+            <ButtonLink variant="quiet" size="small" href="/calendar">Full calendar</ButtonLink>
           </header>
           {upcoming.length ? (
             <ul>{upcoming.map((item) => <UpcomingItem key={`${item.kind}-${item.id}`} item={item} />)}</ul>
