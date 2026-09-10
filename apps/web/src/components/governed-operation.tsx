@@ -1,11 +1,19 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState, type FormEvent, type ReactNode } from "react";
-import { Button, Icon } from "@veza/ui";
+import {
+  createContext,
+  useContext,
+  useState,
+  type FormEvent,
+  type ReactNode,
+} from "react";
+import { Button, Drawer, Icon } from "@veza/ui";
 
 type JsonObject = Readonly<Record<string, unknown>>;
 type OperationPath = string | ((form: FormData) => string);
+
+const GovernedActionCloseContext = createContext<(() => void) | null>(null);
 
 function messageFromPayload(payload: unknown, fallback: string): string {
   if (
@@ -71,17 +79,36 @@ export function GovernedActionPanel({
   children: ReactNode;
   className?: string;
 }) {
+  const [open, setOpen] = useState(false);
+  const close = () => setOpen(false);
+
   return (
-    <details className={className ? `governed-action-panel ${className}` : "governed-action-panel"}>
-      <summary>
-        <span>
-          <small>{context}</small>
-          <strong>{title}</strong>
-        </span>
-        <Icon name="plus" size="small" aria-hidden="true" />
-      </summary>
-      <div className="governed-action-panel__body">{children}</div>
-    </details>
+    <div className={className ? `governed-action-panel ${className}` : "governed-action-panel"}>
+      <Button
+        type="button"
+        variant="secondary"
+        size="small"
+        className="governed-action-panel__trigger"
+        leadingIcon={<Icon name="plus" size="small" />}
+        onClick={() => setOpen(true)}
+        aria-haspopup="dialog"
+        aria-expanded={open}
+      >
+        {title}
+      </Button>
+      <Drawer
+        open={open}
+        onClose={close}
+        title={title}
+        description={`${context} operation`}
+        width="standard"
+        closeLabel={`Close ${title.toLowerCase()}`}
+      >
+        <GovernedActionCloseContext.Provider value={close}>
+          <div className="governed-action-panel__body">{children}</div>
+        </GovernedActionCloseContext.Provider>
+      </Drawer>
+    </div>
   );
 }
 
@@ -105,6 +132,7 @@ export function GovernedOperationForm({
   onSuccess?: () => void;
 }) {
   const router = useRouter();
+  const closeAction = useContext(GovernedActionCloseContext);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
 
@@ -122,6 +150,7 @@ export function GovernedOperationForm({
       );
       element.reset();
       onSuccess?.();
+      closeAction?.();
       router.refresh();
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Operation failed");
