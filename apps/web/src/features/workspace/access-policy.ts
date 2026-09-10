@@ -80,10 +80,7 @@ export const assessmentRoles: readonly BaselineRoleKey[] = [
 
 export const calendarRoles: readonly BaselineRoleKey[] = [
   ...institutionalHomeRoles,
-  "assessor",
-  "moderator",
   "learner",
-  "guardian-sponsor",
 ] as const;
 
 export const communicationRoles: readonly BaselineRoleKey[] = [
