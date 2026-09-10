@@ -1,17 +1,17 @@
 .page {
   display: grid;
-  gap: 1.5rem;
+  gap: var(--veza-space-6);
   width: min(100%, var(--veza-content-max));
   margin-inline: auto;
-  padding: 1.5rem clamp(1.25rem, 2.2vw, 2.25rem) 2.5rem;
+  padding: var(--veza-space-6) clamp(1.25rem, 2.2vw, 2.25rem) var(--veza-space-10);
 }
 
 .heading {
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
-  gap: 2rem;
-  padding-bottom: 1.25rem;
+  gap: var(--veza-space-8);
+  padding-bottom: var(--veza-space-5);
   border-bottom: 1px solid var(--veza-line);
 }
 
@@ -24,15 +24,15 @@
   margin: 0 0 0.35rem;
   color: var(--veza-indigo-600);
   font-size: var(--veza-text-sm);
-  font-weight: var(--veza-weight-medium);
+  font-weight: var(--veza-weight-semibold);
 }
 
 .heading h1 {
   margin: 0;
   color: var(--veza-ink);
-  font-size: clamp(2rem, 3.4vw, 3.1rem);
-  line-height: 1.03;
-  letter-spacing: -0.04em;
+  font-size: clamp(2rem, 3.1vw, 2.75rem);
+  line-height: 1.05;
+  letter-spacing: var(--veza-tracking-display);
 }
 
 .heading > div:first-child > p:last-child,
@@ -49,7 +49,7 @@
   display: flex;
   flex: 0 0 auto;
   align-items: center;
-  gap: 0.8rem;
+  gap: var(--veza-space-3);
 }
 
 .headingActions small {
@@ -59,29 +59,71 @@
 
 .priorityGrid {
   display: grid;
-  grid-template-columns: minmax(0, 1.35fr) minmax(18rem, 0.65fr);
-  gap: 0;
-  border-bottom: 1px solid var(--veza-line);
+  grid-template-columns: minmax(0, 1.45fr) minmax(19rem, 0.65fr);
+  gap: var(--veza-space-4);
+  align-items: stretch;
 }
 
 .priority {
+  position: relative;
   min-width: 0;
-  min-height: 20rem;
+  min-height: 21rem;
   display: flex;
   flex-direction: column;
   justify-content: center;
-  padding: clamp(1.25rem, 3vw, 2.25rem) clamp(1rem, 3vw, 2rem) clamp(1.5rem, 3vw, 2.25rem) 0;
+  overflow: hidden;
+  padding: clamp(1.5rem, 3vw, 2.5rem);
+  border: 1px solid var(--veza-indigo-100);
+  border-radius: var(--veza-radius-overlay);
+  background:
+    linear-gradient(135deg, var(--veza-indigo-50) 0%, var(--veza-surface) 58%, var(--veza-purple-50) 100%);
+  box-shadow: var(--veza-shadow-raised);
+}
+
+.priority::after {
+  position: absolute;
+  right: -5rem;
+  bottom: -7rem;
+  width: 15rem;
+  height: 15rem;
+  border: 1px solid color-mix(in srgb, var(--veza-purple-600) 16%, transparent);
+  border-radius: 50%;
+  content: "";
+  pointer-events: none;
+}
+
+.focusMeta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--veza-space-2);
+  margin-bottom: var(--veza-space-3);
+  color: var(--veza-muted);
+  font-size: var(--veza-text-xs);
+}
+
+.focusMeta span {
+  color: var(--veza-brand-strong);
+  font-weight: var(--veza-weight-semibold);
+  text-transform: capitalize;
+}
+
+.focusMeta time::before {
+  margin-right: var(--veza-space-2);
+  color: var(--veza-muted-subtle);
+  content: "•";
 }
 
 .focusCourse {
   display: block;
-  margin-top: 0.2rem;
   color: var(--veza-muted);
   font-size: var(--veza-text-sm);
   font-weight: var(--veza-weight-medium);
 }
 
 .priority h2 {
+  position: relative;
+  z-index: 1;
   max-width: 40rem;
   margin: 0.4rem 0 0;
   color: var(--veza-ink);
@@ -91,11 +133,15 @@
 }
 
 .focusProgress {
+  position: relative;
+  z-index: 1;
   max-width: 32rem;
   margin-top: 1.35rem;
 }
 
 .priorityActions {
+  position: relative;
+  z-index: 1;
   display: flex;
   flex-wrap: wrap;
   gap: 0.6rem;
@@ -104,8 +150,11 @@
 
 .upcoming {
   min-width: 0;
-  padding: 1.35rem 0 1.5rem 1.5rem;
-  border-left: 1px solid var(--veza-line);
+  padding: var(--veza-space-5);
+  border: 1px solid var(--veza-line);
+  border-radius: var(--veza-radius-panel);
+  background: var(--veza-surface);
+  box-shadow: var(--veza-shadow-panel);
 }
 
 .upcoming > header,
@@ -113,21 +162,21 @@
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
-  gap: 1rem;
+  gap: var(--veza-space-4);
 }
 
 .upcoming h2,
 .courses h2 {
   margin: 0;
   color: var(--veza-ink);
-  font-size: 1.2rem;
-  line-height: 1.25;
-  letter-spacing: -0.02em;
+  font-size: var(--veza-text-xl);
+  line-height: var(--veza-leading-xl);
+  letter-spacing: var(--veza-tracking-heading);
 }
 
 .upcoming ul,
 .courses ul {
-  margin: 1rem 0 0;
+  margin: var(--veza-space-4) 0 0;
   padding: 0;
   list-style: none;
 }
@@ -139,7 +188,7 @@
 .upcomingItem {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
-  gap: 0.8rem;
+  gap: var(--veza-space-3);
   align-items: center;
   padding: 0.9rem 0;
   border-bottom: 1px solid var(--veza-line);
@@ -156,6 +205,11 @@
 .courseEnd > span {
   color: var(--veza-muted);
   font-size: var(--veza-text-xs);
+}
+
+.itemKind,
+.courseMode {
+  text-transform: capitalize;
 }
 
 .upcomingItem strong {
@@ -183,7 +237,7 @@
 }
 
 .courses {
-  padding-top: 0.15rem;
+  padding-top: var(--veza-space-2);
 }
 
 .courses > header > span {
@@ -199,7 +253,7 @@
 .courseRow {
   display: grid;
   grid-template-columns: minmax(14rem, 1.25fr) minmax(12rem, 0.9fr) minmax(8rem, 0.55fr) auto;
-  gap: 1.25rem;
+  gap: var(--veza-space-5);
   align-items: center;
   min-height: 6.6rem;
   padding: 0.85rem 0;
@@ -255,9 +309,7 @@
   }
 
   .upcoming {
-    padding: 1.25rem 0 1.5rem;
-    border-top: 1px solid var(--veza-line);
-    border-left: 0;
+    padding: var(--veza-space-5);
   }
 
   .courseRow {
@@ -288,7 +340,12 @@
 
   .priority {
     min-height: auto;
-    padding: 1.25rem 0 1.5rem;
+    padding: var(--veza-space-5);
+  }
+
+  .priority::after {
+    width: 10rem;
+    height: 10rem;
   }
 
   .upcomingItem {
