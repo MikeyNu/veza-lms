@@ -188,6 +188,89 @@
   width: auto;
 }
 
+.service-account-heading-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.service-account-heading-actions > span {
+  color: var(--muted);
+  font-size: 9px;
+}
+
+.service-account-create--drawer {
+  gap: 14px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+.service-account-create--drawer > label,
+.service-account-create--drawer > button,
+.service-account-create--drawer > p {
+  margin-inline: 0;
+}
+
+.service-account-create--drawer > p {
+  margin-top: 0;
+}
+
+.service-account-create--drawer label,
+.service-account-overlay-form label {
+  display: grid;
+  gap: 7px;
+  color: var(--ink-soft);
+  font-size: 11px;
+  font-weight: 720;
+}
+
+.service-account-create--drawer input,
+.service-account-create--drawer textarea,
+.service-account-create--drawer select,
+.service-account-overlay-form textarea {
+  width: 100%;
+  min-width: 0;
+  padding: 10px;
+  color: var(--ink);
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  background: white;
+  font-size: 11px;
+}
+
+.service-account-create--drawer textarea,
+.service-account-overlay-form textarea {
+  min-height: 92px;
+  resize: vertical;
+}
+
+.service-account-overlay-form {
+  display: grid;
+  gap: 12px;
+}
+
+.service-account-context-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 14px 18px;
+  border-top: 1px solid var(--line);
+}
+
+.service-account-context-actions .vz-button {
+  flex: 1 1 auto;
+}
+
+.service-account-context-actions .vz-button--danger {
+  border-color: var(--critical);
+  background: var(--critical);
+  color: white;
+}
+
 @media (max-width: 720px) {
   .catalogue-actions {
     justify-content: stretch;
@@ -229,7 +312,14 @@
     justify-content: stretch;
   }
 
-  .vz-communications-action-buttons .vz-button {
+  .vz-communications-action-buttons .vz-button,
+  .service-account-heading-actions .vz-button {
+    width: 100%;
+  }
+
+  .service-account-heading-actions {
+    display: grid;
+    grid-template-columns: 1fr;
     width: 100%;
   }
 }
