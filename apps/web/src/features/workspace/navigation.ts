@@ -2,7 +2,6 @@ import type { BaselineRoleKey, WorkspaceSession } from "@veza/contracts";
 import type { Route } from "next";
 import type { IconName } from "../../components/icon";
 import {
-  canAccessNavigation,
   canAccessWorkspacePath,
   type WorkspaceNavigationKey,
 } from "./access-policy";
@@ -33,8 +32,7 @@ const definitions: readonly NavigationDefinition[] = [
   { key: "evidence", labels: { default: "Evidence room", auditor: "Evidence room" }, href: "/evidence", icon: "evidence" },
   { key: "support", labels: { default: "Support cases", "support-agent": "Support cases" }, href: "/support", icon: "support" },
   { key: "admin", labels: { default: "Admin" }, href: "/admin/institution-setup", icon: "admin" },
-  { key: "help", labels: { default: "Help" }, href: "/help", icon: "help" },
-];
+] as const;
 
 const rolePriority: readonly BaselineRoleKey[] = [
   "tenant-owner",

@@ -440,6 +440,74 @@
   margin: 0;
 }
 
+.relationship-lifecycle-dialog {
+  display: grid;
+  gap: var(--veza-space-4);
+}
+
+.relationship-lifecycle-dialog label {
+  display: grid;
+  gap: var(--veza-space-2);
+  color: var(--veza-ink-soft);
+  font-size: var(--veza-text-sm);
+  font-weight: var(--veza-weight-semibold);
+}
+
+.relationship-lifecycle-dialog textarea {
+  width: 100%;
+  min-height: 8rem;
+  padding: var(--veza-space-3);
+  border: 1px solid var(--veza-line-strong);
+  border-radius: var(--veza-radius-control);
+  background: var(--veza-surface);
+  color: var(--veza-ink);
+  resize: vertical;
+}
+
+.vz-two-column-register--actions-on-demand,
+.vz-completion-workspace > .vz-completion-grid,
+.vz-studio-home .vz-studio-register,
+.vz-studio-home .vz-completion-grid {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.vz-governance-rail--toolbar,
+.vz-completion-workspace > .vz-completion-grid > .vz-governance-rail,
+.vz-studio-home .vz-studio-actions,
+.vz-studio-home .vz-completion-grid > .vz-governance-rail {
+  position: static;
+  top: auto;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: flex-end;
+  gap: var(--veza-space-2);
+}
+
+.vz-governance-rail--toolbar > .governed-action-panel,
+.vz-completion-workspace > .vz-completion-grid > .vz-governance-rail > :where(.governed-action-panel, .vz-action-panel),
+.vz-studio-home .vz-studio-actions > :where(.governed-action-panel, .vz-action-panel),
+.vz-studio-home .vz-completion-grid > .vz-governance-rail > :where(.governed-action-panel, .vz-action-panel) {
+  flex: 0 1 18rem;
+  min-width: 0;
+}
+
+.vz-governance-rail--toolbar > .evidence-boundary--inline {
+  flex: 1 1 24rem;
+  min-width: min(100%, 18rem);
+}
+
+.vz-workspace-feedback {
+  margin: 0;
+  padding: 0.75rem 0.9rem;
+  border-inline-start: 3px solid var(--veza-success);
+  border-radius: 0 var(--veza-radius-control) var(--veza-radius-control) 0;
+  background: var(--veza-success-surface);
+  color: var(--veza-ink-soft);
+  font-size: var(--veza-text-sm);
+  line-height: var(--veza-leading-sm);
+}
+
 @media (max-width: 1250px) {
   .storage-config-grid--records {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -528,6 +596,27 @@
 
   .storage-panel-header-actions .vz-button,
   .storage-inspector-actions .vz-button {
+    width: 100%;
+  }
+
+  .vz-governance-rail--toolbar,
+  .vz-completion-workspace > .vz-completion-grid > .vz-governance-rail,
+  .vz-studio-home .vz-studio-actions,
+  .vz-studio-home .vz-completion-grid > .vz-governance-rail {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .vz-governance-rail--toolbar > .governed-action-panel,
+  .vz-completion-workspace > .vz-completion-grid > .vz-governance-rail > :where(.governed-action-panel, .vz-action-panel),
+  .vz-studio-home .vz-studio-actions > :where(.governed-action-panel, .vz-action-panel),
+  .vz-studio-home .vz-completion-grid > .vz-governance-rail > :where(.governed-action-panel, .vz-action-panel) {
+    width: 100%;
+    flex-basis: auto;
+  }
+
+  .vz-governance-rail--toolbar .vz-button,
+  .vz-studio-home .vz-studio-actions .vz-button {
     width: 100%;
   }
 }
