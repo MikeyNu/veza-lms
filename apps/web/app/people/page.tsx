@@ -47,19 +47,22 @@ export default async function PeoplePage({
   const canReconcile = resolution.session.membership.roles.some((role) =>
     ["tenant-owner", "institution-admin", "registrar"].includes(role),
   );
+  const canInviteTenantOwner = membershipRoles.has("tenant-owner");
+  const canManageDirectory = canReconcile;
 
   return (
     <AppShell session={resolution.session} active="people">
-      {canReconcile ? (
+      {canReconcile || canInviteTenantOwner ? (
         <nav className="people-secondary-navigation" aria-label="People administration">
-          <Link href="/people/duplicates">Review duplicate candidates</Link>
-          <Link href="/people/invitations/new">Invite workspace member</Link>
+          {canReconcile ? <Link href="/people/duplicates">Review duplicate candidates</Link> : null}
+          {canInviteTenantOwner ? <Link href="/people/invitations/new">Invite tenant owner</Link> : null}
         </nav>
       ) : null}
       <PeopleWorkspace
         page={page}
         filters={filters}
         session={resolution.session}
+        canManageDirectory={canManageDirectory}
       />
     </AppShell>
   );
