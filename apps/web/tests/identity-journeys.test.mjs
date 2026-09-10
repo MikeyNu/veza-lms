@@ -68,6 +68,35 @@ test("invitation acceptance is same-origin, identity verified and membership sco
   assert.match(api, /membership-invitations/);
 });
 
+test("first membership invitations resume after OIDC and identity switching keeps the safe continuation", async () => {
+  const [callback, signOut, invitation] = await Promise.all([
+    source("../app/api/auth/callback/route.ts"),
+    source("../app/api/auth/sign-out/route.ts"),
+    source("../app/invitation/page.tsx"),
+  ]);
+
+  assert.match(callback, /canContinueWithoutMembership/);
+  assert.match(callback, /returnTo === "\/invitation" \|\| returnTo\.startsWith\("\/invitation\?"\)/);
+  assert.match(callback, /workspaces\.length === 0[\s\S]*canContinueWithoutMembership\(completed\.returnTo\)[\s\S]*completed\.returnTo[\s\S]*"\/access-pending"/);
+  assert.doesNotMatch(callback, /workspaces\.length === 0\s*\?\s*completed\.returnTo/);
+
+  assert.match(signOut, /secureReturnTo/);
+  assert.match(signOut, /formData/);
+  assert.match(signOut, /destination\.searchParams\.set\("returnTo", returnTo\)/);
+  assert.match(invitation, /name="returnTo" value=\{returnTo\}/);
+});
+
+test("invitation failures expose recovery actions instead of repeating invalid acceptance", async () => {
+  const invitation = await source("../app/invitation/page.tsx");
+  assert.match(invitation, /needsFreshIdentity/);
+  assert.match(invitation, /invitationConsumed/);
+  assert.match(invitation, /invitationInactive/);
+  assert.match(invitation, /canAttemptAcceptance/);
+  assert.match(invitation, /Open workspace selection/);
+  assert.match(invitation, /Sign in with the invited identity/);
+  assert.match(invitation, /Retry invitation acceptance/);
+});
+
 test("identity routes provide dedicated loading and recoverable failure surfaces", async () => {
   for (const route of ["sign-in", "select-workspace", "access-pending", "invitation", "account-help", "reset-password"]) {
     assert.equal(await exists(`../app/${route}/loading.tsx`), true, `${route} loading state is missing`);

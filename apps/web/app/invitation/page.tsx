@@ -15,11 +15,11 @@ const errors: Readonly<Record<string, { readonly title: string; readonly detail:
   },
   session: {
     title: "Your identity session has expired",
-    detail: "Start sign-in again, then return to this invitation link.",
+    detail: "Start a fresh sign-in, then Veza will return you to this invitation.",
   },
   identity: {
     title: "This invitation belongs to another identity",
-    detail: "Sign out and use the exact verified email address that received the invitation.",
+    detail: "Use the exact verified email address that received the invitation.",
   },
   "not-found": {
     title: "The invitation could not be found",
@@ -27,7 +27,7 @@ const errors: Readonly<Record<string, { readonly title: string; readonly detail:
   },
   accepted: {
     title: "This invitation has already been accepted",
-    detail: "Continue to workspace selection. If no workspace appears, ask the institution administrator to inspect membership status.",
+    detail: "The one-time invitation cannot be used again. Continue to your existing workspace membership instead.",
   },
   expired: {
     title: "This invitation is no longer active",
@@ -35,7 +35,7 @@ const errors: Readonly<Record<string, { readonly title: string; readonly detail:
   },
   service: {
     title: "Veza could not complete invitation acceptance",
-    detail: "No membership transition was confirmed. Retry when the service is available.",
+    detail: "No membership transition was confirmed. You can retry without requesting a new invitation.",
   },
 };
 
@@ -50,9 +50,17 @@ export default async function InvitationPage({
   const invitationId = query.invitationId ?? "";
   const token = query.token ?? "";
   const valid = uuidPattern.test(invitationId) && token.length >= 32 && token.length <= 2048;
-  const error = query.error ? errors[query.error] : undefined;
+  const errorCode = query.error ?? "";
+  const error = errorCode ? errors[errorCode] : undefined;
   const returnParameters = valid ? new URLSearchParams({ invitationId, token }) : undefined;
   const returnTo = returnParameters ? `/invitation?${returnParameters}` : "/invitation";
+  const needsFreshIdentity = errorCode === "session" || errorCode === "identity";
+  const invitationConsumed = errorCode === "accepted";
+  const invitationInactive = errorCode === "not-found" || errorCode === "expired";
+  const canAttemptAcceptance = !errorCode || errorCode === "service";
+
+  const freshSignInPath = `/sign-in?returnTo=${encodeURIComponent(returnTo)}`;
+  const workspaceSignInPath = `/sign-in?returnTo=${encodeURIComponent("/select-workspace")}`;
 
   return (
     <IdentityGateway
@@ -62,34 +70,76 @@ export default async function InvitationPage({
       aside={<><strong>Check the account before accepting.</strong><span>The signed-in email must be the verified address that received the invitation. Acceptance cannot be transferred to another identity.</span></>}
       footer={<>Invitation acceptance is atomic. Membership activation, role assignment, audit evidence and the activation event either commit together or do not commit.</>}
     >
-      {error ? <IdentityStatus tone="danger" title={error.title}>{error.detail}</IdentityStatus> : null}
+      {error ? <IdentityStatus tone={invitationConsumed ? "warning" : "danger"} title={error.title}>{error.detail}</IdentityStatus> : null}
       {!valid ? (
         <div className="identity-action-stack">
           {!error ? <IdentityStatus tone="danger" title="Invitation details are invalid">Request a complete invitation link from your institution administrator.</IdentityStatus> : null}
           <ButtonLink className="identity-full-action" variant="secondary" href="/sign-in">Return to sign-in</ButtonLink>
+          <VezaLink variant="quiet" href="/account-help">Invitation or account help</VezaLink>
         </div>
       ) : (
         <>
           <IdentitySteps items={[
             { label: "Invitation received", detail: "The one-time invitation token is present.", state: "complete" },
             { label: "Identity verification", detail: session ? `Signed in as ${session.profile.email ?? session.profile.displayName ?? "a verified account"}.` : "Sign in with the invited email address.", state: session ? "complete" : "current" },
-            { label: "Membership activation", detail: "Veza will verify the token, email, expiry and invitation state before activation.", ...(session ? { state: "current" as const } : {}) },
+            {
+              label: "Membership activation",
+              detail: invitationConsumed
+                ? "This invitation has already completed its one-time activation step."
+                : invitationInactive
+                  ? "A current invitation is required before membership can be activated."
+                  : "Veza will verify the token, email, expiry and invitation state before activation.",
+              ...(invitationConsumed ? { state: "complete" as const } : session && !invitationInactive ? { state: "current" as const } : {}),
+            },
           ]} />
           <div className="identity-action-stack">
-            {session ? (
+            {invitationConsumed ? (
+              session ? (
+                <ButtonLink className="identity-full-action" href="/select-workspace" trailingIcon={<Icon name="arrow" />}>
+                  Open workspace selection
+                </ButtonLink>
+              ) : (
+                <ButtonLink className="identity-full-action" href={workspaceSignInPath} trailingIcon={<Icon name="arrow" />}>
+                  Sign in to open your workspace
+                </ButtonLink>
+              )
+            ) : invitationInactive ? (
+              session ? (
+                <ButtonLink className="identity-full-action" variant="secondary" href="/select-workspace">
+                  Open existing workspaces
+                </ButtonLink>
+              ) : (
+                <ButtonLink className="identity-full-action" variant="secondary" href="/sign-in">
+                  Return to sign-in
+                </ButtonLink>
+              )
+            ) : needsFreshIdentity && session ? (
+              <form action="/api/auth/sign-out" method="post" className="identity-action-stack">
+                <input type="hidden" name="returnTo" value={returnTo} />
+                <Button className="identity-full-action" type="submit" trailingIcon={<Icon name="arrow" />}>
+                  Sign in with the invited identity
+                </Button>
+              </form>
+            ) : session && canAttemptAcceptance ? (
               <form action="/api/invitations/accept" method="post" className="identity-action-stack">
                 <input type="hidden" name="invitationId" value={invitationId} />
                 <input type="hidden" name="token" value={token} />
                 <Button className="identity-full-action" type="submit" trailingIcon={<Icon name="arrow" />}>
-                  Accept invitation and open workspace
+                  {errorCode === "service" ? "Retry invitation acceptance" : "Accept invitation and open workspace"}
                 </Button>
               </form>
             ) : (
-              <ButtonLink className="identity-full-action" href={`/sign-in?returnTo=${encodeURIComponent(returnTo)}`} trailingIcon={<Icon name="arrow" />}>
+              <ButtonLink className="identity-full-action" href={freshSignInPath} trailingIcon={<Icon name="arrow" />}>
                 Sign in to verify this invitation
               </ButtonLink>
             )}
-            {session ? <form action="/api/auth/sign-out" method="post"><Button className="identity-full-action" variant="secondary" type="submit">Use another identity</Button></form> : null}
+
+            {session && !needsFreshIdentity && !invitationConsumed && !invitationInactive ? (
+              <form action="/api/auth/sign-out" method="post">
+                <input type="hidden" name="returnTo" value={returnTo} />
+                <Button className="identity-full-action" variant="secondary" type="submit">Use another identity</Button>
+              </form>
+            ) : null}
             <VezaLink variant="quiet" href="/account-help">Invitation or account help</VezaLink>
           </div>
         </>
