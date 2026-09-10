@@ -82,6 +82,14 @@ function endpoint(jobType: string): string | undefined {
   return process.env.MEDIA_METADATA_PROCESSOR_URL;
 }
 
+function mediaProviderTimeoutMs(): number {
+  const value = Number(process.env.MEDIA_PROCESSOR_TIMEOUT_MS ?? 120_000);
+  if (!Number.isInteger(value) || value < 1_000 || value > 240_000) {
+    throw new Error("MEDIA_PROCESSOR_TIMEOUT_MS must be an integer between 1000 and 240000");
+  }
+  return value;
+}
+
 function resultChecksum(result: ProcessingResult): string {
   return createHash("sha256").update(JSON.stringify(result), "utf8").digest("hex");
 }
@@ -95,18 +103,22 @@ export class MediaProcessor {
     private readonly retryMaximumSeconds: number,
   ) {}
 
-  private async claim(): Promise<readonly MediaJob[]> {
+  private async claimOne(): Promise<MediaJob | undefined> {
     return transaction(this.pool, async (client) => {
       const result = await client.query<MediaJob>(
         `WITH candidates AS (
            SELECT job.id
            FROM media_processing_jobs job
-           WHERE job.state IN ('pending','retry')
-             AND job.next_attempt_at <= now()
-             AND (job.leased_at IS NULL OR job.leased_at < now() - interval '5 minutes')
+           WHERE (
+               job.state IN ('pending','retry')
+               AND job.next_attempt_at <= now()
+             ) OR (
+               job.state = 'processing'
+               AND job.leased_at < now() - interval '5 minutes'
+             )
            ORDER BY job.next_attempt_at, job.created_at, job.id
            FOR UPDATE SKIP LOCKED
-           LIMIT $2
+           LIMIT 1
          )
          UPDATE media_processing_jobs job
          SET state = 'processing', attempts = attempts + 1,
@@ -121,9 +133,9 @@ export class MediaProcessor {
                    job.profile, job.attempts, job.maximum_attempts,
                    namespace.bucket_key, asset.object_key, asset.media_type,
                    asset.byte_size, asset.checksum_sha256, asset.original_filename`,
-        [this.workerId, this.batchSize],
+        [this.workerId],
       );
-      return result.rows;
+      return result.rows[0];
     });
   }
 
@@ -173,7 +185,7 @@ export class MediaProcessor {
         originalFilename: job.original_filename,
         profile: job.profile,
       }),
-      signal: AbortSignal.timeout(Number(process.env.MEDIA_PROCESSOR_TIMEOUT_MS ?? 120_000)),
+      signal: AbortSignal.timeout(mediaProviderTimeoutMs()),
     });
     const body = (await response.json().catch(() => ({}))) as ProcessingResult & {
       readonly message?: string;
@@ -184,6 +196,20 @@ export class MediaProcessor {
 
   private async complete(job: MediaJob, result: ProcessingResult): Promise<void> {
     await transaction(this.pool, async (client) => {
+      const ownership = await client.query(
+        `UPDATE media_processing_jobs
+         SET state = 'completed', completed_at = now(),
+             provider_reference = $4, result = $5,
+             last_error = NULL, leased_at = NULL, lease_owner = NULL
+         WHERE id = $1 AND lease_owner = $2 AND attempts = $3 AND state = 'processing'
+         RETURNING id`,
+        [job.id, this.workerId, job.attempts, result.providerReference ?? null, {
+          ...result,
+          resultChecksum: resultChecksum(result),
+        }],
+      );
+      if (ownership.rowCount !== 1) throw new Error("media-job-lease-lost");
+
       if (job.job_type === "verify-object") {
         if (
           result.byteSize !== Number(job.byte_size) ||
@@ -304,24 +330,13 @@ export class MediaProcessor {
           [job.asset_id],
         );
       }
-      await client.query(
-        `UPDATE media_processing_jobs
-         SET state = 'completed', completed_at = now(),
-             provider_reference = $4, result = $5,
-             last_error = NULL, leased_at = NULL, lease_owner = NULL
-         WHERE id = $1 AND lease_owner = $2 AND attempts = $3 AND state = 'processing'`,
-        [job.id, this.workerId, job.attempts, result.providerReference ?? null, {
-          ...result,
-          resultChecksum: resultChecksum(result),
-        }],
-      );
       if (job.job_type !== "delete-object") {
         await client.query("SELECT app.reconcile_media_asset($1)", [job.asset_id]);
       }
     });
   }
 
-  private async fail(job: MediaJob, error: unknown): Promise<void> {
+  private async fail(job: MediaJob, error: unknown): Promise<boolean> {
     const message = sanitizeDeliveryError(error);
     const deadLetter = job.attempts >= job.maximum_attempts;
     const delaySeconds = retryDelaySeconds(
@@ -330,13 +345,14 @@ export class MediaProcessor {
       this.retryBaseSeconds,
       this.retryMaximumSeconds,
     );
-    await transaction(this.pool, async (client) => {
-      await client.query(
+    return transaction(this.pool, async (client) => {
+      const ownership = await client.query(
         `UPDATE media_processing_jobs
          SET state = $4, next_attempt_at = $5, last_error = $6,
              leased_at = NULL, lease_owner = NULL,
              completed_at = CASE WHEN $4 IN ('failed','dead-letter') THEN now() ELSE NULL END
-         WHERE id = $1 AND lease_owner = $2 AND attempts = $3 AND state = 'processing'`,
+         WHERE id = $1 AND lease_owner = $2 AND attempts = $3 AND state = 'processing'
+         RETURNING id`,
         [
           job.id,
           this.workerId,
@@ -346,7 +362,9 @@ export class MediaProcessor {
           message.slice(0, 2_000),
         ],
       );
+      if (ownership.rowCount !== 1) return false;
       if (deadLetter) await client.query("SELECT app.reconcile_media_asset($1)", [job.asset_id]);
+      return true;
     });
   }
 
@@ -355,18 +373,20 @@ export class MediaProcessor {
     readonly completed: number;
     readonly failed: number;
   }> {
-    const jobs = await this.claim();
+    let claimed = 0;
     let completed = 0;
     let failed = 0;
-    for (const job of jobs) {
+    for (let index = 0; index < this.batchSize; index += 1) {
+      const job = await this.claimOne();
+      if (!job) break;
+      claimed += 1;
       try {
         await this.complete(job, await this.process(job));
         completed += 1;
       } catch (error) {
-        await this.fail(job, error);
-        failed += 1;
+        if (await this.fail(job, error)) failed += 1;
       }
     }
-    return { claimed: jobs.length, completed, failed };
+    return { claimed, completed, failed };
   }
 }
