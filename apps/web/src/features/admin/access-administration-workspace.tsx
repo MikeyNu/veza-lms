@@ -286,7 +286,16 @@ function MembershipInspector({
   const [busy, setBusy] = useState(false);
   const [action, setAction] = useState<MembershipAction>(null);
   const [endingRoleId, setEndingRoleId] = useState<string | null>(null);
+  const [lifecycleStatus, setLifecycleStatus] = useState<"active" | "suspended" | "revoked">(
+    membership.status === "active" ? "suspended" : "active",
+  );
   const endingRole = membership.roles.find((role) => role.id === endingRoleId);
+
+  function openAction(next: Exclude<MembershipAction, null>) {
+    setMessage("");
+    if (next === "lifecycle") setLifecycleStatus(membership.status === "active" ? "suspended" : "active");
+    setAction(next);
+  }
 
   async function submit(operation: string, input: Readonly<Record<string, unknown>>, success: string): Promise<boolean> {
     setBusy(true);
@@ -319,12 +328,11 @@ function MembershipInspector({
   async function changeLifecycle(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
-    const status = String(form.get("status"));
     const saved = await submit("membership-status", {
       membershipId: membership.id,
-      status,
+      status: lifecycleStatus,
       reason: String(form.get("reason")),
-    }, `Membership set to ${status}.`);
+    }, `Membership set to ${lifecycleStatus}.`);
     if (saved) setAction(null);
   }
 
@@ -344,13 +352,13 @@ function MembershipInspector({
       <header><p>MEMBERSHIP</p><h2>{membership.identity.displayName ?? membership.identity.email ?? "Verified identity"}</h2><span>{membership.identity.email ?? "No email claim"}</span></header>
       <dl><div><dt>Status</dt><dd>{human(membership.status)}</dd></div><div><dt>Locale</dt><dd>{membership.locale}</dd></div><div><dt>Timezone</dt><dd>{membership.timezone}</dd></div><div><dt>Created</dt><dd>{date(membership.createdAt)}</dd></div></dl>
       <section>
-        <div className="access-section-heading"><h3>Current role assignments</h3><Button type="button" size="small" variant="secondary" onClick={() => setAction("assign")}>Assign role</Button></div>
+        <div className="access-section-heading"><h3>Current role assignments</h3><Button type="button" size="small" variant="secondary" onClick={() => openAction("assign")}>Assign role</Button></div>
         {membership.roles.length ? (
           <ul className="access-role-list">
             {membership.roles.map((role) => (
               <li key={role.id}>
                 <div><strong>{human(role.roleKey)}</strong><span>{role.scopeLabel ?? role.scopeId}</span><small>{role.validUntil ? `Ends ${date(role.validUntil)}` : "No scheduled end"}</small></div>
-                <Button type="button" size="small" variant="quiet" onClick={() => setEndingRoleId(role.id)}>End role</Button>
+                <Button type="button" size="small" variant="quiet" onClick={() => { setMessage(""); setEndingRoleId(role.id); }}>End role</Button>
               </li>
             ))}
           </ul>
@@ -359,10 +367,10 @@ function MembershipInspector({
       {canChangeStatus ? (
         <section className="access-lifecycle-summary">
           <div><h3>Membership lifecycle</h3><p>State changes are audited and require an explicit reason.</p></div>
-          <Button type="button" size="small" variant="secondary" onClick={() => setAction("lifecycle")}>Change status</Button>
+          <Button type="button" size="small" variant="secondary" onClick={() => openAction("lifecycle")}>Change status</Button>
         </section>
       ) : null}
-      {message ? <p role="alert" className="access-error access-inspector-error">{message}</p> : null}
+      {!action && !endingRole ? (message ? <p role="alert" className="access-error access-inspector-error">{message}</p> : null) : null}
 
       <Dialog
         open={action === "assign"}
@@ -381,6 +389,7 @@ function MembershipInspector({
           <label>Role<select name="roleKey">{roles.map((role) => <option key={role} value={role}>{human(role)}</option>)}</select></label>
           <ScopeField tenantId={tenantId} institutions={institutions} canUseTenantScope={canUseTenantScope} />
           <label>Valid until<input name="validUntil" type="datetime-local" /></label>
+          {message ? <p role="alert" className="access-error">{message}</p> : null}
         </form>
       </Dialog>
 
@@ -388,19 +397,20 @@ function MembershipInspector({
         open={action === "lifecycle"}
         onClose={() => setAction(null)}
         title="Change membership status"
-        description="Apply an audited membership lifecycle state. Revocation should only be used when access must end permanently."
+        description={lifecycleStatus === "revoked" ? "Revocation is a high-impact access change. The server will recheck tenant-owner authorization before applying it." : "Apply an audited membership lifecycle state and record the reason for the change."}
         size="small"
-        destructive={false}
+        destructive={lifecycleStatus === "revoked"}
         footer={
           <>
             <Button type="button" variant="secondary" onClick={() => setAction(null)} disabled={busy}>Cancel</Button>
-            <Button type="submit" form="access-membership-lifecycle-form" loading={busy} disabled={busy}>Apply status</Button>
+            <Button type="submit" form="access-membership-lifecycle-form" variant={lifecycleStatus === "revoked" ? "danger" : "primary"} loading={busy} disabled={busy}>Apply status</Button>
           </>
         }
       >
         <form id="access-membership-lifecycle-form" className="access-form compact" onSubmit={changeLifecycle}>
-          <label>Status<select name="status" defaultValue={membership.status === "active" ? "suspended" : "active"}><option value="active">Active</option><option value="suspended">Suspended</option><option value="revoked">Revoked</option></select></label>
+          <label>Status<select name="status" value={lifecycleStatus} onChange={(event) => setLifecycleStatus(event.currentTarget.value as "active" | "suspended" | "revoked")}><option value="active">Active</option><option value="suspended">Suspended</option><option value="revoked">Revoked</option></select></label>
           <label>Reason<textarea name="reason" required minLength={20} maxLength={500} rows={3} placeholder="Explain why this membership state must change." /></label>
+          {message ? <p role="alert" className="access-error">{message}</p> : null}
         </form>
       </Dialog>
 
@@ -410,6 +420,7 @@ function MembershipInspector({
         title="End role assignment"
         description={endingRole ? `End ${human(endingRole.roleKey)} access for this membership while preserving the assignment evidence.` : undefined}
         size="small"
+        destructive
         footer={
           <>
             <Button type="button" variant="secondary" onClick={() => setEndingRoleId(null)} disabled={busy}>Cancel</Button>
@@ -419,6 +430,7 @@ function MembershipInspector({
       >
         <form id="access-end-role-form" className="access-form compact" onSubmit={endRole}>
           <label>Reason<textarea name="reason" required minLength={20} maxLength={500} rows={3} placeholder="Explain why this role assignment must end." /></label>
+          {message ? <p role="alert" className="access-error">{message}</p> : null}
         </form>
       </Dialog>
     </aside>
@@ -457,9 +469,9 @@ function InvitationActions({ invitation, onDone }: { readonly invitation: Access
         label={`Actions for ${invitation.email}`}
         trigger={<Button type="button" size="small" variant="quiet">Actions</Button>}
         entries={[
-          { key: "resend", label: "Resend invitation", onSelect: () => setAction("resend") },
+          { key: "resend", label: "Resend invitation", onSelect: () => { setMessage(""); setAction("resend"); } },
           { type: "separator", key: "divider" },
-          { key: "revoke", label: "Revoke invitation", destructive: true, onSelect: () => setAction("revoke") },
+          { key: "revoke", label: "Revoke invitation", destructive: true, onSelect: () => { setMessage(""); setAction("revoke"); } },
         ]}
       />
       <Dialog
@@ -521,6 +533,7 @@ export function AccessAdministrationWorkspace({
   const [selectedInvitationIds, setSelectedInvitationIds] = useState<Set<string>>(() => new Set());
   const [bulkOpen, setBulkOpen] = useState(false);
   const [bulkBusy, setBulkBusy] = useState(false);
+  const [bulkError, setBulkError] = useState("");
   const [inviteOpen, setInviteOpen] = useState(false);
   const [message, setMessage] = useState("");
   const selectedMembership = directory.memberships.find((membership) => membership.id === selectedMembershipId);
@@ -531,6 +544,7 @@ export function AccessAdministrationWorkspace({
 
   function done(value: string) {
     setMessage(value);
+    setBulkError("");
     setSelectedInvitationIds(new Set());
     setBulkOpen(false);
     setInviteOpen(false);
@@ -541,6 +555,7 @@ export function AccessAdministrationWorkspace({
     event.preventDefault();
     const form = new FormData(event.currentTarget);
     setBulkBusy(true);
+    setBulkError("");
     try {
       await mutate("invitations-bulk-revoke", {
         invitationIds: selectedInvitations.map((invitation) => invitation.id),
@@ -548,7 +563,7 @@ export function AccessAdministrationWorkspace({
       });
       done(`${selectedInvitations.length} invitations revoked.`);
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Bulk revocation failed");
+      setBulkError(error instanceof Error ? error.message : "Bulk revocation failed");
     } finally {
       setBulkBusy(false);
     }
@@ -575,7 +590,7 @@ export function AccessAdministrationWorkspace({
               ))}</tbody></table></div>
             ) : <p className="access-empty-copy">No memberships match this scope.</p>}
           </div>
-          {selectedMembership ? <MembershipInspector membership={selectedMembership} tenantId={tenantId} institutions={institutions} canUseTenantScope={tenantOwner} canChangeStatus={tenantOwner} onDone={done} /> : null}
+          {selectedMembership ? <MembershipInspector key={selectedMembership.id} membership={selectedMembership} tenantId={tenantId} institutions={institutions} canUseTenantScope={tenantOwner} canChangeStatus={tenantOwner} onDone={done} /> : null}
         </section>
       ) : (
         <section className="access-invitation-grid">
@@ -588,7 +603,7 @@ export function AccessAdministrationWorkspace({
               </div>
             </header>
             <BulkSelectionToolbar selectedCount={selectedInvitationIds.size} totalVisible={directory.invitations.length} label="Invitation bulk actions" onClear={() => setSelectedInvitationIds(new Set())}>
-              <Button type="button" size="small" variant="danger" onClick={() => setBulkOpen(true)}>Revoke selected</Button>
+              <Button type="button" size="small" variant="danger" onClick={() => { setBulkError(""); setBulkOpen(true); }}>Revoke selected</Button>
             </BulkSelectionToolbar>
             {directory.invitations.length ? <div className="access-table-wrap"><table><thead><tr><th className="people-select-column"><span className="sr-only">Select</span></th><th>Email</th><th>Role and scope</th><th>Status</th><th>Expires</th><th>Actions</th></tr></thead><tbody>{directory.invitations.map((invitation) => <tr key={invitation.id}><td className="people-select-column"><input type="checkbox" checked={selectedInvitationIds.has(invitation.id)} onChange={() => setSelectedInvitationIds((current) => { const next = new Set(current); if (next.has(invitation.id)) next.delete(invitation.id); else next.add(invitation.id); return next; })} aria-label={`Select invitation for ${invitation.email}`} /></td><td><strong>{invitation.email}</strong><small>Created {date(invitation.createdAt)}</small></td><td><strong>{human(invitation.roleKey)}</strong><small>{invitation.scopeLabel ?? invitation.scopeId}</small></td><td><span className={`access-status ${invitation.status}`}>{human(invitation.status)}</span></td><td>{date(invitation.expiresAt)}</td><td><InvitationActions invitation={invitation} onDone={done} /></td></tr>)}</tbody></table></div> : <p className="access-empty-copy">No active invitations.</p>}
           </div>
@@ -619,6 +634,7 @@ export function AccessAdministrationWorkspace({
       >
         <form id="access-bulk-revoke-form" className="access-form compact" onSubmit={bulkRevoke}>
           <label>Reason<textarea name="reason" required minLength={20} maxLength={500} rows={3} placeholder="Explain why this invitation set must be revoked." /></label>
+          {bulkError ? <p role="alert" className="access-error">{bulkError}</p> : null}
         </form>
       </Dialog>
     </div>
