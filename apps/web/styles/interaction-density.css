@@ -93,6 +93,101 @@
   grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
+.vz-communications-grid {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.vz-communications-actionbar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 18px;
+  align-items: center;
+  padding: 16px 18px;
+  border-block: 1px solid var(--line);
+  background: color-mix(in srgb, var(--blue) 5%, white);
+}
+
+.vz-communications-policy {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.vz-communications-policy strong {
+  color: var(--ink);
+  font-size: 12px;
+}
+
+.vz-communications-policy span {
+  max-width: 780px;
+  color: var(--ink-soft);
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.vz-communications-action-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.vz-communications-feedback {
+  display: block;
+  min-height: 18px;
+  color: var(--ink-soft);
+  font-size: 11px;
+}
+
+.vz-communications-drawer-form {
+  display: grid;
+  gap: 14px;
+}
+
+.vz-communications-drawer-form label {
+  display: grid;
+  min-width: 0;
+  gap: 6px;
+  color: var(--ink-soft);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.vz-communications-drawer-form input,
+.vz-communications-drawer-form select,
+.vz-communications-drawer-form textarea {
+  width: 100%;
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  background: white;
+}
+
+.vz-communications-drawer-form textarea {
+  min-height: 112px;
+  resize: vertical;
+}
+
+.vz-communications-drawer-form fieldset {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.vz-communications-drawer-form fieldset label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.vz-communications-drawer-form fieldset input {
+  width: auto;
+}
+
 @media (max-width: 720px) {
   .catalogue-actions {
     justify-content: stretch;
@@ -122,5 +217,19 @@
 
   .people-import--drawer .people-import-result dl {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .vz-communications-actionbar {
+    grid-template-columns: 1fr;
+  }
+
+  .vz-communications-action-buttons {
+    display: grid;
+    grid-template-columns: 1fr;
+    justify-content: stretch;
+  }
+
+  .vz-communications-action-buttons .vz-button {
+    width: 100%;
   }
 }
