@@ -33,6 +33,14 @@ async function transaction<TResult>(
   }
 }
 
+function searchTimeoutMs(): number {
+  const value = Number(process.env.OPENSEARCH_TIMEOUT_MS ?? 15_000);
+  if (!Number.isInteger(value) || value < 1_000 || value > 90_000) {
+    throw new Error("OPENSEARCH_TIMEOUT_MS must be an integer between 1000 and 90000");
+  }
+  return value;
+}
+
 export class SearchProjectionEventHandler implements ConsumerHandler {
   constructor(private readonly pool: Pool) {}
 
@@ -75,18 +83,22 @@ export class SearchIndexPublisher {
     private readonly retryMaximumSeconds: number,
   ) {}
 
-  private async claim(): Promise<readonly SearchOperation[]> {
+  private async claimOne(): Promise<SearchOperation | undefined> {
     return transaction(this.pool, async (client) => {
       const result = await client.query<SearchOperation>(
         `WITH candidates AS (
            SELECT operation.id
            FROM search_index_operations operation
-           WHERE operation.state IN ('pending','retry')
-             AND operation.next_attempt_at <= now()
-             AND (operation.leased_at IS NULL OR operation.leased_at < now() - interval '2 minutes')
+           WHERE (
+               operation.state IN ('pending','retry')
+               AND operation.next_attempt_at <= now()
+             ) OR (
+               operation.state = 'processing'
+               AND operation.leased_at < now() - interval '2 minutes'
+             )
            ORDER BY operation.next_attempt_at, operation.created_at, operation.id
            FOR UPDATE SKIP LOCKED
-           LIMIT $2
+           LIMIT 1
          )
          UPDATE search_index_operations operation
          SET state = 'processing', attempts = attempts + 1,
@@ -96,9 +108,9 @@ export class SearchIndexPublisher {
          RETURNING operation.id, operation.tenant_id, operation.document_id,
                    operation.operation, operation.document_snapshot,
                    operation.attempts, operation.maximum_attempts`,
-        [this.workerId, this.batchSize],
+        [this.workerId],
       );
-      return result.rows;
+      return result.rows[0];
     });
   }
 
@@ -128,7 +140,7 @@ export class SearchIndexPublisher {
       ...(operation.operation === "upsert"
         ? { body: JSON.stringify(operation.document_snapshot) }
         : {}),
-      signal: AbortSignal.timeout(Number(process.env.OPENSEARCH_TIMEOUT_MS ?? 15_000)),
+      signal: AbortSignal.timeout(searchTimeoutMs()),
     });
     if (!response.ok && !(operation.operation === "delete" && response.status === 404)) {
       throw new Error(`opensearch-http-${response.status}`);
@@ -137,8 +149,8 @@ export class SearchIndexPublisher {
     return String(body._seq_no ?? body.result ?? documentKey);
   }
 
-  private async complete(operation: SearchOperation, reference: string): Promise<void> {
-    await this.pool.query(
+  private async complete(operation: SearchOperation, reference: string): Promise<boolean> {
+    const updated = await this.pool.query(
       `UPDATE search_index_operations
        SET state = 'completed', provider_reference = $4,
            completed_at = now(), last_error = NULL,
@@ -146,9 +158,10 @@ export class SearchIndexPublisher {
        WHERE id = $1 AND lease_owner = $2 AND attempts = $3 AND state = 'processing'`,
       [operation.id, this.workerId, operation.attempts, reference],
     );
+    return updated.rowCount === 1;
   }
 
-  private async fail(operation: SearchOperation, error: unknown): Promise<void> {
+  private async fail(operation: SearchOperation, error: unknown): Promise<boolean> {
     const deadLetter = operation.attempts >= operation.maximum_attempts;
     const delay = retryDelaySeconds(
       operation.id,
@@ -156,7 +169,7 @@ export class SearchIndexPublisher {
       this.retryBaseSeconds,
       this.retryMaximumSeconds,
     );
-    await this.pool.query(
+    const updated = await this.pool.query(
       `UPDATE search_index_operations
        SET state = $4, next_attempt_at = $5, last_error = $6,
            completed_at = CASE WHEN $4 = 'dead-letter' THEN now() ELSE NULL END,
@@ -171,6 +184,7 @@ export class SearchIndexPublisher {
         sanitizeDeliveryError(error).slice(0, 2_000),
       ],
     );
+    return updated.rowCount === 1;
   }
 
   async processDue(): Promise<{
@@ -178,18 +192,19 @@ export class SearchIndexPublisher {
     readonly completed: number;
     readonly failed: number;
   }> {
-    const operations = await this.claim();
+    let claimed = 0;
     let completed = 0;
     let failed = 0;
-    for (const operation of operations) {
+    for (let index = 0; index < this.batchSize; index += 1) {
+      const operation = await this.claimOne();
+      if (!operation) break;
+      claimed += 1;
       try {
-        await this.complete(operation, await this.publish(operation));
-        completed += 1;
+        if (await this.complete(operation, await this.publish(operation))) completed += 1;
       } catch (error) {
-        await this.fail(operation, error);
-        failed += 1;
+        if (await this.fail(operation, error)) failed += 1;
       }
     }
-    return { claimed: operations.length, completed, failed };
+    return { claimed, completed, failed };
   }
 }
