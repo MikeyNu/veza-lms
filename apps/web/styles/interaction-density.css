@@ -15,9 +15,12 @@
 }
 
 .catalogue-actions {
+  position: static;
+  top: auto;
   grid-column: 1;
   grid-row: 1;
   display: flex;
+  max-height: none;
   flex-wrap: wrap;
   align-items: center;
   justify-content: flex-end;
@@ -186,6 +189,14 @@
 
 .vz-communications-drawer-form fieldset input {
   width: auto;
+}
+
+.service-account-layout:has(.service-account-operations:empty) {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.service-account-operations:empty {
+  display: none;
 }
 
 .service-account-heading-actions {
