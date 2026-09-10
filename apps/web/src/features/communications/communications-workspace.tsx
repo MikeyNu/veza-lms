@@ -2,6 +2,7 @@
 
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
+import { Button, Drawer } from "@veza/ui";
 import type { CommunicationsWorkspace } from "../../server/communications-api";
 
 function value(row: Readonly<Record<string, unknown>>, key: string): string {
@@ -29,6 +30,8 @@ async function mutate(operation: string, body: Readonly<Record<string, unknown>>
   return result;
 }
 
+type CommunicationsPanel = "preference" | "template" | "sender" | null;
+
 export function CommunicationsWorkspaceView({
   workspace,
   canAdminister,
@@ -38,15 +41,22 @@ export function CommunicationsWorkspaceView({
 }) {
   const router = useRouter();
   const [message, setMessage] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [panel, setPanel] = useState<CommunicationsPanel>(null);
 
-  async function run(operation: string, body: Readonly<Record<string, unknown>>) {
+  async function run(operation: string, body: Readonly<Record<string, unknown>>): Promise<boolean> {
+    setBusy(true);
     setMessage("Saving communications evidence...");
     try {
       await mutate(operation, body);
       setMessage("Communications evidence saved.");
       router.refresh();
+      return true;
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Communications operation failed");
+      return false;
+    } finally {
+      setBusy(false);
     }
   }
 
@@ -54,7 +64,7 @@ export function CommunicationsWorkspaceView({
     event.preventDefault();
     const data = new FormData(event.currentTarget);
     const state = String(data.get("state") ?? "enabled");
-    await run("preference", {
+    const saved = await run("preference", {
       topicKey: String(data.get("topicKey") ?? "*"),
       channel: String(data.get("channel") ?? "email"),
       state,
@@ -65,12 +75,13 @@ export function CommunicationsWorkspaceView({
         end: String(data.get("quietEnd") ?? "07:00"),
       },
     });
+    if (saved) setPanel(null);
   }
 
   async function createTemplate(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const data = new FormData(event.currentTarget);
-    await run("template-create", {
+    const saved = await run("template-create", {
       templateKey: String(data.get("templateKey") ?? ""),
       displayName: String(data.get("displayName") ?? ""),
       topicKey: String(data.get("topicKey") ?? ""),
@@ -81,12 +92,13 @@ export function CommunicationsWorkspaceView({
       contentType: String(data.get("contentType") ?? "text/plain"),
       variableSchema: { additionalProperties: true },
     });
+    if (saved) setPanel(null);
   }
 
   async function createSender(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const data = new FormData(event.currentTarget);
-    await run("sender-create", {
+    const saved = await run("sender-create", {
       channel: String(data.get("channel") ?? "email"),
       providerKey: String(data.get("providerKey") ?? ""),
       senderIdentity: String(data.get("senderIdentity") ?? ""),
@@ -94,6 +106,7 @@ export function CommunicationsWorkspaceView({
       secretReference: String(data.get("secretReference") ?? ""),
       configuration: { region: String(data.get("region") ?? "af-south-1") },
     });
+    if (saved) setPanel(null);
   }
 
   return (
@@ -116,6 +129,19 @@ export function CommunicationsWorkspaceView({
         <article><small>Recent deliveries</small><strong>{workspace.recentDeliveries.length}</strong><span>Tenant-safe diagnostics</span></article>
         <article><small>Active suppressions</small><strong>{workspace.activeSuppressions.length}</strong><span>Bounce and complaint safety</span></article>
       </section>
+
+      <section className="vz-communications-actionbar" aria-label="Communications actions">
+        <div className="vz-communications-policy">
+          <strong>Required notification policy</strong>
+          <span>Security, access, assessment release and credential events may bypass optional preferences. Quiet hours and suppression safety still apply where policy permits.</span>
+        </div>
+        <div className="vz-communications-action-buttons">
+          <Button type="button" variant="secondary" onClick={() => setPanel("preference")} disabled={busy}>Preferences</Button>
+          {canAdminister ? <Button type="button" variant="secondary" onClick={() => setPanel("template")} disabled={busy}>New template</Button> : null}
+          {canAdminister ? <Button type="button" onClick={() => setPanel("sender")} disabled={busy}>Configure sender</Button> : null}
+        </div>
+      </section>
+      {message ? <output className="vz-communications-feedback" aria-live="polite">{message}</output> : null}
 
       <div className="vz-communications-grid">
         <main className="vz-communications-register">
@@ -156,57 +182,63 @@ export function CommunicationsWorkspaceView({
             ))}
           </section>
         </main>
-
-        <aside className="vz-communications-controls">
-          <details open>
-            <summary>Notification preferences</summary>
-            <form onSubmit={savePreference}>
-              <label>Topic<input name="topicKey" defaultValue="*" pattern="[a-z*][a-z0-9.*-]{0,119}" /></label>
-              <label>Channel<select name="channel"><option value="email">Email</option><option value="sms">SMS</option><option value="push">Push</option></select></label>
-              <label>Preference<select name="state"><option value="enabled">Enabled</option><option value="disabled">Disabled</option><option value="digest">Digest</option></select></label>
-              <label>Digest frequency<select name="digestFrequency"><option value="daily">Daily</option><option value="weekly">Weekly</option></select></label>
-              <div className="vz-form-row"><label>Quiet start<input name="quietStart" type="time" defaultValue="21:00" /></label><label>Quiet end<input name="quietEnd" type="time" defaultValue="07:00" /></label></div>
-              <input type="hidden" name="timezone" value="Africa/Johannesburg" />
-              <button type="submit">Save preference</button>
-            </form>
-          </details>
-
-          {canAdminister ? (
-            <>
-              <details>
-                <summary>Create template</summary>
-                <form onSubmit={createTemplate}>
-                  <label>Template key<input name="templateKey" required placeholder="learning.assignment-reminder" /></label>
-                  <label>Display name<input name="displayName" required /></label>
-                  <label>Topic key<input name="topicKey" required placeholder="learning.assignments" /></label>
-                  <label>Policy<select name="policy"><option value="optional">Optional</option><option value="required">Required</option></select></label>
-                  <fieldset><legend>Default channels</legend><label><input type="checkbox" name="channels" value="email" defaultChecked /> Email</label><label><input type="checkbox" name="channels" value="sms" /> SMS</label><label><input type="checkbox" name="channels" value="push" /> Push</label></fieldset>
-                  <label>Subject<input name="subjectTemplate" /></label>
-                  <label>Body<textarea name="bodyTemplate" required placeholder="Hello {{learnerName}}" /></label>
-                  <label>Content type<select name="contentType"><option value="text/plain">Plain text</option><option value="text/html">HTML</option><option value="application/json">JSON</option></select></label>
-                  <button type="submit">Create draft</button>
-                </form>
-              </details>
-
-              <details>
-                <summary>Configure sender</summary>
-                <form onSubmit={createSender}>
-                  <label>Channel<select name="channel"><option value="email">Email</option><option value="sms">SMS</option><option value="push">Push</option></select></label>
-                  <label>Provider key<input name="providerKey" required placeholder="http-email" /></label>
-                  <label>Sender identity<input name="senderIdentity" required placeholder="notifications@example.edu" /></label>
-                  <label>Reply to<input name="replyTo" type="email" /></label>
-                  <label>Secret reference<input name="secretReference" required placeholder="arn:aws:secretsmanager:..." /></label>
-                  <input type="hidden" name="region" value="af-south-1" />
-                  <button type="submit">Create pending sender</button>
-                </form>
-              </details>
-            </>
-          ) : null}
-
-          <section className="vz-communications-note"><strong>Required notification policy</strong><p>Security, access, assessment release and credential events may bypass optional preferences. Quiet hours and suppression safety still apply where policy permits.</p></section>
-          <output aria-live="polite">{message}</output>
-        </aside>
       </div>
+
+      <Drawer
+        open={panel === "preference"}
+        onClose={() => setPanel(null)}
+        title="Notification preferences"
+        description="Set topic and channel preferences without leaving the delivery register."
+        width="standard"
+      >
+        <form className="vz-communications-drawer-form" onSubmit={savePreference}>
+          <label>Topic<input name="topicKey" defaultValue="*" pattern="[a-z*][a-z0-9.*-]{0,119}" /></label>
+          <label>Channel<select name="channel"><option value="email">Email</option><option value="sms">SMS</option><option value="push">Push</option></select></label>
+          <label>Preference<select name="state"><option value="enabled">Enabled</option><option value="disabled">Disabled</option><option value="digest">Digest</option></select></label>
+          <label>Digest frequency<select name="digestFrequency"><option value="daily">Daily</option><option value="weekly">Weekly</option></select></label>
+          <div className="vz-form-row"><label>Quiet start<input name="quietStart" type="time" defaultValue="21:00" /></label><label>Quiet end<input name="quietEnd" type="time" defaultValue="07:00" /></label></div>
+          <input type="hidden" name="timezone" value="Africa/Johannesburg" />
+          <Button type="submit" loading={busy} disabled={busy}>Save preference</Button>
+        </form>
+      </Drawer>
+
+      <Drawer
+        open={panel === "template"}
+        onClose={() => setPanel(null)}
+        title="Create notification template"
+        description="Create a governed draft notification contract."
+        width="standard"
+      >
+        <form className="vz-communications-drawer-form" onSubmit={createTemplate}>
+          <label>Template key<input name="templateKey" required placeholder="learning.assignment-reminder" /></label>
+          <label>Display name<input name="displayName" required /></label>
+          <label>Topic key<input name="topicKey" required placeholder="learning.assignments" /></label>
+          <label>Policy<select name="policy"><option value="optional">Optional</option><option value="required">Required</option></select></label>
+          <fieldset><legend>Default channels</legend><label><input type="checkbox" name="channels" value="email" defaultChecked /> Email</label><label><input type="checkbox" name="channels" value="sms" /> SMS</label><label><input type="checkbox" name="channels" value="push" /> Push</label></fieldset>
+          <label>Subject<input name="subjectTemplate" /></label>
+          <label>Body<textarea name="bodyTemplate" required placeholder="Hello {{learnerName}}" /></label>
+          <label>Content type<select name="contentType"><option value="text/plain">Plain text</option><option value="text/html">HTML</option><option value="application/json">JSON</option></select></label>
+          <Button type="submit" loading={busy} disabled={busy}>Create draft</Button>
+        </form>
+      </Drawer>
+
+      <Drawer
+        open={panel === "sender"}
+        onClose={() => setPanel(null)}
+        title="Configure sender"
+        description="Create a pending sender identity for provider verification."
+        width="standard"
+      >
+        <form className="vz-communications-drawer-form" onSubmit={createSender}>
+          <label>Channel<select name="channel"><option value="email">Email</option><option value="sms">SMS</option><option value="push">Push</option></select></label>
+          <label>Provider key<input name="providerKey" required placeholder="http-email" /></label>
+          <label>Sender identity<input name="senderIdentity" required placeholder="notifications@example.edu" /></label>
+          <label>Reply to<input name="replyTo" type="email" /></label>
+          <label>Secret reference<input name="secretReference" required placeholder="arn:aws:secretsmanager:..." /></label>
+          <input type="hidden" name="region" value="af-south-1" />
+          <Button type="submit" loading={busy} disabled={busy}>Create pending sender</Button>
+        </form>
+      </Drawer>
     </section>
   );
 }
