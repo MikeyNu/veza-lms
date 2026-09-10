@@ -26,4 +26,14 @@ assert.match(
   /UNIQUE\s+NULLS\s+NOT\s+DISTINCT\s*\(\s*tenant_id\s*,\s*job_key\s*\)/i,
   "scheduled_jobs must use one canonical null-safe uniqueness constraint",
 );
-process.stdout.write(`Validated ${files.length} forward-only migrations and scheduled-job conflict targets.\n`);
+
+const runner = await readFile(new URL("../../apps/api/scripts/migrate.mjs", import.meta.url), "utf8");
+assert.match(runner, /pg_advisory_xact_lock/, "migration runner must serialize concurrent migrators");
+assert.match(runner, /checksum_sha256/, "migration ledger must store source checksums");
+assert.match(runner, /createHash\("sha256"\)/, "migration runner must calculate SHA-256 source checksums");
+assert.match(runner, /Applied migration \$\{filename\} is missing from the repository/, "migration runner must fail when an applied migration disappears");
+assert.match(runner, /does not match its recorded checksum/, "migration runner must fail on applied migration source drift");
+assert.match(runner, /ROLLBACK/, "migration runner must roll back the migration transaction on failure");
+assert.doesNotMatch(runner, /\u2014/u, "migration runner contains a prohibited em dash");
+
+process.stdout.write(`Validated ${files.length} forward-only migrations, scheduled-job conflict targets and migration-runner integrity controls.\n`);
