@@ -4,6 +4,10 @@ import { useRouter } from "next/navigation";
 import { useMemo, useState, type FormEvent } from "react";
 import type { CatalogueReferences } from "@veza/contracts";
 import type { AcademicEvidenceWorkspace } from "../../server/academic-evidence-api";
+import {
+  GovernedActionPanel,
+  useGovernedActionClose,
+} from "../../components/governed-operation";
 
 function value(row: Readonly<Record<string, unknown>>, key: string): string {
   const current = row[key];
@@ -26,6 +30,93 @@ async function mutate(operation: string, input: Record<string, unknown>) {
   return body;
 }
 
+function GroupMembershipAction({
+  institutionId,
+  workspace,
+  references,
+  onMessage,
+}: {
+  institutionId: string;
+  workspace: AcademicEvidenceWorkspace;
+  references: CatalogueReferences;
+  onMessage: (message: string) => void;
+}) {
+  const router = useRouter();
+  const closeAction = useGovernedActionClose();
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState("");
+  const [selectedGroupId, setSelectedGroupId] = useState(
+    workspace.assignmentGroups[0] ? value(workspace.assignmentGroups[0], "id") : "",
+  );
+  const selectedGroup = workspace.assignmentGroups.find((group) => value(group, "id") === selectedGroupId);
+  const currentMembers = useMemo(
+    () => new Set(records(selectedGroup ?? {}, "members").filter((member) => !value(member, "leftAt")).map((member) => value(member, "learnerPersonId"))),
+    [selectedGroup],
+  );
+
+  async function updateMembers(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const data = new FormData(form);
+    setBusy(true);
+    setMessage("");
+    try {
+      await mutate("assignment-group-members", {
+        institutionId,
+        groupId: selectedGroupId,
+        addLearnerPersonIds: data.getAll("addLearnerPersonIds").map(String),
+        removeLearnerPersonIds: data.getAll("removeLearnerPersonIds").map(String),
+        reason: String(data.get("reason")),
+      });
+      form.reset();
+      onMessage("Group membership updated");
+      closeAction?.();
+      router.refresh();
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Membership update failed");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <form className="vz-governance-form" onSubmit={updateMembers}>
+      <label>
+        Assignment group
+        <select value={selectedGroupId} onChange={(event) => setSelectedGroupId(event.target.value)} required>
+          <option value="">Select group</option>
+          {workspace.assignmentGroups.map((group) => (
+            <option key={value(group, "id")} value={value(group, "id")}>
+              {value(group, "name")} · {value(group, "assignmentTitle")}
+            </option>
+          ))}
+        </select>
+      </label>
+      <label>
+        Add learners
+        <select name="addLearnerPersonIds" multiple size={6}>
+          {references.eligibleLearners.filter((learner) => !currentMembers.has(learner.id)).map((learner) => (
+            <option key={learner.id} value={learner.id}>{learner.displayName}</option>
+          ))}
+        </select>
+      </label>
+      <label>
+        Remove learners
+        <select name="removeLearnerPersonIds" multiple size={6}>
+          {records(selectedGroup ?? {}, "members").filter((member) => !value(member, "leftAt")).map((member) => (
+            <option key={value(member, "learnerPersonId")} value={value(member, "learnerPersonId")}>
+              {value(member, "learnerName")}
+            </option>
+          ))}
+        </select>
+      </label>
+      <label>Reason<textarea name="reason" required minLength={10} /></label>
+      {message ? <p role="alert">{message}</p> : null}
+      <button disabled={busy || !selectedGroupId}>{busy ? "Applying..." : "Apply effective-dated change"}</button>
+    </form>
+  );
+}
+
 export function AssessmentFinalControls({
   institutionId,
   workspace,
@@ -39,43 +130,15 @@ export function AssessmentFinalControls({
 }) {
   const router = useRouter();
   const [message, setMessage] = useState("");
-  const [selectedGroupId, setSelectedGroupId] = useState(
-    workspace.assignmentGroups[0] ? value(workspace.assignmentGroups[0], "id") : "",
-  );
   const [selectedAttemptId, setSelectedAttemptId] = useState(
     workspace.submissions[0] ? value(workspace.submissions[0], "id") : "",
   );
   const [allocationId, setAllocationId] = useState("");
   const [markId, setMarkId] = useState("");
   const [markVersion, setMarkVersion] = useState(1);
-  const selectedGroup = workspace.assignmentGroups.find((group) => value(group, "id") === selectedGroupId);
-  const currentMembers = useMemo(
-    () => new Set(records(selectedGroup ?? {}, "members").filter((member) => !value(member, "leftAt")).map((member) => value(member, "learnerPersonId"))),
-    [selectedGroup],
-  );
   const markable = workspace.submissions.filter((submission) =>
     ["submitted", "accepted"].includes(value(submission, "status")),
   );
-
-  async function updateMembers(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const data = new FormData(event.currentTarget);
-    setMessage("Updating group membership...");
-    try {
-      await mutate("assignment-group-members", {
-        institutionId,
-        groupId: selectedGroupId,
-        addLearnerPersonIds: data.getAll("addLearnerPersonIds").map(String),
-        removeLearnerPersonIds: data.getAll("removeLearnerPersonIds").map(String),
-        reason: String(data.get("reason")),
-      });
-      setMessage("Group membership updated");
-      event.currentTarget.reset();
-      router.refresh();
-    } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Membership update failed");
-    }
-  }
 
   async function allocate(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -103,9 +166,7 @@ export function AssessmentFinalControls({
         attemptId: selectedAttemptId,
         markerAllocationId: allocationId,
         score: Number(data.get("score")),
-        rubricScores: {
-          overall: String(data.get("rubricSummary")),
-        },
+        rubricScores: { overall: String(data.get("rubricSummary")) },
         feedback: {
           learner: String(data.get("feedback")),
           privateMarkerNotes: String(data.get("privateNotes") || "") || undefined,
@@ -149,7 +210,7 @@ export function AssessmentFinalControls({
         </div>
         <strong>{message}</strong>
       </header>
-      <div className="vz-completion-grid">
+      <div className="vz-completion-grid vz-completion-grid--actions-on-demand">
         <section className="vz-record-surface">
           <header><div><p>ASSIGNMENT GROUPS</p><h3>Effective membership history</h3></div><span>{workspace.assignmentGroups.length}</span></header>
           {workspace.assignmentGroups.map((group) => (
@@ -166,17 +227,15 @@ export function AssessmentFinalControls({
             </article>
           ))}
         </section>
-        <aside className="vz-governance-rail">
-          <details className="vz-action-panel" open>
-            <summary>Change group membership<span aria-hidden="true">+</span></summary>
-            <form className="vz-governance-form" onSubmit={updateMembers}>
-              <label>Assignment group<select value={selectedGroupId} onChange={(event) => setSelectedGroupId(event.target.value)} required><option value="">Select group</option>{workspace.assignmentGroups.map((group) => <option key={value(group,"id")} value={value(group,"id")}>{value(group,"name")} · {value(group,"assignmentTitle")}</option>)}</select></label>
-              <label>Add learners<select name="addLearnerPersonIds" multiple size={6}>{references.eligibleLearners.filter((learner) => !currentMembers.has(learner.id)).map((learner) => <option key={learner.id} value={learner.id}>{learner.displayName}</option>)}</select></label>
-              <label>Remove learners<select name="removeLearnerPersonIds" multiple size={6}>{records(selectedGroup ?? {}, "members").filter((member) => !value(member,"leftAt")).map((member) => <option key={value(member,"learnerPersonId")} value={value(member,"learnerPersonId")}>{value(member,"learnerName")}</option>)}</select></label>
-              <label>Reason<textarea name="reason" required minLength={10} /></label>
-              <button disabled={!selectedGroupId}>Apply effective-dated change</button>
-            </form>
-          </details>
+        <aside className="vz-governance-rail vz-governance-rail--toolbar">
+          <GovernedActionPanel context="Assignment groups" title="Change group membership">
+            <GroupMembershipAction
+              institutionId={institutionId}
+              workspace={workspace}
+              references={references}
+              onMessage={setMessage}
+            />
+          </GovernedActionPanel>
         </aside>
       </div>
 
