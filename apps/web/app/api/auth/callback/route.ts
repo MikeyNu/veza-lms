@@ -17,6 +17,10 @@ function failed(request: NextRequest, reason: string): NextResponse {
   return response;
 }
 
+function canContinueWithoutMembership(returnTo: string): boolean {
+  return returnTo === "/invitation" || returnTo.startsWith("/invitation?");
+}
+
 export async function GET(request: NextRequest) {
   if (request.nextUrl.searchParams.has("error")) return failed(request, "provider_error");
   const code = request.nextUrl.searchParams.get("code");
@@ -28,7 +32,9 @@ export async function GET(request: NextRequest) {
     const completed = await completeAuthorization(webOidcConfig(), { code, state, transactionCookie });
     const workspaces = await listWorkspaceOptions(completed.session.accessToken);
     const destination = workspaces.length === 0
-      ? "/access-pending"
+      ? canContinueWithoutMembership(completed.returnTo)
+        ? completed.returnTo
+        : "/access-pending"
       : workspaces.length === 1
         ? completed.returnTo
         : "/select-workspace";
