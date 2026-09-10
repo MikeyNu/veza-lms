@@ -76,3 +76,16 @@ test("new invitations use a transient shared-system workflow instead of permanen
   assert.match(styles, /\.access-invitation-grid \{ margin-top: 1rem; \}/);
   assert.match(styles, /\.access-invite-form/);
 });
+
+test("invitation choices are constrained by acting role and selected scope before submission", async () => {
+  const workspace = await source("../src/features/admin/access-administration-workspace.tsx");
+  assert.match(workspace, /tenantInviteRoles/);
+  assert.match(workspace, /tenantOwnerInstitutionInviteRoles/);
+  assert.match(workspace, /institutionAdminInviteRoles/);
+  assert.match(workspace, /inviteRolesFor/);
+  assert.match(workspace, /changeScope/);
+  assert.match(workspace, /guardian-sponsor/);
+  assert.match(workspace, /learner/);
+  assert.match(workspace, /Choose a specific institution for least-privilege access/);
+  assert.match(workspace, /The API still rechecks authorization/);
+});
