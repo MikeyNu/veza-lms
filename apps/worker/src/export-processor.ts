@@ -112,12 +112,12 @@ export class ExportProcessor {
     private readonly retryMaximumSeconds: number,
   ) {}
 
-  private async claim(): Promise<readonly ExportJobRow[]> {
+  private async claimOne(): Promise<ExportJobRow | undefined> {
     const result = await this.pool.query<ExportJobRow>(
       "SELECT * FROM app.claim_export_jobs($1,$2,$3)",
-      [this.workerId, this.batchSize, this.leaseSeconds],
+      [this.workerId, 1, this.leaseSeconds],
     );
-    return result.rows;
+    return result.rows[0];
   }
 
   private async payload(exportId: string): Promise<ExportDocument> {
@@ -193,10 +193,13 @@ export class ExportProcessor {
     readonly completed: number;
     readonly failed: number;
   }> {
-    const jobs = await this.claim();
+    let claimed = 0;
     let completed = 0;
     let failed = 0;
-    for (const job of jobs) {
+    for (let index = 0; index < this.batchSize; index += 1) {
+      const job = await this.claimOne();
+      if (!job) break;
+      claimed += 1;
       try {
         await this.process(job);
         completed += 1;
@@ -205,7 +208,7 @@ export class ExportProcessor {
         failed += 1;
       }
     }
-    return { claimed: jobs.length, completed, failed };
+    return { claimed, completed, failed };
   }
 }
 
