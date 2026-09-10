@@ -61,6 +61,20 @@ test("learner home keeps one visually dominant next action and concrete timing c
   assert.match(styles, /@media \(max-width: 1040px\)[\s\S]*\.priorityGrid[\s\S]*grid-template-columns: minmax\(0, 1fr\)/);
 });
 
+test("People actions respect role boundaries and bulk onboarding uses progressive disclosure", () => {
+  const peoplePage = read("apps/web/app/people/page.tsx");
+  const peopleWorkspace = read("apps/web/src/features/people/people-workspace.tsx");
+
+  assert.match(peoplePage, /membershipRoles\.has\("tenant-owner"\)/);
+  assert.match(peoplePage, /Invite tenant owner/);
+  assert.doesNotMatch(peoplePage, /Invite workspace member/);
+  assert.match(peopleWorkspace, /canManageDirectory/);
+  assert.match(peopleWorkspace, /Bulk import/);
+  assert.match(peopleWorkspace, /role="dialog"[^\n]+aria-labelledby="people-import-title"/);
+  assert.doesNotMatch(peopleWorkspace, /<section className="people-import">/);
+  assert.match(peopleWorkspace, /canManageDirectory \? <PeopleBulkActions/);
+});
+
 test("UX integrity sources contain no prohibited em dash characters", () => {
   const audited = [
     "apps/web/src/features/workspace/navigation.ts",
@@ -70,6 +84,9 @@ test("UX integrity sources contain no prohibited em dash characters", () => {
     "apps/web/styles/calendar-reference.css",
     "apps/web/src/features/analytics/analytics-reference-workspace.tsx",
     "apps/web/styles/analytics-reference.css",
+    "apps/web/app/people/page.tsx",
+    "apps/web/src/features/people/people-workspace.tsx",
+    "apps/web/styles/people-workspace.css",
   ];
 
   for (const file of audited) {
