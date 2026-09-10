@@ -53,7 +53,26 @@ test("access workspace completes membership, role and invitation journeys access
   assert.match(workspace, /className="access-member-select"/);
   assert.match(workspace, /aria-pressed/);
   assert.doesNotMatch(workspace, /<tr[^>]+onClick=/);
-  assert.match(styles, /grid-template-columns: minmax\(0, 1fr\) minmax\(20rem, 25rem\)/);
+  assert.match(styles, /\.access-layout \{[^}]*grid-template-columns: minmax\(0, 1fr\) minmax\(20rem, 25rem\)/s);
   assert.match(styles, /\.access-member-select:focus-visible/);
   assert.match(styles, /@media \(max-width: 760px\)/);
+});
+
+test("new invitations use a transient shared-system workflow instead of permanent page real estate", async () => {
+  const [workspace, styles] = await Promise.all([
+    source("../src/features/admin/access-administration-workspace.tsx"),
+    source("../styles/access-administration.css"),
+  ]);
+
+  assert.match(workspace, /Drawer/);
+  assert.match(workspace, /inviteOpen/);
+  assert.match(workspace, /Invite access/);
+  assert.match(workspace, /ValidationSummary/);
+  assert.match(workspace, /<Field/);
+  assert.match(workspace, /<TextInput/);
+  assert.match(workspace, /<Select/);
+  assert.match(workspace, /loading=\{state === "saving"\}/);
+  assert.doesNotMatch(workspace, /className="access-invite-panel"/);
+  assert.match(styles, /\.access-invitation-grid \{ margin-top: 1rem; \}/);
+  assert.match(styles, /\.access-invite-form/);
 });
